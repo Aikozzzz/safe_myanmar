@@ -291,8 +291,9 @@ The final stack can be adjusted according to course requirements.
 - PostgreSQL 16
 - Docker Compose for the API and development database
 
-The current backend increment provides the application foundation and health endpoints.
-Authentication, mapping, AI, alerts, and other disaster-response APIs remain future work.
+The current backend increment provides health endpoints and versioned live USGS
+earthquake information for the Myanmar coverage bounds. Authentication, mapping,
+AI, and other disaster-response APIs remain future work.
 
 ### Cloud Services
 
@@ -500,6 +501,19 @@ uvicorn app.main:app --reload
 Set a usable `DATABASE_URL` in `backend/.env` before starting the API. The API
 is available at `http://localhost:8000`; liveness and database readiness are
 reported by `/health/live` and `/health/ready`.
+
+Live earthquake information is available from:
+
+```text
+GET /api/v1/alerts
+GET /api/v1/alerts/{alert_id}
+```
+
+The list endpoint refreshes from the USGS `all_day.geojson` snapshot when due,
+reports whether the last successful refresh is current or stale, and returns a
+safe `503 live_data_unavailable` response if no refresh has ever succeeded. Alert
+IDs use the `usgs:<provider_event_id>` format. Detail reads use the persisted
+snapshot and do not initiate a provider refresh.
 
 Alternatively, start the API and PostgreSQL 16 from the repository root:
 

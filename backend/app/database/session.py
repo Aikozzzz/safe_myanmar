@@ -1,7 +1,6 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.config import Settings
 
-engine = create_engine(Settings().database_url)
-SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+def create_session_factory(engine: Engine) -> sessionmaker[Session]:
+    return sessionmaker(bind=engine, expire_on_commit=False)

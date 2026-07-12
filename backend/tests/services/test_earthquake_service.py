@@ -245,6 +245,28 @@ def test_valid_empty_feed_records_success(database_session):
     assert result.data_status == "current"
 
 
+def test_successful_snapshot_removes_absent_usgs_events(database_session):
+    retained = event("retained")
+    absent = event("absent")
+    seed_success(database_session, NOW - timedelta(minutes=1), retained, absent)
+    client = FakeClient([success_outcome([retained])])
+
+    result = service(client).list_alerts(database_session, NOW)
+
+    assert [item.id for item in result.items] == [retained.id]
+    assert EarthquakeRepository().get(database_session, absent.id) is None
+
+
+def test_valid_empty_snapshot_removes_prior_usgs_events(database_session):
+    prior = event("prior")
+    seed_success(database_session, NOW - timedelta(minutes=1), prior)
+
+    result = service(FakeClient([success_outcome()])).list_alerts(database_session, NOW)
+
+    assert result.items == ()
+    assert EarthquakeRepository().get(database_session, prior.id) is None
+
+
 @pytest.mark.parametrize(
     "code", ["provider_timeout", "provider_unavailable", "invalid_provider_payload"]
 )

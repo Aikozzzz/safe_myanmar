@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from app.api.health import get_readiness_checker
 
@@ -35,6 +36,14 @@ def test_readiness_returns_ok_when_database_is_available(app, client):
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_readiness_reuses_application_engine(app):
+    request = Request({"type": "http", "app": app})
+
+    checker = get_readiness_checker(request)
+
+    assert checker.engine is app.state.engine
 
 
 def test_readiness_uses_safe_error_when_database_is_unavailable(app, client):

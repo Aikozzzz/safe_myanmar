@@ -165,6 +165,36 @@ def test_batch_upsert(database_session):
     }
 
 
+def test_reconcile_snapshot_removes_only_absent_provider_events(database_session):
+    repository = EarthquakeRepository()
+    retained = event("retained")
+    removed = event("removed")
+    future_provider = replace(
+        event("future"),
+        id="future:future",
+        provider="future",
+    )
+    database_session.execute(
+        insert(Earthquake),
+        [asdict(retained), asdict(removed), asdict(future_provider)],
+    )
+
+    repository.delete_absent(database_session, "usgs", {"retained"})
+
+    assert repository.get(database_session, retained.id) is not None
+    assert repository.get(database_session, removed.id) is None
+    assert repository.get(database_session, future_provider.id) is not None
+
+
+def test_reconcile_empty_snapshot_removes_all_provider_events(database_session):
+    repository = EarthquakeRepository()
+    repository.upsert_many(database_session, [event("one"), event("two")])
+
+    repository.delete_absent(database_session, "usgs", set())
+
+    assert repository.list_recent(database_session) == []
+
+
 def test_unique_provider_event_constraint(database_session):
     first = event()
     duplicate = replace(first, id="usgs:different-id")

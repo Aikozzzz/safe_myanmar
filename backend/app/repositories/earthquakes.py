@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -76,6 +76,20 @@ class EarthquakeRepository:
 
     def get(self, session: Session, event_id: str) -> Earthquake | None:
         return session.get(Earthquake, event_id)
+
+    def delete_absent(
+        self,
+        session: Session,
+        provider: str,
+        retained_provider_event_ids: set[str],
+    ) -> None:
+        statement = delete(Earthquake).where(Earthquake.provider == provider)
+        if retained_provider_event_ids:
+            statement = statement.where(
+                Earthquake.provider_event_id.not_in(retained_provider_event_ids)
+            )
+        session.execute(statement)
+        session.flush()
 
 
 class ProviderSyncRepository:

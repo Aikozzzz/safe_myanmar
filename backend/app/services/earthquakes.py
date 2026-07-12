@@ -74,6 +74,9 @@ class EarthquakeService:
         )
         return AlertCollection(items, data_status, successful_at)
 
+    def get_alert(self, session: Session, alert_id: str) -> Earthquake | None:
+        return self._earthquakes.get(session, alert_id)
+
     def _refresh(self, session: Session, attempted_at: datetime) -> None:
         self._provider_sync.record_attempt(session, PROVIDER, attempted_at, None)
         try:
@@ -94,6 +97,11 @@ class EarthquakeService:
             return
 
         self._earthquakes.upsert_many(session, result.events)
+        self._earthquakes.delete_absent(
+            session,
+            PROVIDER,
+            {event.provider_event_id for event in result.events},
+        )
         self._provider_sync.record_success(
             session,
             PROVIDER,

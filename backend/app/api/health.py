@@ -1,11 +1,9 @@
-from functools import lru_cache
 from typing import Protocol
 
-from fastapi import APIRouter, Depends
-from sqlalchemy import create_engine, text
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-from app.core.config import Settings
 from app.core.errors import ApiError
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -24,10 +22,8 @@ class DatabaseReadinessChecker:
             connection.execute(text("SELECT 1"))
 
 
-@lru_cache
-def get_readiness_checker() -> ReadinessChecker:
-    settings = Settings()
-    return DatabaseReadinessChecker(create_engine(settings.database_url))
+def get_readiness_checker(request: Request) -> ReadinessChecker:
+    return DatabaseReadinessChecker(request.app.state.engine)
 
 
 @router.get("/live")
