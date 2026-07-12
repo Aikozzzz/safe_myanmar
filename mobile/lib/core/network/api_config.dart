@@ -11,7 +11,13 @@ final class ApiConfig {
         'API base URL is required. Set --dart-define=API_BASE_URL=<url>.',
       );
     }
-    return ApiConfig(baseUri: Uri.parse(value));
+    try {
+      return ApiConfig(baseUri: Uri.parse(value));
+    } on FormatException {
+      throw _invalidConfiguration();
+    } on ArgumentError {
+      throw _invalidConfiguration();
+    }
   }
 
   final Uri baseUri;
@@ -34,8 +40,13 @@ final class ApiConfig {
         uri.userInfo.isNotEmpty ||
         uri.hasQuery ||
         uri.hasFragment) {
-      throw ArgumentError.value(uri, 'baseUri', 'Unsafe API base URI');
+      throw _invalidConfiguration();
     }
     return uri;
   }
 }
+
+ArgumentError _invalidConfiguration() => ArgumentError(
+  'Invalid API_BASE_URL. Use HTTPS, or HTTP only for localhost, 127.0.0.1, '
+  'or 10.0.2.2, without credentials, query parameters, or fragments.',
+);

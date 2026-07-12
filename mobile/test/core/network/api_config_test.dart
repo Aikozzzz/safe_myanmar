@@ -29,17 +29,75 @@ void main() {
       }
     });
 
-    test('rejects unsafe or ambiguous base URIs', () {
-      for (final value in <String>[
-        'http://api.example.com',
-        'ftp://api.example.com',
-        'https://user:pass@example.com',
-        'https://example.com?token=secret',
-        'https://example.com#fragment',
-        'https:///missing-host',
-      ]) {
-        expect(() => ApiConfig.fromRaw(value), throwsArgumentError);
+    test('sanitizes every invalid raw URI failure', () {
+      final cases = <String, List<String>>{
+        'http://api.example.com/private': ['api.example.com', '/private'],
+        'ftp://files.example.com/private': ['files.example.com', '/private'],
+        'https://review-user:review-password@example.com': [
+          'review-user',
+          'review-password',
+          'example.com',
+        ],
+        'https://example.com?api_key=query-secret': [
+          'example.com',
+          'api_key',
+          'query-secret',
+        ],
+        'https://example.com#fragment-secret': [
+          'example.com',
+          'fragment-secret',
+        ],
+        'https:///missing-host-secret': ['missing-host-secret'],
+        'http://[malformed-secret': ['malformed-secret'],
+      };
+
+      for (final entry in cases.entries) {
+        expect(
+          () => ApiConfig.fromRaw(entry.key),
+          throwsA(
+            isA<ArgumentError>()
+                .having(
+                  (error) => error.toString(),
+                  'guidance',
+                  contains('API_BASE_URL'),
+                )
+                .having(
+                  (error) => error.toString(),
+                  'sanitized details',
+                  predicate<String>(
+                    (message) =>
+                        !message.contains(entry.key) &&
+                        entry.value.every(
+                          (secret) => !message.contains(secret),
+                        ),
+                    'excludes the raw URI and all sensitive components',
+                  ),
+                ),
+          ),
+        );
       }
+    });
+
+    test('sanitizes direct constructor validation failures', () {
+      const username = 'direct-user';
+      const password = 'direct-password';
+      final unsafe = Uri.parse('https://$username:$password@example.com');
+
+      expect(
+        () => ApiConfig(baseUri: unsafe),
+        throwsA(
+          isA<ArgumentError>().having(
+            (error) => error.toString(),
+            'sanitized details',
+            allOf(
+              contains('API_BASE_URL'),
+              isNot(contains(username)),
+              isNot(contains(password)),
+              isNot(contains(unsafe.toString())),
+            ),
+          ),
+        ),
+      );
     });
 
     test('resolves alerts endpoint with and without a base path', () {

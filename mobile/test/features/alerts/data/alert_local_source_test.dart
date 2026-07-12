@@ -134,9 +134,16 @@ void main() {
   });
 
   test('rolls back items and metadata when an item operation fails', () async {
-    final original = _snapshot([earthquakeFixture()]);
+    final originalItem = earthquakeFixture();
+    final original = _snapshot([originalItem]);
     final originalCachedAt = DateTime.utc(2026, 7, 13);
     await source.replaceSnapshot(original, originalCachedAt);
+    final updatedBeforeFailure = earthquakeFixture(
+      title: 'must be rolled back',
+      providerUpdatedAt: originalItem.providerUpdatedAt.add(
+        const Duration(microseconds: 1),
+      ),
+    );
     final duplicateProviderId = earthquakeFixture(
       id: 'usgs:different-id',
       title: 'conflict',
@@ -144,14 +151,15 @@ void main() {
 
     await expectLater(
       source.replaceSnapshot(
-        _snapshot([earthquakeFixture(), duplicateProviderId]),
+        _snapshot([updatedBeforeFailure, duplicateProviderId]),
         DateTime.utc(2026, 7, 14),
       ),
       throwsA(anything),
     );
 
     final result = await source.readSnapshot();
-    expect(result!.items, [earthquakeFixture()]);
+    expect(result!.items, [originalItem]);
+    expect(result.items.single.title, isNot(updatedBeforeFailure.title));
     expect(result.lastSuccessfulRefreshAt, original.lastSuccessfulRefreshAt);
     expect(result.cachedAt, originalCachedAt);
   });

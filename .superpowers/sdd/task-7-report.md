@@ -59,3 +59,15 @@ The installed build_runner reports that `--delete-conflicting-outputs` has been 
 
 - The verification command retained from the brief emits a non-failing warning because the installed build_runner version removed `--delete-conflicting-outputs`.
 - Repository coordination is intentionally deferred to a later task, so these data sources are not yet composed into the running app.
+
+## Review Fix Evidence
+
+- Configuration RED: focused tests failed because invalid raw and direct-constructor URI errors did not contain safe `API_BASE_URL` guidance and validation used exception formatting that could expose rejected values.
+- Configuration GREEN: all parse and validation failures now use one sanitized `ArgumentError` message. Tests cover credentials, query values, fragments, unsafe schemes/hosts, missing hosts, malformed raw URIs, and direct constructor validation while preserving accepted URLs.
+- Drift rollback proof: the transaction test now materially updates an existing row with a newer provider timestamp before a later item violates provider/event uniqueness. It asserts that the row update and replacement metadata are both rolled back. No production Drift behavior changed.
+- `flutter test test/core/network/api_config_test.dart test/features/alerts/data/alert_local_source_test.dart`: passed, 15 tests.
+- `flutter test test/features/alerts/data test/core/network`: passed, 64 tests.
+- `dart format --output=none --set-exit-if-changed .`: passed, 20 files checked and 0 changed.
+- `flutter analyze`: passed with no issues.
+- `flutter test`: passed, 89 tests.
+- Review-fix commit: `fix: sanitize API configuration failures`.
