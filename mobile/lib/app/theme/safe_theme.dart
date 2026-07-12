@@ -49,11 +49,18 @@ abstract final class SafeTheme {
     const buttonStyle = ButtonStyle(
       minimumSize: WidgetStatePropertyAll(Size(48, 48)),
     );
+    final typography = Typography.material2021(
+      platform: null,
+      colorScheme: colorScheme,
+      black: _systemTextTheme(onSurface),
+      white: _systemTextTheme(surface),
+    );
 
     return ThemeData(
       brightness: brightness,
       useMaterial3: true,
       colorScheme: colorScheme,
+      typography: typography,
       scaffoldBackgroundColor: surface,
       canvasColor: surface,
       materialTapTargetSize: MaterialTapTargetSize.padded,
@@ -61,6 +68,27 @@ abstract final class SafeTheme {
       filledButtonTheme: const FilledButtonThemeData(style: buttonStyle),
       outlinedButtonTheme: const OutlinedButtonThemeData(style: buttonStyle),
       textButtonTheme: const TextButtonThemeData(style: buttonStyle),
+    );
+  }
+
+  static TextTheme _systemTextTheme(Color color) {
+    final style = TextStyle(color: color, decoration: TextDecoration.none);
+    return TextTheme(
+      displayLarge: style,
+      displayMedium: style,
+      displaySmall: style,
+      headlineLarge: style,
+      headlineMedium: style,
+      headlineSmall: style,
+      titleLarge: style,
+      titleMedium: style,
+      titleSmall: style,
+      bodyLarge: style,
+      bodyMedium: style,
+      bodySmall: style,
+      labelLarge: style,
+      labelMedium: style,
+      labelSmall: style,
     );
   }
 }
