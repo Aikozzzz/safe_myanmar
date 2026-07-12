@@ -286,9 +286,9 @@ The final stack can be adjusted according to course requirements.
 - Firebase Cloud Messaging for notifications
 
 The current Android-only mobile foundation includes generated localization,
-accessible light and dark themes, and the earthquake domain/repository contracts.
-Networking, persistence tables, maps, location, and emergency feature screens remain
-future mobile increments.
+accessible light and dark themes, earthquake domain contracts, strict alert API
+decoding, and a migration-backed Drift cache. Repository coordination, maps,
+location, and emergency feature screens remain future mobile increments.
 
 ### Backend
 
@@ -474,8 +474,12 @@ cd safemyanmar
 ```bash
 cd mobile
 flutter pub get
-flutter run
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
+
+`API_BASE_URL` is required when the mobile alert client is composed. HTTPS is
+accepted for deployed APIs; HTTP is restricted to localhost, `127.0.0.1`, and
+the Android emulator host `10.0.2.2` for development.
 
 ### Run the Backend
 
