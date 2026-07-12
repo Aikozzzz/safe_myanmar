@@ -277,12 +277,18 @@ The final stack can be adjusted according to course requirements.
 
 - **Flutter**
 - Dart
-- Material Design
-- Provider, Riverpod, or BLoC for state management
-- SQLite, Hive, or Isar for offline storage
+- Material 3
+- Riverpod for state management
+- go_router for navigation
+- Drift with SQLite for offline storage
 - Google Maps SDK or OpenStreetMap
 - Geolocator for GPS
 - Firebase Cloud Messaging for notifications
+
+The current Android-only mobile foundation includes generated localization,
+accessible light and dark themes, and the earthquake domain/repository contracts.
+Networking, persistence tables, maps, location, and emergency feature screens remain
+future mobile increments.
 
 ### Backend
 

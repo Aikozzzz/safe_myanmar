@@ -1,0 +1,8 @@
+{
+  "@@locale": "en",
+  "appName": "SafeMyanmar",
+  "earthquakeInformation": "Earthquake information",
+  "dataSourceUsGS": "Source: USGS",
+  "preliminaryNotice": "Preliminary earthquake values may change.",
+  "loadingEarthquakes": "Updating earthquake information"
+}
