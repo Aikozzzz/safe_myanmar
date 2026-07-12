@@ -2,6 +2,7 @@ import copy
 import json
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
+from typing import cast, get_type_hints
 
 import pytest
 
@@ -38,6 +39,10 @@ def feature(**overrides):
 
 def feed(*features):
     return {"type": "FeatureCollection", "features": list(features)}
+
+
+def test_normalize_feed_preserves_payload_annotation_contract():
+    assert get_type_hints(normalize_feed)["payload"] == dict[str, object]
 
 
 def test_valid_feature_maps_exact_normalized_contract():
@@ -135,7 +140,7 @@ def test_empty_valid_feed_succeeds():
 )
 def test_invalid_top_level_payload_raises(payload):
     with pytest.raises(InvalidProviderPayload):
-        normalize_feed(payload, RETRIEVED_AT)
+        normalize_feed(cast(dict[str, object], payload), RETRIEVED_AT)
 
 
 def test_usgs_subdomain_source_url_is_accepted():
