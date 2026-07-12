@@ -106,18 +106,20 @@ class ProviderSyncRepository:
         session: Session,
         provider: str,
         succeeded_at: datetime,
+        attempted_at: datetime | None = None,
     ) -> ProviderSync:
+        attempted_at = attempted_at or succeeded_at
         record = self.get(session, provider)
         if record is None:
             record = ProviderSync(
                 provider=provider,
-                last_attempt_at=succeeded_at,
+                last_attempt_at=attempted_at,
                 last_successful_refresh_at=succeeded_at,
                 last_error_code=None,
             )
             session.add(record)
         else:
-            record.last_attempt_at = succeeded_at
+            record.last_attempt_at = attempted_at
             record.last_successful_refresh_at = succeeded_at
             record.last_error_code = None
         session.flush()
