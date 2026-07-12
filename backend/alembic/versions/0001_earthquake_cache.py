@@ -77,10 +77,42 @@ def upgrade() -> None:
             server_default=sa.func.now(),
         ),
     )
+    op.execute(
+        """
+        CREATE FUNCTION set_updated_at()
+        RETURNS trigger
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            NEW.updated_at = clock_timestamp();
+            RETURN NEW;
+        END;
+        $$
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER trg_earthquakes_set_updated_at
+        BEFORE UPDATE ON earthquakes
+        FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER trg_provider_sync_set_updated_at
+        BEFORE UPDATE ON provider_sync
+        FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+        """
+    )
 
 
 def downgrade() -> None:
+    op.execute(
+        "DROP TRIGGER IF EXISTS trg_provider_sync_set_updated_at ON provider_sync"
+    )
+    op.execute("DROP TRIGGER IF EXISTS trg_earthquakes_set_updated_at ON earthquakes")
     op.drop_table("provider_sync")
     op.drop_index("ix_earthquakes_provider_updated_at", table_name="earthquakes")
     op.drop_index("ix_earthquakes_event_at", table_name="earthquakes")
     op.drop_table("earthquakes")
+    op.execute("DROP FUNCTION IF EXISTS set_updated_at()")

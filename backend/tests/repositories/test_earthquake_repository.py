@@ -2,10 +2,11 @@ from dataclasses import asdict, replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import insert
+from sqlalchemy import insert, text
 from sqlalchemy.exc import IntegrityError
 
 from app.models.earthquake import Earthquake
+from app.models.provider_sync import ProviderSync
 from app.repositories.earthquakes import EarthquakeRepository, ProviderSyncRepository
 from app.schemas.earthquakes import NormalizedEarthquake
 
@@ -246,3 +247,76 @@ def test_repository_methods_do_not_commit(database_session, monkeypatch):
     sync.record_attempt(database_session, "usgs", NOW, None)
     sync.record_success(database_session, "usgs", NOW)
     sync.get(database_session, "usgs")
+
+
+def test_direct_sql_updates_advance_earthquake_updated_at_repeatedly(
+    database_session,
+):
+    repository = EarthquakeRepository()
+    earthquake = event()
+    repository.upsert_many(database_session, [earthquake])
+    original = repository.get(database_session, earthquake.id)
+    assert original is not None
+    original_updated_at = original.updated_at
+
+    database_session.execute(
+        text("UPDATE earthquakes SET title = :title WHERE id = :id"),
+        {"title": "First direct update", "id": earthquake.id},
+    )
+    first_updated_at = database_session.execute(
+        text("SELECT updated_at FROM earthquakes WHERE id = :id"),
+        {"id": earthquake.id},
+    ).scalar_one()
+    database_session.execute(
+        text("UPDATE earthquakes SET title = :title WHERE id = :id"),
+        {"title": "Second direct update", "id": earthquake.id},
+    )
+    second_updated_at = database_session.execute(
+        text("SELECT updated_at FROM earthquakes WHERE id = :id"),
+        {"id": earthquake.id},
+    ).scalar_one()
+
+    assert first_updated_at > original_updated_at
+    assert second_updated_at > first_updated_at
+
+
+def test_direct_sql_updates_advance_provider_sync_updated_at_repeatedly(
+    database_session,
+):
+    repository = ProviderSyncRepository()
+    provider_sync = repository.record_attempt(database_session, "usgs", NOW, None)
+    original_updated_at = provider_sync.updated_at
+
+    database_session.execute(
+        text(
+            "UPDATE provider_sync "
+            "SET last_error_code = :error_code WHERE provider = :provider"
+        ),
+        {"error_code": "first_error", "provider": "usgs"},
+    )
+    first_updated_at = database_session.execute(
+        text("SELECT updated_at FROM provider_sync WHERE provider = :provider"),
+        {"provider": "usgs"},
+    ).scalar_one()
+    database_session.execute(
+        text(
+            "UPDATE provider_sync "
+            "SET last_error_code = :error_code WHERE provider = :provider"
+        ),
+        {"error_code": "second_error", "provider": "usgs"},
+    )
+    second_updated_at = database_session.execute(
+        text("SELECT updated_at FROM provider_sync WHERE provider = :provider"),
+        {"provider": "usgs"},
+    ).scalar_one()
+
+    assert first_updated_at > original_updated_at
+    assert second_updated_at > first_updated_at
+
+
+@pytest.mark.parametrize("model", [Earthquake, ProviderSync])
+def test_updated_at_metadata_declares_server_side_update_generation(model):
+    updated_at = model.__table__.c.updated_at
+
+    assert updated_at.onupdate is None
+    assert updated_at.server_onupdate is not None

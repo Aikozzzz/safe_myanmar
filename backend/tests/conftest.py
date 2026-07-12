@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +12,8 @@ os.environ.setdefault(
 )
 
 from app.main import create_app  # noqa: E402
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="session")
@@ -33,7 +36,7 @@ def database_session(test_database_url: str):
 
     from alembic import command
 
-    config = Config("alembic.ini")
+    config = Config(str(BACKEND_DIR / "alembic.ini"))
     config.set_main_option("sqlalchemy.url", test_database_url)
     command.upgrade(config, "head")
 

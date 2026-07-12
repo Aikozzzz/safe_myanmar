@@ -4,6 +4,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Double,
+    FetchedValue,
     Integer,
     String,
     Text,
@@ -60,5 +61,5 @@ class Earthquake(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        onupdate=func.now(),
+        server_onupdate=FetchedValue(),
     )

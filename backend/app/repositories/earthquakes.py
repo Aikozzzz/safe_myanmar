@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -59,10 +59,7 @@ class EarthquakeRepository:
         )
         statement = statement.on_conflict_do_update(
             constraint="uq_earthquakes_provider_event",
-            set_={
-                **{column: getattr(excluded, column) for column in mutable_columns},
-                "updated_at": func.clock_timestamp(),
-            },
+            set_={column: getattr(excluded, column) for column in mutable_columns},
             where=excluded.provider_updated_at > Earthquake.provider_updated_at,
         )
         session.execute(statement)
