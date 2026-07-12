@@ -17,13 +17,13 @@ class InvalidProviderPayload(ValueError):
     pass
 
 
-def normalize_feed(
-    payload: dict[str, object], retrieved_at: datetime
-) -> NormalizationResult:
+def normalize_feed(payload: object, retrieved_at: datetime) -> NormalizationResult:
     if retrieved_at.tzinfo is None or retrieved_at.utcoffset() is None:
         raise InvalidProviderPayload("retrieved_at must be timezone-aware")
-    if payload.get("type") != "FeatureCollection" or not isinstance(
-        payload.get("features"), list
+    if (
+        not isinstance(payload, dict)
+        or payload.get("type") != "FeatureCollection"
+        or not isinstance(payload.get("features"), list)
     ):
         raise InvalidProviderPayload("invalid USGS feature collection")
 

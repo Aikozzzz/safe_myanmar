@@ -123,6 +123,11 @@ def test_empty_valid_feed_succeeds():
 @pytest.mark.parametrize(
     "payload",
     [
+        [],
+        None,
+        "FeatureCollection",
+        42,
+        True,
         {},
         {"type": "Feature", "features": []},
         {"type": "FeatureCollection", "features": {}},
@@ -131,6 +136,17 @@ def test_empty_valid_feed_succeeds():
 def test_invalid_top_level_payload_raises(payload):
     with pytest.raises(InvalidProviderPayload):
         normalize_feed(payload, RETRIEVED_AT)
+
+
+def test_usgs_subdomain_source_url_is_accepted():
+    earthquake = feature()
+    earthquake["properties"]["url"] = "https://example.earthquake.usgs.gov/event/test"
+
+    result = normalize_feed(feed(earthquake), RETRIEVED_AT)
+
+    assert result.events[0].source_url == (
+        "https://example.earthquake.usgs.gov/event/test"
+    )
 
 
 def test_naive_retrieved_at_makes_top_level_call_invalid():
