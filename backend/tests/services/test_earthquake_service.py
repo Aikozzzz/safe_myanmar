@@ -221,6 +221,18 @@ def test_attempt_under_60_seconds_skips_provider(database_session):
     assert result.data_status == "current"
 
 
+def test_list_and_detail_exclude_future_provider_rows(database_session):
+    usgs = event("usgs-event")
+    future = event("future-event", id="future:future-event", provider="future")
+    seed_success(database_session, NOW, usgs, future)
+    earthquake_service = service(FakeClient([]))
+
+    result = earthquake_service.list_alerts(database_session, NOW)
+
+    assert [item.id for item in result.items] == [usgs.id]
+    assert earthquake_service.get_alert(database_session, future.id) is None
+
+
 def test_attempt_at_exactly_60_seconds_refreshes(database_session):
     seed_success(database_session, NOW - timedelta(seconds=60))
     client = FakeClient([success_outcome(retrieved_at=NOW + timedelta(seconds=1))])
@@ -254,7 +266,7 @@ def test_successful_snapshot_removes_absent_usgs_events(database_session):
     result = service(client).list_alerts(database_session, NOW)
 
     assert [item.id for item in result.items] == [retained.id]
-    assert EarthquakeRepository().get(database_session, absent.id) is None
+    assert EarthquakeRepository().get(database_session, "usgs", absent.id) is None
 
 
 def test_valid_empty_snapshot_removes_prior_usgs_events(database_session):
@@ -264,7 +276,7 @@ def test_valid_empty_snapshot_removes_prior_usgs_events(database_session):
     result = service(FakeClient([success_outcome()])).list_alerts(database_session, NOW)
 
     assert result.items == ()
-    assert EarthquakeRepository().get(database_session, prior.id) is None
+    assert EarthquakeRepository().get(database_session, "usgs", prior.id) is None
 
 
 @pytest.mark.parametrize(
@@ -341,7 +353,7 @@ def test_failure_never_deletes_events_or_changes_success_time(database_session):
 
     service(client).list_alerts(database_session, NOW)
 
-    assert EarthquakeRepository().get(database_session, expected.id) is not None
+    assert EarthquakeRepository().get(database_session, "usgs", expected.id) is not None
     sync = ProviderSyncRepository().get(database_session, "usgs")
     assert sync is not None
     assert sync.last_successful_refresh_at == successful_at

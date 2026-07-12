@@ -1,11 +1,13 @@
 from collections.abc import Iterator
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
+from unittest.mock import Mock
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, delete
 from sqlalchemy.orm import Session, sessionmaker
+from starlette.requests import Request
 
 from app.api.v1.alerts import get_clock, get_earthquake_service, get_session
 from app.main import create_app
@@ -163,7 +165,7 @@ def test_list_populated_has_exact_public_item_and_status(
     expected = event(review_status=None)
     persist_event(api_session_factory, expected)
     with api_session_factory() as session:
-        stored = EarthquakeRepository().get(session, expected.id)
+        stored = EarthquakeRepository().get(session, "usgs", expected.id)
         assert stored is not None
         stub = StubService(AlertCollection((stored,), status, NOW))
         api_app.dependency_overrides[get_earthquake_service] = lambda: stub
@@ -202,6 +204,51 @@ def test_detail_returns_exact_persisted_item_without_refresh(
 def test_detail_missing_returns_safe_exact_404(api_app):
     with request(api_app) as client:
         response = client.get("/api/v1/alerts/usgs:missing")
+
+    request_id = response.json()["error"]["request_id"]
+    assert response.status_code == 404
+    assert request_id
+    assert response.headers["X-Request-ID"] == request_id
+    assert response.json() == {
+        "error": {
+            "code": "not_found",
+            "message": "Earthquake information was not found.",
+            "request_id": request_id,
+        }
+    }
+
+
+def test_list_excludes_future_provider_rows(api_app, api_session_factory):
+    usgs = event("usgs-event")
+    future = event(
+        "future-event",
+        id="future:future-event",
+        provider="future",
+    )
+    with api_session_factory.begin() as session:
+        EarthquakeRepository().upsert_many(session, [usgs, future])
+        ProviderSyncRepository().record_success(session, "usgs", NOW)
+    api_app.dependency_overrides[get_earthquake_service] = lambda: service(
+        FakeClient(None)
+    )
+
+    with request(api_app, raise_server_exceptions=False) as client:
+        response = client.get("/api/v1/alerts")
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["items"]] == [usgs.id]
+
+
+def test_non_usgs_detail_returns_exact_safe_404(api_app, api_session_factory):
+    future = event(
+        "future-event",
+        id="future:future-event",
+        provider="future",
+    )
+    persist_event(api_session_factory, future)
+
+    with request(api_app, raise_server_exceptions=False) as client:
+        response = client.get(f"/api/v1/alerts/{future.id}")
 
     request_id = response.json()["error"]["request_id"]
     assert response.status_code == 404
@@ -256,7 +303,7 @@ def test_successful_list_commits_events_and_metadata(api_app, api_session_factor
 
     assert response.status_code == 200
     with api_session_factory() as session:
-        assert EarthquakeRepository().get(session, expected.id) is not None
+        assert EarthquakeRepository().get(session, "usgs", expected.id) is not None
         sync = ProviderSyncRepository().get(session, "usgs")
         assert sync is not None
         assert sync.last_successful_refresh_at == NOW
@@ -276,30 +323,65 @@ def test_unexpected_failure_rolls_back_partial_changes(api_app, api_session_fact
 
     assert response.status_code == 500
     with api_session_factory() as session:
-        assert EarthquakeRepository().get(session, expected.id) is None
+        assert EarthquakeRepository().get(session, "usgs", expected.id) is None
 
 
-def test_runtime_resources_are_reused_and_closed(monkeypatch):
+def test_runtime_dependencies_reuse_and_close_app_scoped_resources(monkeypatch):
     from app import main
 
+    original_create_engine = main.create_engine
+    original_client = main.UsgsClient
+    created_engines = []
     created_clients = []
 
-    class TrackedClient:
-        def __init__(self, *args, **kwargs):
-            self.closed = False
-            created_clients.append(self)
+    def tracked_create_engine(*args, **kwargs):
+        engine = original_create_engine(*args, **kwargs)
+        created_engines.append(engine)
+        return engine
 
-        def close(self):
-            self.closed = True
+    def tracked_client(*args, **kwargs):
+        client = original_client(*args, **kwargs)
+        created_clients.append(client)
+        return client
 
-    monkeypatch.setattr(main, "UsgsClient", TrackedClient)
+    monkeypatch.setattr(main, "create_engine", tracked_create_engine)
+    monkeypatch.setattr(main, "UsgsClient", tracked_client)
     application = create_app()
-    with TestClient(application):
-        assert (
-            application.state.earthquake_service is application.state.earthquake_service
-        )
-        assert application.state.engine is application.state.engine
-        assert len(created_clients) == 1
+    engine = created_engines[0]
+    provider_client = created_clients[0]
+    engine.dispose = Mock(wraps=engine.dispose)
+    provider_client.close = Mock(wraps=provider_client.close)
+    dependency_request = Request({"type": "http", "app": application})
+    session_dependency = get_session(dependency_request)
+    session = next(session_dependency)
 
-    assert created_clients[0].closed is True
-    assert application.state.engine.pool.status().startswith("Pool size")
+    assert len(created_engines) == 1
+    assert len(created_clients) == 1
+    assert session.get_bind() is engine
+    assert (
+        get_earthquake_service(dependency_request)
+        is application.state.earthquake_service
+    )
+    assert application.state.earthquake_service._client is provider_client
+    session_dependency.close()
+
+    with TestClient(application):
+        pass
+
+    provider_client.close.assert_called_once_with()
+    engine.dispose.assert_called_once_with()
+
+
+def test_engine_is_disposed_when_provider_client_close_raises():
+    application = create_app()
+    engine = application.state.engine
+    provider_client = application.state.earthquake_service._client
+    provider_client.close = Mock(side_effect=RuntimeError("controlled close failure"))
+    engine.dispose = Mock(wraps=engine.dispose)
+
+    with pytest.raises(RuntimeError, match="controlled close failure"):
+        with TestClient(application):
+            pass
+
+    provider_client.close.assert_called_once_with()
+    engine.dispose.assert_called_once_with()

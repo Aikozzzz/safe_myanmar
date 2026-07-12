@@ -33,8 +33,10 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
         yield
-        client.close()
-        engine.dispose()
+        try:
+            client.close()
+        finally:
+            engine.dispose()
 
     application = FastAPI(title="SafeMyanmar API", lifespan=lifespan)
     application.state.engine = engine

@@ -60,8 +60,21 @@ def persisted_values(stored: Earthquake) -> dict:
 def test_empty_list_and_get(database_session):
     repository = EarthquakeRepository()
 
-    assert repository.list_recent(database_session) == []
-    assert repository.get(database_session, "usgs:missing") is None
+    assert repository.list_recent(database_session, "usgs") == []
+    assert repository.get(database_session, "usgs", "usgs:missing") is None
+
+
+def test_list_and_get_are_scoped_to_explicit_provider(database_session):
+    repository = EarthquakeRepository()
+    usgs = event("shared")
+    future = replace(usgs, id="future:shared", provider="future")
+    database_session.execute(insert(Earthquake), [asdict(usgs), asdict(future)])
+
+    assert repository.list_recent(database_session, "usgs") == [
+        repository.get(database_session, "usgs", usgs.id)
+    ]
+    assert repository.get(database_session, "usgs", future.id) is None
+    assert repository.get(database_session, "future", future.id) is not None
 
 
 def test_insert_persists_exact_fields_and_stable_id(database_session):
@@ -69,13 +82,13 @@ def test_insert_persists_exact_fields_and_stable_id(database_session):
     expected = event()
 
     repository.upsert_many(database_session, [expected])
-    stored = repository.get(database_session, expected.id)
+    stored = repository.get(database_session, "usgs", expected.id)
 
     assert stored is not None
     assert persisted_values(stored) == asdict(expected)
     assert stored.created_at.tzinfo is not None
     assert stored.updated_at.tzinfo is not None
-    assert repository.get(database_session, "abc123") is None
+    assert repository.get(database_session, "usgs", "abc123") is None
 
 
 def test_list_recent_has_deterministic_order(database_session):
@@ -85,7 +98,7 @@ def test_list_recent_has_deterministic_order(database_session):
     later_a = event("a", event_at=NOW - timedelta(hours=1))
     repository.upsert_many(database_session, [earliest, later_b, later_a])
 
-    assert [item.id for item in repository.list_recent(database_session)] == [
+    assert [item.id for item in repository.list_recent(database_session, "usgs")] == [
         later_a.id,
         later_b.id,
         earliest.id,
@@ -98,7 +111,7 @@ def test_newer_update_replaces_mutable_fields_but_preserves_created_at(
     repository = EarthquakeRepository()
     original = event()
     repository.upsert_many(database_session, [original])
-    stored = repository.get(database_session, original.id)
+    stored = repository.get(database_session, "usgs", original.id)
     assert stored is not None
     created_at = stored.created_at
     updated_at = stored.updated_at
@@ -113,7 +126,7 @@ def test_newer_update_replaces_mutable_fields_but_preserves_created_at(
 
     repository.upsert_many(database_session, [newer])
     database_session.expire_all()
-    stored = repository.get(database_session, original.id)
+    stored = repository.get(database_session, "usgs", original.id)
 
     assert stored is not None
     assert stored.title == newer.title
@@ -130,7 +143,7 @@ def test_equal_or_older_update_does_not_overwrite(database_session, offset):
     current = event()
     repository.upsert_many(database_session, [current])
     database_session.expire_all()
-    before = repository.get(database_session, current.id)
+    before = repository.get(database_session, "usgs", current.id)
     assert before is not None
     before_values = persisted_values(before)
     created_at = before.created_at
@@ -146,7 +159,7 @@ def test_equal_or_older_update_does_not_overwrite(database_session, offset):
 
     repository.upsert_many(database_session, [stale])
     database_session.expire_all()
-    stored = repository.get(database_session, current.id)
+    stored = repository.get(database_session, "usgs", current.id)
 
     assert stored is not None
     assert persisted_values(stored) == before_values
@@ -160,7 +173,7 @@ def test_batch_upsert(database_session):
 
     repository.upsert_many(database_session, events)
 
-    assert {item.id for item in repository.list_recent(database_session)} == {
+    assert {item.id for item in repository.list_recent(database_session, "usgs")} == {
         item.id for item in events
     }
 
@@ -181,9 +194,9 @@ def test_reconcile_snapshot_removes_only_absent_provider_events(database_session
 
     repository.delete_absent(database_session, "usgs", {"retained"})
 
-    assert repository.get(database_session, retained.id) is not None
-    assert repository.get(database_session, removed.id) is None
-    assert repository.get(database_session, future_provider.id) is not None
+    assert repository.get(database_session, "usgs", retained.id) is not None
+    assert repository.get(database_session, "usgs", removed.id) is None
+    assert repository.get(database_session, "future", future_provider.id) is not None
 
 
 def test_reconcile_empty_snapshot_removes_all_provider_events(database_session):
@@ -192,7 +205,7 @@ def test_reconcile_empty_snapshot_removes_all_provider_events(database_session):
 
     repository.delete_absent(database_session, "usgs", set())
 
-    assert repository.list_recent(database_session) == []
+    assert repository.list_recent(database_session, "usgs") == []
 
 
 def test_unique_provider_event_constraint(database_session):
@@ -272,8 +285,8 @@ def test_repository_methods_do_not_commit(database_session, monkeypatch):
     sync = ProviderSyncRepository()
 
     earthquakes.upsert_many(database_session, [event()])
-    earthquakes.list_recent(database_session)
-    earthquakes.get(database_session, "usgs:abc123")
+    earthquakes.list_recent(database_session, "usgs")
+    earthquakes.get(database_session, "usgs", "usgs:abc123")
     sync.acquire_refresh_lock(database_session, "usgs")
     sync.record_attempt(database_session, "usgs", NOW, None)
     sync.record_success(database_session, "usgs", NOW)
@@ -286,7 +299,7 @@ def test_direct_sql_updates_advance_earthquake_updated_at_repeatedly(
     repository = EarthquakeRepository()
     earthquake = event()
     repository.upsert_many(database_session, [earthquake])
-    original = repository.get(database_session, earthquake.id)
+    original = repository.get(database_session, "usgs", earthquake.id)
     assert original is not None
     original_updated_at = original.updated_at
 

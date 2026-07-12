@@ -62,7 +62,7 @@ class EarthquakeService:
             if sync is None or now - sync.last_attempt_at >= self._refresh_minimum:
                 self._refresh(session, now)
 
-        items = tuple(self._earthquakes.list_recent(session))
+        items = tuple(self._earthquakes.list_recent(session, PROVIDER))
         sync = self._provider_sync.get(session, PROVIDER)
         if sync is None or sync.last_successful_refresh_at is None:
             raise LiveDataUnavailable
@@ -75,7 +75,7 @@ class EarthquakeService:
         return AlertCollection(items, data_status, successful_at)
 
     def get_alert(self, session: Session, alert_id: str) -> Earthquake | None:
-        return self._earthquakes.get(session, alert_id)
+        return self._earthquakes.get(session, PROVIDER, alert_id)
 
     def _refresh(self, session: Session, attempted_at: datetime) -> None:
         self._provider_sync.record_attempt(session, PROVIDER, attempted_at, None)

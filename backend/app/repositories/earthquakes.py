@@ -68,14 +68,20 @@ class EarthquakeRepository:
         session.execute(statement)
         session.flush()
 
-    def list_recent(self, session: Session) -> list[Earthquake]:
-        statement = select(Earthquake).order_by(
-            Earthquake.event_at.desc(), Earthquake.id
+    def list_recent(self, session: Session, provider: str) -> list[Earthquake]:
+        statement = (
+            select(Earthquake)
+            .where(Earthquake.provider == provider)
+            .order_by(Earthquake.event_at.desc(), Earthquake.id)
         )
         return list(session.scalars(statement))
 
-    def get(self, session: Session, event_id: str) -> Earthquake | None:
-        return session.get(Earthquake, event_id)
+    def get(self, session: Session, provider: str, event_id: str) -> Earthquake | None:
+        statement = select(Earthquake).where(
+            Earthquake.provider == provider,
+            Earthquake.id == event_id,
+        )
+        return session.scalar(statement)
 
     def delete_absent(
         self,
