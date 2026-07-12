@@ -244,6 +244,7 @@ def test_repository_methods_do_not_commit(database_session, monkeypatch):
     earthquakes.upsert_many(database_session, [event()])
     earthquakes.list_recent(database_session)
     earthquakes.get(database_session, "usgs:abc123")
+    sync.acquire_refresh_lock(database_session, "usgs")
     sync.record_attempt(database_session, "usgs", NOW, None)
     sync.record_success(database_session, "usgs", NOW)
     sync.get(database_session, "usgs")

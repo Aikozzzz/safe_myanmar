@@ -57,7 +57,10 @@ class EarthquakeService:
 
         sync = self._provider_sync.get(session, PROVIDER)
         if sync is None or now - sync.last_attempt_at >= self._refresh_minimum:
-            self._refresh(session, now)
+            self._provider_sync.acquire_refresh_lock(session, PROVIDER)
+            sync = self._provider_sync.get(session, PROVIDER, refresh=True)
+            if sync is None or now - sync.last_attempt_at >= self._refresh_minimum:
+                self._refresh(session, now)
 
         items = tuple(self._earthquakes.list_recent(session))
         sync = self._provider_sync.get(session, PROVIDER)

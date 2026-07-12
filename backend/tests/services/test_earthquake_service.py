@@ -1,8 +1,14 @@
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta, timezone
+from threading import Barrier, Lock
 
 import pytest
+from sqlalchemy import create_engine, delete
+from sqlalchemy.orm import sessionmaker
 
+from app.models.earthquake import Earthquake
+from app.models.provider_sync import ProviderSync
 from app.providers.usgs.client import ProviderClientError
 from app.providers.usgs.models import NormalizationResult
 from app.providers.usgs.normalizer import InvalidProviderPayload
@@ -51,7 +57,56 @@ class FakeClient:
         return outcome
 
 
-def service(client, normalizer=None):
+class ConcurrentClient:
+    def __init__(self, outcome):
+        self.outcome = outcome
+        self.calls = 0
+        self.lock = Lock()
+
+    def fetch(self):
+        with self.lock:
+            self.calls += 1
+        return self.outcome
+
+
+class CoordinatedProviderSyncRepository(ProviderSyncRepository):
+    def __init__(self, initial_read_barrier):
+        self.initial_read_barrier = initial_read_barrier
+        self.initial_read_complete = False
+        self.refresh_claimed = False
+
+    def get(self, session, provider, refresh=False):
+        if refresh:
+            record = super().get(session, provider, refresh=True)
+        else:
+            record = super().get(session, provider)
+        if not self.refresh_claimed and not self.initial_read_complete:
+            self.initial_read_complete = True
+            self.initial_read_barrier.wait(timeout=5)
+        return record
+
+    def acquire_refresh_lock(self, session, provider):
+        super().acquire_refresh_lock(session, provider)
+        self.refresh_claimed = True
+
+
+@pytest.fixture
+def committed_session_factory(database_session, test_database_url):
+    engine = create_engine(test_database_url)
+    factory = sessionmaker(bind=engine)
+    with engine.begin() as connection:
+        connection.execute(delete(Earthquake))
+        connection.execute(delete(ProviderSync))
+    try:
+        yield factory
+    finally:
+        with engine.begin() as connection:
+            connection.execute(delete(Earthquake))
+            connection.execute(delete(ProviderSync))
+        engine.dispose()
+
+
+def service(client, normalizer=None, provider_sync_repository=None):
     if normalizer is None:
 
         def normalizer(payload, retrieved_at):
@@ -60,7 +115,7 @@ def service(client, normalizer=None):
     return EarthquakeService(
         client=client,
         earthquake_repository=EarthquakeRepository(),
-        provider_sync_repository=ProviderSyncRepository(),
+        provider_sync_repository=(provider_sync_repository or ProviderSyncRepository()),
         normalizer=normalizer,
         refresh_minimum_seconds=60,
         current_max_age_seconds=300,
@@ -76,6 +131,65 @@ def seed_success(database_session, succeeded_at, *events):
     sync = ProviderSyncRepository()
     earthquakes.upsert_many(database_session, events)
     sync.record_success(database_session, "usgs", succeeded_at)
+
+
+def concurrent_list_alerts(session_factory, client):
+    initial_read_barrier = Barrier(2)
+
+    def list_and_commit():
+        repository = CoordinatedProviderSyncRepository(initial_read_barrier)
+        with session_factory() as session:
+            result = service(client, provider_sync_repository=repository).list_alerts(
+                session, NOW
+            )
+            session.commit()
+            return result
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(list_and_commit) for _ in range(2)]
+        return [future.result(timeout=10) for future in futures]
+
+
+def test_concurrent_due_refresh_fetches_once(committed_session_factory):
+    with committed_session_factory.begin() as session:
+        ProviderSyncRepository().record_success(
+            session, "usgs", NOW - timedelta(seconds=60)
+        )
+    client = ConcurrentClient(success_outcome())
+
+    results = concurrent_list_alerts(committed_session_factory, client)
+
+    assert client.calls == 1
+    assert len(results) == 2
+
+
+def test_concurrent_initial_refresh_fetches_once_without_primary_key_error(
+    committed_session_factory,
+):
+    client = ConcurrentClient(success_outcome())
+
+    results = concurrent_list_alerts(committed_session_factory, client)
+
+    assert client.calls == 1
+    assert len(results) == 2
+
+
+def test_failed_refresh_can_be_committed_and_seen_by_new_session(
+    committed_session_factory,
+):
+    client = FakeClient([ProviderClientError("provider_timeout")])
+    with committed_session_factory() as session:
+        with pytest.raises(LiveDataUnavailable):
+            service(client).list_alerts(session, NOW)
+        session.commit()
+
+    with committed_session_factory() as session:
+        sync = ProviderSyncRepository().get(session, "usgs")
+
+    assert sync is not None
+    assert sync.last_attempt_at == NOW
+    assert sync.last_error_code == "provider_timeout"
+    assert sync.last_successful_refresh_at is None
 
 
 def test_no_metadata_refreshes_and_upserts_events(database_session):

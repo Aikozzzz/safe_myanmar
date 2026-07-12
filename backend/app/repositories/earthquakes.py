@@ -1,13 +1,16 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models.earthquake import Earthquake
 from app.models.provider_sync import ProviderSync
 from app.schemas.earthquakes import NormalizedEarthquake
+
+# Stable 64-bit key encoded from ASCII "SAFEUSGS"; never derive lock keys with hash().
+USGS_REFRESH_ADVISORY_LOCK_KEY = 0x5341464555534753
 
 
 class EarthquakeRepository:
@@ -76,8 +79,18 @@ class EarthquakeRepository:
 
 
 class ProviderSyncRepository:
-    def get(self, session: Session, provider: str) -> ProviderSync | None:
-        return session.get(ProviderSync, provider)
+    def get(
+        self, session: Session, provider: str, *, refresh: bool = False
+    ) -> ProviderSync | None:
+        return session.get(ProviderSync, provider, populate_existing=refresh)
+
+    def acquire_refresh_lock(self, session: Session, provider: str) -> None:
+        if provider != "usgs":
+            raise ValueError("unsupported provider refresh lock")
+        session.execute(
+            text("SELECT pg_advisory_xact_lock(:lock_key)"),
+            {"lock_key": USGS_REFRESH_ADVISORY_LOCK_KEY},
+        )
 
     def record_attempt(
         self,
