@@ -286,11 +286,13 @@ The final stack can be adjusted according to course requirements.
 
 ### Backend
 
-- **FastAPI** with Python
-- PostgreSQL
-- Redis for caching and temporary emergency data
-- WebSocket or Server-Sent Events for live updates
-- REST API for alerts, shelters, SOS requests, and reports
+- **FastAPI** with Python 3.13
+- SQLAlchemy 2 with Psycopg 3
+- PostgreSQL 16
+- Docker Compose for the API and development database
+
+The current backend increment provides the application foundation and health endpoints.
+Authentication, mapping, AI, alerts, and other disaster-response APIs remain future work.
 
 ### Cloud Services
 
@@ -449,8 +451,8 @@ Permissions should be requested only when needed, with a clear explanation.
 - Flutter SDK
 - Android Studio or Visual Studio Code
 - Android SDK
-- Python 3.11 or later
-- PostgreSQL
+- Python 3.13
+- PostgreSQL 16, or Docker Desktop with Docker Compose
 - Git
 
 ### Clone the Repository
@@ -470,10 +472,11 @@ flutter run
 
 ### Run the Backend
 
-```bash
-cd backend
+From the repository root, create the backend environment:
 
-python -m venv .venv
+```powershell
+cd backend
+py -3.13 -m venv .venv
 ```
 
 Activate the environment:
@@ -488,27 +491,39 @@ source .venv/bin/activate
 
 Install dependencies and start the API:
 
-```bash
+```powershell
 pip install -r requirements.txt
+Copy-Item .env.example .env
 uvicorn app.main:app --reload
+```
+
+Set a usable `DATABASE_URL` in `backend/.env` before starting the API. The API
+is available at `http://localhost:8000`; liveness and database readiness are
+reported by `/health/live` and `/health/ready`.
+
+Alternatively, start the API and PostgreSQL 16 from the repository root:
+
+```powershell
+docker compose up --build
 ```
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file from `.env.example`.
+Create `backend/.env` from `backend/.env.example`. Only `DATABASE_URL` is
+required in the current increment; the remaining values have the defaults shown.
 
 ```env
-API_BASE_URL=http://localhost:8000
-DATABASE_URL=postgresql://user:password@localhost:5432/safemyanmar
-JWT_SECRET=replace_with_a_secure_secret
-MAPS_API_KEY=replace_with_your_map_key
-FIREBASE_PROJECT_ID=replace_with_project_id
-AI_API_KEY=replace_only_if_cloud_ai_is_enabled
+DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/safemyanmar
+USGS_FEED_URL=https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson
+PROVIDER_TIMEOUT_SECONDS=10.0
+REFRESH_MINIMUM_SECONDS=60
+CURRENT_MAX_AGE_SECONDS=300
 ```
 
-Never commit real secrets to the repository.
+JWT, Mapbox, Firebase, and AI configuration are not required or implemented in
+this backend increment. Never commit real secrets to the repository.
 
 ---
 
@@ -531,9 +546,10 @@ Example commands:
 cd mobile
 flutter test
 
-# Backend tests
-cd backend
-pytest
+# Backend tests (from the repository root)
+backend/.venv/Scripts/python -m pytest backend/tests
+backend/.venv/Scripts/python -m ruff format --check backend
+backend/.venv/Scripts/python -m ruff check backend
 ```
 
 ---
