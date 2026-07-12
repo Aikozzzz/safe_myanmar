@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "us7000test",
+      "properties": {
+        "mag": 5.2,
+        "place": "SIMULATION: 10 km NW of Test City",
+        "time": 1710000000000,
+        "updated": 1710000060000,
+        "title": "SIMULATION: M 5.2 - Test City",
+        "status": "reviewed",
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000test"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [96.1, 21.9, 12.5]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "us7000outside",
+      "properties": {
+        "mag": 3.1,
+        "place": "SIMULATION: Outside coverage",
+        "time": 1710000000000,
+        "updated": 1710000060000,
+        "title": "SIMULATION: M 3.1 - Outside coverage",
+        "status": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000outside"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [102.677, 20.0, 4.0]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "us7000malformed",
+      "properties": {
+        "mag": 4.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [96.0, 20.0, 8.0]
+      }
+    }
+  ]
+}
