@@ -73,6 +73,20 @@ def test_alembic_cli_uses_database_url_environment(test_database_url):
     assert result.returncode == 0, "Alembic CLI must honor DATABASE_URL"
 
 
+def test_explicit_alembic_url_takes_precedence_over_environment(
+    test_database_url, monkeypatch
+):
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://wrong:wrong@127.0.0.1:1/wrong",
+    )
+    config = alembic_config(test_database_url)
+
+    command.current(config)
+
+    assert config.get_main_option("sqlalchemy.url") == test_database_url
+
+
 def test_upgrade_creates_required_schema(test_database_url):
     config = alembic_config(test_database_url)
     command.downgrade(config, "base")

@@ -29,6 +29,34 @@ void main() {
       }
     });
 
+    test('production rejects every HTTP URL without leaking its value', () {
+      final cases = <String>[
+        'http://localhost:8000/private-production-path',
+        'http://127.0.0.1:8000',
+        'http://10.0.2.2:8000',
+        'http://api.example.com:8000',
+      ];
+
+      for (final value in cases) {
+        expect(
+          () => ApiConfig.fromRaw(value, isProduction: true),
+          throwsA(
+            isA<ArgumentError>()
+                .having(
+                  (error) => error.toString(),
+                  'production HTTPS guidance',
+                  allOf(contains('HTTPS'), isNot(contains('HTTP only'))),
+                )
+                .having(
+                  (error) => error.toString(),
+                  'sanitized value',
+                  isNot(contains(value)),
+                ),
+          ),
+        );
+      }
+    });
+
     test('sanitizes every invalid raw URI failure', () {
       final cases = <String, List<String>>{
         'http://api.example.com/private': ['api.example.com', '/private'],

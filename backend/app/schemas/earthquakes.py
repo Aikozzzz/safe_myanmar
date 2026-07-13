@@ -50,4 +50,4 @@ class AlertListResponse(BaseModel):
     items: list[AlertItem]
     data_status: Literal["current", "stale"]
     last_successful_refresh_at: datetime
-    provider: Literal["usgs"] = "usgs"
+    provider: Literal["usgs"]

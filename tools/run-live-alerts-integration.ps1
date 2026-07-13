@@ -2,44 +2,151 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$DeviceId,
-    [string]$FlutterBin = "C:\Users\USER\develop\flutter\bin"
+    [string]$ApiBaseUrl,
+    [string]$FlutterBin = ""
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $root "backend\.venv\Scripts\python.exe"
-$databaseUrl = "postgresql+psycopg://safemyanmar_test:safemyanmar_test_password@localhost:5433/safemyanmar_test"
+$databaseUrl = "postgresql+psycopg://safemyanmar_test:safemyanmar_test_password@localhost:5433/safemyanmar_test?connect_timeout=2"
 $provider = $null
 $api = $null
-$env:PATH = "$FlutterBin;$env:PATH"
+$adb = $null
+$reverseConfigured = $false
+$locationPushed = $false
+$runError = $null
+$cleanupErrors = [System.Collections.Generic.List[string]]::new()
+
+$originalPathExists = Test-Path Env:PATH
+$originalPathValue = $env:PATH
+$originalDatabaseUrlExists = Test-Path Env:DATABASE_URL
+$originalDatabaseUrlValue = $env:DATABASE_URL
+$originalUsgsFeedUrlExists = Test-Path Env:USGS_FEED_URL
+$originalUsgsFeedUrlValue = $env:USGS_FEED_URL
+
+function Restore-EnvironmentVariable {
+    param(
+        [string]$Name,
+        [bool]$Existed,
+        [AllowNull()]
+        [string]$Value
+    )
+
+    if ($Existed) {
+        [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
+    } else {
+        [Environment]::SetEnvironmentVariable($Name, $null, "Process")
+    }
+}
 
 function Wait-ForEndpoint {
-    param([string]$Url)
-    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    param(
+        [string]$Url,
+        [int]$TimeoutSeconds = 15
+    )
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    do {
         try {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 1
             if ($response.StatusCode -eq 200) { return }
         } catch {
-            Start-Sleep -Milliseconds 500
+            Start-Sleep -Milliseconds 250
         }
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    throw "A required local endpoint did not become ready within $TimeoutSeconds seconds."
+}
+
+function Stop-ChildProcess {
+    param(
+        [AllowNull()]
+        [System.Diagnostics.Process]$Process,
+        [int]$TimeoutSeconds = 10
+    )
+
+    if ($null -eq $Process) { return }
+    $Process.Refresh()
+    if ($Process.HasExited) { return }
+
+    Stop-Process -Id $Process.Id -ErrorAction SilentlyContinue
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 100
+        $Process.Refresh()
+    } while (-not $Process.HasExited -and [DateTime]::UtcNow -lt $deadline)
+
+    if (-not $Process.HasExited) {
+        Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+        $Process.WaitForExit(2000) | Out-Null
     }
-    throw "Endpoint $Url did not become ready within 15 seconds."
+    $Process.Refresh()
+    if (-not $Process.HasExited) {
+        throw "A local integration process could not be stopped."
+    }
 }
 
 try {
-    & docker compose --profile integration up -d integration-db
+    if (-not (Test-Path -LiteralPath $python)) {
+        throw "The backend virtual environment is missing."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($FlutterBin)) {
+        if (-not (Test-Path -LiteralPath $FlutterBin)) {
+            throw "FlutterBin does not exist."
+        }
+        $env:PATH = "$FlutterBin;$env:PATH"
+    }
+
+    $adbCommand = Get-Command adb -ErrorAction SilentlyContinue
+    if ($null -ne $adbCommand) {
+        $adb = $adbCommand.Source
+    } else {
+        $sdkAdb = Join-Path $env:LOCALAPPDATA "Android\sdk\platform-tools\adb.exe"
+        if (Test-Path -LiteralPath $sdkAdb) { $adb = $sdkAdb }
+    }
+    if ($null -eq $adb) { throw "adb is required for Android integration." }
+
+    $deviceState = & $adb -s $DeviceId get-state 2>&1
+    if ($LASTEXITCODE -ne 0 -or ($deviceState | Out-String).Trim() -ne "device") {
+        throw "The selected Android device is not ready."
+    }
+    $emulatorFlag = & $adb -s $DeviceId shell getprop ro.kernel.qemu 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect the Android device." }
+    $isEmulator = ($emulatorFlag | Out-String).Trim() -eq "1"
+
+    if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
+        $ApiBaseUrl = if ($isEmulator) {
+            "http://10.0.2.2:8000"
+        } else {
+            "http://127.0.0.1:8000"
+        }
+    }
+    $parsedApiBaseUrl = $null
+    if (-not [Uri]::TryCreate($ApiBaseUrl, [UriKind]::Absolute, [ref]$parsedApiBaseUrl)) {
+        throw "ApiBaseUrl must be an absolute URL."
+    }
+
+    if (-not $isEmulator) {
+        & $adb -s $DeviceId reverse tcp:8000 tcp:8000 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Could not configure adb reverse." }
+        $reverseConfigured = $true
+    }
+
+    & docker compose --profile integration up -d --wait --wait-timeout 30 integration-db
     if ($LASTEXITCODE -ne 0) { throw "Could not start integration database." }
 
     $env:DATABASE_URL = $databaseUrl
     $migrationSucceeded = $false
-    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    $migrationDeadline = [DateTime]::UtcNow.AddSeconds(20)
+    do {
         & $python -m alembic -c (Join-Path $root "backend\alembic.ini") upgrade head
         if ($LASTEXITCODE -eq 0) {
             $migrationSucceeded = $true
             break
         }
-        Start-Sleep -Milliseconds 500
-    }
+        Start-Sleep -Milliseconds 250
+    } while ([DateTime]::UtcNow -lt $migrationDeadline)
     if (-not $migrationSucceeded) { throw "Could not migrate integration database." }
 
     $provider = Start-Process -FilePath $python -WorkingDirectory $root -PassThru -ArgumentList @(
@@ -51,37 +158,77 @@ try {
 
     $env:USGS_FEED_URL = "http://127.0.0.1:8001/feed"
     $api = Start-Process -FilePath $python -WorkingDirectory (Join-Path $root "backend") -PassThru -ArgumentList @(
-        "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"
+        "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"
     )
     Wait-ForEndpoint "http://127.0.0.1:8000/health/ready"
 
     Push-Location (Join-Path $root "mobile")
-    try {
-        & flutter test integration_test/live_alerts_test.dart -d $DeviceId `
-            --dart-define=API_BASE_URL=http://10.0.2.2:8000 `
-            --dart-define=INTEGRATION_PHASE=online
-        if ($LASTEXITCODE -ne 0) { throw "Online integration phase failed." }
+    $locationPushed = $true
+    & flutter test integration_test/live_alerts_test.dart -d $DeviceId `
+        --dart-define=API_BASE_URL=$ApiBaseUrl `
+        --dart-define=INTEGRATION_PHASE=online
+    if ($LASTEXITCODE -ne 0) { throw "Online integration phase failed." }
 
-        Stop-Process -Id $api.Id
-        Wait-Process -Id $api.Id
-        $api = $null
+    Stop-ChildProcess -Process $api
+    $api = $null
 
-        & flutter test integration_test/live_alerts_test.dart -d $DeviceId `
-            --dart-define=API_BASE_URL=http://10.0.2.2:8000 `
-            --dart-define=INTEGRATION_PHASE=offline
-        if ($LASTEXITCODE -ne 0) { throw "Offline integration phase failed." }
-    } finally {
-        Pop-Location
-    }
+    & flutter test integration_test/live_alerts_test.dart -d $DeviceId `
+        --dart-define=API_BASE_URL=$ApiBaseUrl `
+        --dart-define=INTEGRATION_PHASE=offline
+    if ($LASTEXITCODE -ne 0) { throw "Offline integration phase failed." }
+} catch {
+    $runError = $_
 } finally {
-    if ($null -ne $api -and -not $api.HasExited) { Stop-Process -Id $api.Id }
-    if ($null -ne $provider -and -not $provider.HasExited) {
-        Stop-Process -Id $provider.Id
+    if ($locationPushed) {
+        try { Pop-Location } catch { $cleanupErrors.Add("working directory") }
+    }
+    try { Stop-ChildProcess -Process $api } catch { $cleanupErrors.Add("API process") }
+    try { Stop-ChildProcess -Process $provider } catch { $cleanupErrors.Add("provider process") }
+
+    if ($null -ne $adb) {
+        try {
+            $clearResult = & $adb -s $DeviceId shell pm clear org.safemyanmar.mobile 2>&1
+            $clearOutput = ($clearResult | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0 -or $clearOutput -ne "Success") {
+                $cleanupErrors.Add("Android application data")
+            }
+        } catch {
+            $cleanupErrors.Add("Android application data")
+        }
+        if ($reverseConfigured) {
+            try {
+                & $adb -s $DeviceId reverse --remove tcp:8000 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) { $cleanupErrors.Add("adb reverse") }
+            } catch {
+                $cleanupErrors.Add("adb reverse")
+            }
+        }
     }
 
-    $adb = Join-Path $env:LOCALAPPDATA "Android\sdk\platform-tools\adb.exe"
-    if (Test-Path -LiteralPath $adb) {
-        & $adb -s $DeviceId shell pm clear org.safemyanmar.mobile | Out-Null
+    try {
+        & docker compose --profile integration rm -f -s integration-db 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { $cleanupErrors.Add("integration database") }
+    } catch {
+        $cleanupErrors.Add("integration database")
     }
-    & docker compose --profile integration rm -f -s integration-db | Out-Null
+
+    try {
+        Restore-EnvironmentVariable "PATH" $originalPathExists $originalPathValue
+    } catch { $cleanupErrors.Add("PATH") }
+    try {
+        Restore-EnvironmentVariable "DATABASE_URL" $originalDatabaseUrlExists $originalDatabaseUrlValue
+    } catch { $cleanupErrors.Add("DATABASE_URL") }
+    try {
+        Restore-EnvironmentVariable "USGS_FEED_URL" $originalUsgsFeedUrlExists $originalUsgsFeedUrlValue
+    } catch { $cleanupErrors.Add("USGS_FEED_URL") }
+}
+
+if ($null -ne $runError) {
+    if ($cleanupErrors.Count -gt 0) {
+        throw "$($runError.Exception.Message) Cleanup also failed: $($cleanupErrors -join ', ')."
+    }
+    throw $runError
+}
+if ($cleanupErrors.Count -gt 0) {
+    throw "Integration cleanup failed: $($cleanupErrors -join ', ')."
 }

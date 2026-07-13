@@ -158,6 +158,34 @@ def test_list_empty_success_has_exact_envelope(api_app):
     }
 
 
+def test_openapi_exposes_exact_alert_envelope_and_item_provenance(api_app):
+    openapi = api_app.openapi()
+    schemas = openapi["components"]["schemas"]
+    envelope = schemas["AlertListResponse"]
+    item = schemas["AlertItem"]
+
+    assert set(envelope["properties"]) == ENVELOPE_KEYS
+    assert set(envelope["required"]) == ENVELOPE_KEYS
+    assert envelope["properties"]["items"]["items"] == {
+        "$ref": "#/components/schemas/AlertItem"
+    }
+    assert envelope["properties"]["data_status"]["enum"] == ["current", "stale"]
+    assert envelope["properties"]["provider"]["const"] == "usgs"
+
+    assert set(item["properties"]) == ITEM_KEYS
+    assert set(item["required"]) == ITEM_KEYS
+    assert item["properties"]["provider"]["const"] == "usgs"
+    assert item["properties"]["kind"]["const"] == "earthquake_information"
+    assert "severity" not in item["properties"]
+    assert "freshness" not in item["properties"]
+    assert openapi["paths"]["/api/v1/alerts"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"] == {"$ref": "#/components/schemas/AlertListResponse"}
+    assert openapi["paths"]["/api/v1/alerts/{alert_id}"]["get"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"] == {"$ref": "#/components/schemas/AlertItem"}
+
+
 @pytest.mark.parametrize("status", ["current", "stale"])
 def test_list_populated_has_exact_public_item_and_status(
     api_app, api_session_factory, status

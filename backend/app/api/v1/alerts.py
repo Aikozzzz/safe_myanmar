@@ -48,6 +48,7 @@ def list_alerts(
             items=[AlertItem.model_validate(item) for item in collection.items],
             data_status=collection.data_status,
             last_successful_refresh_at=collection.last_successful_refresh_at,
+            provider="usgs",
         )
         session.commit()
         return response

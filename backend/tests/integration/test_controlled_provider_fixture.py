@@ -84,6 +84,7 @@ def test_mobile_contract_fixture_is_an_exact_backend_response():
         last_successful_refresh_at=datetime.fromisoformat(
             raw["last_successful_refresh_at"]
         ),
+        provider="usgs",
     )
 
     assert response.model_dump(mode="json") == raw

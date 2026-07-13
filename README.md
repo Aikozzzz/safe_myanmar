@@ -55,18 +55,13 @@ See [the slice architecture](docs/architecture/live-earthquake-slice.md) and
 ## Prerequisites
 
 - Git.
-- Python 3.13.
+- Python 3.13 (the backend currently targets Python 3.13).
 - Flutter stable 3.44.6 or a compatible newer stable release.
 - Android SDK and an Android emulator/device for app launch and integration.
 - Docker Desktop with Docker Compose for PostgreSQL and container checks, or a
   compatible local PostgreSQL 16 instance.
 
-The repository's expected Flutter location on the current Windows development
-machine can be prepended for a PowerShell session with:
-
-```powershell
-$env:PATH = "C:\Users\USER\develop\flutter\bin;$env:PATH"
-```
+Ensure `python`, `flutter`, `adb`, and `docker` are available on `PATH` as needed.
 
 ## Backend Setup
 
@@ -80,16 +75,11 @@ docker compose up -d db
 backend/.venv/Scripts/python -m alembic -c backend/alembic.ini upgrade head
 ```
 
-Start the API from `backend/` so its local `.env` is loaded:
+Start the API from `backend/` so Pydantic loads `backend/.env`:
 
 ```powershell
-backend/.venv/Scripts/python -m uvicorn app.main:app --reload
-```
-
-When the shell is at the repository root, use this equivalent command:
-
-```powershell
-backend/.venv/Scripts/python -m uvicorn app.main:app --app-dir backend --reload
+Set-Location backend
+.venv/Scripts/python -m uvicorn app.main:app --reload
 ```
 
 The API listens at `http://localhost:8000`. Useful endpoints are:
@@ -122,9 +112,10 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 
 `10.0.2.2` reaches the host from the standard Android emulator. Cleartext HTTP
 to that host is permitted only by the Android debug network-security policy.
-Release API communication must use HTTPS. A physical device requires a reachable
-HTTPS endpoint, or a separate deliberate local-development setup; do not assume
-its `localhost` points to the development computer.
+Release API communication must use HTTPS. For deliberate debug development on a
+physical device, run `adb reverse tcp:8000 tcp:8000` and use
+`http://127.0.0.1:8000`; otherwise use a reachable HTTPS endpoint. Do not assume
+device `localhost` points to the development computer without `adb reverse`.
 
 ## Configuration
 
@@ -133,12 +124,12 @@ Root `.env.example` documents the cross-layer contract. Runtime consumers are:
 | Variable | Consumer | Requirement and default |
 |---|---|---|
 | `API_BASE_URL` | Flutter compile-time `--dart-define` | Required; HTTPS in release. Emulator debug example: `http://10.0.2.2:8000` |
-| `DATABASE_URL` | FastAPI, Alembic | Required backend PostgreSQL URL |
+| `DATABASE_URL` | FastAPI, Alembic | Required `postgresql+psycopg` URL. Production requires non-loopback, non-placeholder values and `sslmode=require` |
 | `USGS_FEED_URL` | FastAPI | Optional; defaults to the live USGS all-day feed |
 | `PROVIDER_TIMEOUT_SECONDS` | FastAPI | Optional; default `10.0` |
 | `REFRESH_MINIMUM_SECONDS` | FastAPI | Optional; default `60` |
 | `CURRENT_MAX_AGE_SECONDS` | FastAPI | Optional; default `300` |
-| `ENVIRONMENT` | Deployment convention | Documented as `development`; not currently read by application code |
+| `ENVIRONMENT` | FastAPI, Alembic | Optional: `development` (default), `test`, or `production`; controls production database validation |
 | `MAPBOX_ACCESS_TOKEN` | None in this slice | Future maps increment only; not read, required, or validated |
 
 Never commit a real `.env` file. Mapbox is selected for a future map, geocoding,
@@ -183,16 +174,22 @@ The deterministic end-to-end test uses an ephemeral PostgreSQL test database,
 a local test-only USGS-protocol server, the real FastAPI process, real mobile
 wiring, and persisted Drift storage. It first verifies populated list/detail
 content, then stops the API and verifies stale cached content and safe failure
-copy. With an Android target listed by `flutter devices`, run from the root:
+copy. With an Android target listed by `flutter devices`, run from the root. The
+harness auto-selects `10.0.2.2` for an emulator and configures `adb reverse` with
+`127.0.0.1` for a physical device:
 
 ```powershell
 tools/run-live-alerts-integration.ps1 -DeviceId <android-device-id>
 ```
 
-The harness stops its API/provider processes, clears the Android application
-data, and stops the ephemeral integration database. It never calls emergency
-services, Mapbox, or a remote API; only the separate opt-in live smoke calls
-USGS.
+Use `-ApiBaseUrl <url>` to override the detected debug URL and `-FlutterBin
+<directory>` only when Flutter is not already on `PATH`.
+
+The harness bounds readiness/process waits, stops its API/provider processes,
+validates Android application-data cleanup, removes any `adb reverse` rule,
+stops the ephemeral integration database, and restores `PATH`, `DATABASE_URL`,
+and `USGS_FEED_URL`. It never calls emergency services, Mapbox, or a remote API;
+only the separate opt-in live smoke calls USGS.
 
 ## Repository Structure
 

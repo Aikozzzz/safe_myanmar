@@ -23,7 +23,7 @@ void main() {
     }
   });
 
-  test('debug cleartext exception is scoped to Android emulator host', () {
+  test('debug cleartext exception is scoped to required local hosts', () {
     final debugManifest = File(
       'android/app/src/debug/AndroidManifest.xml',
     ).readAsStringSync();
@@ -40,7 +40,10 @@ void main() {
 
     final debugPolicy = debugPolicyFile.readAsStringSync();
     expect(debugPolicy, contains('cleartextTrafficPermitted="true"'));
-    expect(debugPolicy, contains('<domain>10.0.2.2</domain>'));
+    final domains = RegExp(
+      r'<domain>([^<]+)</domain>',
+    ).allMatches(debugPolicy).map((match) => match.group(1)).toSet();
+    expect(domains, {'localhost', '127.0.0.1', '10.0.2.2'});
     expect(debugPolicy, isNot(contains('includeSubdomains="true"')));
     expect(debugPolicy, isNot(contains('<base-config')));
   });
