@@ -287,8 +287,8 @@ The final stack can be adjusted according to course requirements.
 
 The current Android-only mobile foundation includes generated localization,
 accessible light and dark themes, earthquake domain contracts, strict alert API
-decoding, and a migration-backed Drift cache. Repository coordination, maps,
-location, and emergency feature screens remain future mobile increments.
+decoding, a migration-backed Drift cache, and cache-first Riverpod alert state.
+Maps, location, and emergency feature screens remain future mobile increments.
 
 ### Backend
 

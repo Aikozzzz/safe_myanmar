@@ -7,3 +7,7 @@ abstract interface class AlertRepository {
 
   Future<Earthquake?> getById(String id);
 }
+
+abstract interface class CachedAlertRepository implements AlertRepository {
+  Stream<AlertSnapshot?> watchCachedSnapshot();
+}

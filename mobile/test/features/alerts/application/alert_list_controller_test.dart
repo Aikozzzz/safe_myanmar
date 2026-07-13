@@ -1,0 +1,331 @@
+import 'dart:async';
+
+import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:mobile/core/database/app_database.dart';
+import 'package:mobile/features/alerts/application/alert_list_controller.dart';
+import 'package:mobile/features/alerts/application/alert_list_state.dart';
+import 'package:mobile/features/alerts/application/providers.dart';
+import 'package:mobile/features/alerts/data/alert_dto.dart';
+import 'package:mobile/features/alerts/data/alert_remote_source.dart';
+import 'package:mobile/features/alerts/data/alert_repository_impl.dart';
+import 'package:mobile/features/alerts/domain/earthquake.dart';
+
+import '../../../support/alert_fixtures.dart';
+import '../../../support/fake_alert_repository.dart';
+
+void main() {
+  group('AlertListState', () {
+    test('items are immutable and equality and copyWith use values', () {
+      final source = [earthquakeFixture()];
+      final state = AlertListState(
+        phase: AlertListPhase.data,
+        items: source,
+        presentationStatus: AlertPresentationStatus.cached,
+        lastSuccessfulRefreshAt: _refreshedAt,
+        isRefreshing: true,
+        errorKind: null,
+      );
+      source.clear();
+
+      expect(state.items, [earthquakeFixture()]);
+      expect(() => state.items.clear(), throwsUnsupportedError);
+      expect(state.copyWith(), state);
+      expect(state.copyWith(isRefreshing: false), isNot(state));
+      expect(
+        state.copyWith(
+          clearPresentationStatus: true,
+          clearLastSuccessfulRefreshAt: true,
+          clearErrorKind: true,
+        ),
+        AlertListState(
+          phase: AlertListPhase.data,
+          items: [earthquakeFixture()],
+          presentationStatus: null,
+          lastSuccessfulRefreshAt: null,
+          isRefreshing: true,
+          errorKind: null,
+        ),
+      );
+    });
+  });
+
+  group('AlertListController', () {
+    late FakeAlertRepository repository;
+    late ProviderContainer container;
+    late Completer<AlertSnapshot> initialRefresh;
+
+    setUp(() {
+      repository = FakeAlertRepository();
+      initialRefresh = repository.queueRefresh();
+      container = ProviderContainer(
+        overrides: [alertRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await repository.close();
+      });
+    });
+
+    AlertListController start() {
+      container.read(alertListControllerProvider);
+      return container.read(alertListControllerProvider.notifier);
+    }
+
+    AlertListState state() => container.read(alertListControllerProvider);
+
+    test('starts loading with no cache while initial refresh is pending', () {
+      start();
+
+      expect(
+        state(),
+        AlertListState(
+          phase: AlertListPhase.loading,
+          items: const [],
+          presentationStatus: null,
+          lastSuccessfulRefreshAt: null,
+          isRefreshing: true,
+          errorKind: null,
+        ),
+      );
+      expect(repository.refreshCalls, 1);
+    });
+
+    test('shows cached non-empty data before blocked refresh completes', () {
+      start();
+
+      repository.emit(_snapshot(status: AlertDataStatus.current));
+
+      expect(state().phase, AlertListPhase.data);
+      expect(state().items, [earthquakeFixture()]);
+      expect(state().presentationStatus, AlertPresentationStatus.cached);
+      expect(state().isRefreshing, isTrue);
+    });
+
+    test('shows stale local snapshot before refresh completes', () {
+      start();
+
+      repository.emit(_snapshot(status: AlertDataStatus.stale));
+
+      expect(state().presentationStatus, AlertPresentationStatus.stale);
+      expect(state().isRefreshing, isTrue);
+    });
+
+    test('successful current non-empty refresh becomes live data', () async {
+      final controller = start();
+      final refresh = controller.refresh();
+
+      initialRefresh.complete(_snapshot());
+      await refresh;
+
+      expect(state().phase, AlertListPhase.data);
+      expect(state().presentationStatus, AlertPresentationStatus.live);
+      expect(state().lastSuccessfulRefreshAt, _refreshedAt);
+      expect(state().isRefreshing, isFalse);
+      expect(state().errorKind, isNull);
+    });
+
+    test('successful stale non-empty refresh remains stale', () async {
+      final controller = start();
+      final refresh = controller.refresh();
+
+      initialRefresh.complete(_snapshot(status: AlertDataStatus.stale));
+      await refresh;
+
+      expect(state().phase, AlertListPhase.data);
+      expect(state().presentationStatus, AlertPresentationStatus.stale);
+    });
+
+    test('successful current empty refresh becomes live empty', () async {
+      final controller = start();
+      final refresh = controller.refresh();
+
+      initialRefresh.complete(_snapshot(items: const []));
+      await refresh;
+
+      expect(state().phase, AlertListPhase.empty);
+      expect(state().items, isEmpty);
+      expect(state().presentationStatus, AlertPresentationStatus.live);
+    });
+
+    test('typed failures with cache retain data and become stale', () async {
+      for (final entry in <Object, AlertListErrorKind>{
+        const AlertRemoteUnavailable(): AlertListErrorKind.remoteUnavailable,
+        const AlertRemoteException(500): AlertListErrorKind.remoteUnavailable,
+        const AlertProtocolException(): AlertListErrorKind.invalidData,
+        const AlertStorageException(): AlertListErrorKind.storage,
+      }.entries) {
+        final currentRepository = FakeAlertRepository();
+        final failed = currentRepository.queueRefresh();
+        final currentContainer = ProviderContainer(
+          overrides: [
+            alertRepositoryProvider.overrideWithValue(currentRepository),
+          ],
+        );
+        addTearDown(() async {
+          currentContainer.dispose();
+          await currentRepository.close();
+        });
+        currentContainer.read(alertListControllerProvider);
+        currentRepository.emit(_snapshot());
+        final refresh = currentContainer
+            .read(alertListControllerProvider.notifier)
+            .refresh();
+
+        failed.completeError(entry.key);
+        await refresh;
+
+        final result = currentContainer.read(alertListControllerProvider);
+        expect(result.phase, AlertListPhase.data);
+        expect(result.items, [earthquakeFixture()]);
+        expect(result.presentationStatus, AlertPresentationStatus.stale);
+        expect(result.lastSuccessfulRefreshAt, _refreshedAt);
+        expect(result.errorKind, entry.value);
+        expect(result.toString(), isNot(contains(entry.key.toString())));
+      }
+    });
+
+    test('each typed failure without cache becomes unavailable', () async {
+      for (final entry in <Object, AlertListErrorKind>{
+        const AlertRemoteUnavailable(): AlertListErrorKind.remoteUnavailable,
+        const AlertProtocolException(): AlertListErrorKind.invalidData,
+        const AlertStorageException(): AlertListErrorKind.storage,
+      }.entries) {
+        final currentRepository = FakeAlertRepository();
+        final failed = currentRepository.queueRefresh();
+        final currentContainer = ProviderContainer(
+          overrides: [
+            alertRepositoryProvider.overrideWithValue(currentRepository),
+          ],
+        );
+        addTearDown(() async {
+          currentContainer.dispose();
+          await currentRepository.close();
+        });
+        currentContainer.read(alertListControllerProvider);
+        final refresh = currentContainer
+            .read(alertListControllerProvider.notifier)
+            .refresh();
+
+        failed.completeError(entry.key);
+        await refresh;
+
+        final result = currentContainer.read(alertListControllerProvider);
+        expect(result.phase, AlertListPhase.unavailable);
+        expect(result.items, isEmpty);
+        expect(result.presentationStatus, isNull);
+        expect(result.errorKind, entry.value);
+      }
+    });
+
+    test('manual refresh after failure recovers', () async {
+      final controller = start();
+      final failed = controller.refresh();
+      initialRefresh.completeError(const AlertRemoteUnavailable());
+      await failed;
+      final recovered = repository.queueRefresh();
+
+      final refresh = controller.refresh();
+      recovered.complete(_snapshot());
+      await refresh;
+
+      expect(repository.refreshCalls, 2);
+      expect(state().phase, AlertListPhase.data);
+      expect(state().presentationStatus, AlertPresentationStatus.live);
+      expect(state().errorKind, isNull);
+    });
+
+    test('two concurrent refresh calls share one repository request', () async {
+      final controller = start();
+
+      final first = controller.refresh();
+      final second = controller.refresh();
+      initialRefresh.complete(_snapshot());
+      await Future.wait([first, second]);
+
+      expect(repository.refreshCalls, 1);
+    });
+
+    test('cache stream updates preserve active refresh state', () async {
+      final controller = start();
+      final refresh = controller.refresh();
+      final updated = earthquakeFixture(
+        id: 'usgs:updated',
+        providerEventId: 'updated',
+      );
+
+      repository.emit(_snapshot(items: [updated]));
+
+      expect(state().items, [updated]);
+      expect(state().isRefreshing, isTrue);
+      initialRefresh.complete(_snapshot(items: [updated]));
+      await refresh;
+    });
+
+    test('disposing controller cancels its cache subscription', () async {
+      start();
+
+      container.dispose();
+
+      await repository.cacheCancelled.future;
+    });
+  });
+
+  group('runtime providers', () {
+    test('dispose closes the app-scoped HTTP client', () {
+      final client = _TrackingClient();
+      final container = ProviderContainer(
+        overrides: [httpClientFactoryProvider.overrideWithValue(() => client)],
+      );
+      container.read(httpClientProvider);
+
+      container.dispose();
+
+      expect(client.closed, isTrue);
+    });
+
+    test('dispose closes the app-scoped database', () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      AppDatabase? disposedDatabase;
+      final container = ProviderContainer(
+        overrides: [
+          appDatabaseFactoryProvider.overrideWithValue(() => database),
+          appDatabaseDisposerProvider.overrideWithValue((value) {
+            disposedDatabase = value;
+          }),
+        ],
+      );
+      container.read(appDatabaseProvider);
+
+      container.dispose();
+
+      expect(disposedDatabase, same(database));
+      await database.close();
+    });
+  });
+}
+
+final _refreshedAt = DateTime.utc(2026, 7, 13, 1, 5, 6, 0, 7);
+
+AlertSnapshot _snapshot({
+  List<Earthquake>? items,
+  AlertDataStatus status = AlertDataStatus.current,
+}) => AlertSnapshot(
+  items: items ?? [earthquakeFixture()],
+  dataStatus: status,
+  lastSuccessfulRefreshAt: _refreshedAt,
+);
+
+final class _TrackingClient extends http.BaseClient {
+  bool closed = false;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void close() => closed = true;
+}
