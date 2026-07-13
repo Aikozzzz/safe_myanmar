@@ -1,12 +1,22 @@
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from app.core.config import Settings
 from app.database.base import Base
 from app.models import Earthquake, ProviderSync  # noqa: F401
 
 config = context.config
+if not config.get_main_option("sqlalchemy.url"):
+    env_file = (
+        Path(config.config_file_name).resolve().parent / ".env"
+        if config.config_file_name is not None
+        else None
+    )
+    database_url = Settings(_env_file=env_file).database_url.replace("%", "%%")
+    config.set_main_option("sqlalchemy.url", database_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 

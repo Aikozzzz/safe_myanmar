@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1783904645000,
+    "url": "test-only://safemyanmar/integration",
+    "title": "SafeMyanmar controlled integration fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 1
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.6,
+        "place": "integration-fixture-001 near Mandalay",
+        "time": 1783904523000,
+        "updated": 1783904584000,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/integration-fixture-001",
+        "title": "M 4.6 - integration-fixture-001 near Mandalay",
+        "status": "reviewed"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [96.0891, 21.9588, 10.5]
+      },
+      "id": "integration-fixture-001"
+    }
+  ],
+  "bbox": [96.0891, 21.9588, 10.5, 96.0891, 21.9588, 10.5]
+}

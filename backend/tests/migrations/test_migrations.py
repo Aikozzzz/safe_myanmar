@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from alembic.config import Config
@@ -45,6 +48,29 @@ def test_alembic_paths_are_cwd_independent(test_database_url, tmp_path, monkeypa
         BACKEND_DIR / "alembic"
     )
     assert Path(config.get_main_option("prepend_sys_path")).resolve() == BACKEND_DIR
+
+
+def test_alembic_cli_uses_database_url_environment(test_database_url):
+    environment = os.environ.copy()
+    environment["DATABASE_URL"] = test_database_url
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "alembic",
+            "-c",
+            str(BACKEND_DIR / "alembic.ini"),
+            "current",
+        ],
+        cwd=BACKEND_DIR.parent,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, "Alembic CLI must honor DATABASE_URL"
 
 
 def test_upgrade_creates_required_schema(test_database_url):
