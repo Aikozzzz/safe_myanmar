@@ -137,6 +137,11 @@ and directions increment; no Mapbox package or request exists now.
 
 ## Testing
 
+The tracked
+[live-earthquake verification record](docs/verification/live-earthquake-vertical-slice.md)
+summarizes the latest authoritative results, commands run, security checks, and
+the Android E2E/APK blockers that remain unresolved.
+
 Start an ephemeral dedicated PostgreSQL test database:
 
 ```powershell
@@ -214,7 +219,8 @@ SafeMyanmar/
 |   `-- test/                    unit/widget/contract tests
 |-- docs/
 |   |-- api/alerts.md
-|   `-- architecture/live-earthquake-slice.md
+|   |-- architecture/live-earthquake-slice.md
+|   `-- verification/live-earthquake-vertical-slice.md
 |-- tools/run-live-alerts-integration.ps1
 |-- docker-compose.yml
 |-- .env.example
