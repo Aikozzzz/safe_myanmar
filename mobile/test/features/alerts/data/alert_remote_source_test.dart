@@ -95,6 +95,7 @@ void main() {
         final failures = <Future<http.Response> Function()>[
           () => Completer<http.Response>().future,
           () => Future.error(const SocketException('secret host')),
+          () => Future.error(const HandshakeException('secret certificate')),
           () => Future.error(http.ClientException('secret URL')),
         ];
 

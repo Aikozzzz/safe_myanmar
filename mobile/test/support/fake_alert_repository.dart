@@ -13,16 +13,24 @@ final class FakeAlertRepository implements CachedAlertRepository {
 
   late final StreamController<AlertSnapshot?> _cache;
   final Completer<void> cacheCancelled = Completer<void>();
-  final List<Completer<AlertSnapshot>> _refreshes = [];
+  final Completer<void> refreshStarted = Completer<void>();
+  final List<FakeAlertRefresh> _refreshes = [];
   int refreshCalls = 0;
 
-  Completer<AlertSnapshot> queueRefresh() {
-    final completer = Completer<AlertSnapshot>();
-    _refreshes.add(completer);
-    return completer;
+  FakeAlertRefresh queueRefresh({AlertSnapshot? synchronousCacheSnapshot}) {
+    final refresh = FakeAlertRefresh(
+      synchronousCacheSnapshot: synchronousCacheSnapshot,
+    );
+    _refreshes.add(refresh);
+    return refresh;
   }
 
+  void queueSynchronousError(Object error) =>
+      _refreshes.add(FakeAlertRefresh(synchronousError: error));
+
   void emit(AlertSnapshot? snapshot) => _cache.add(snapshot);
+
+  void emitError(Object error) => _cache.addError(error, StackTrace.current);
 
   @override
   Stream<AlertSnapshot?> watchCachedSnapshot() => _cache.stream;
@@ -35,11 +43,32 @@ final class FakeAlertRepository implements CachedAlertRepository {
   @override
   Future<AlertSnapshot> refresh() {
     refreshCalls++;
-    return _refreshes[refreshCalls - 1].future;
+    if (!refreshStarted.isCompleted) refreshStarted.complete();
+    final refresh = _refreshes[refreshCalls - 1];
+    if (refresh.synchronousCacheSnapshot case final snapshot?) emit(snapshot);
+    if (refresh.synchronousError case final error?) throw error;
+    return refresh.future;
   }
 
   @override
   Future<Earthquake?> getById(String id) async => null;
 
   Future<void> close() => _cache.close();
+}
+
+final class FakeAlertRefresh {
+  FakeAlertRefresh({this.synchronousCacheSnapshot, this.synchronousError}) {
+    _completer.future.then<void>((_) {}, onError: (_, _) {});
+  }
+
+  final AlertSnapshot? synchronousCacheSnapshot;
+  final Object? synchronousError;
+  final Completer<AlertSnapshot> _completer = Completer<AlertSnapshot>();
+
+  Future<AlertSnapshot> get future => _completer.future;
+
+  void complete(AlertSnapshot snapshot) => _completer.complete(snapshot);
+
+  void completeError(Object error) =>
+      _completer.completeError(error, StackTrace.current);
 }

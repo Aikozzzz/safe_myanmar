@@ -11,6 +11,8 @@ final class FakeAlertLocalSource implements AlertLocalSource {
       StreamController<AlertLocalSnapshot?>.broadcast();
   AlertLocalSnapshot? _snapshot;
   Object? replaceError;
+  Object? watchError;
+  Object? getByIdError;
   int replaceCalls = 0;
   String? requestedId;
   AlertSnapshot? replacedSnapshot;
@@ -18,6 +20,7 @@ final class FakeAlertLocalSource implements AlertLocalSource {
 
   @override
   Stream<AlertLocalSnapshot?> watchSnapshot() async* {
+    if (watchError case final error?) throw error;
     yield _snapshot;
     yield* _controller.stream;
   }
@@ -27,6 +30,7 @@ final class FakeAlertLocalSource implements AlertLocalSource {
 
   @override
   Future<Earthquake?> getById(String id) async {
+    if (getByIdError case final error?) throw error;
     requestedId = id;
     for (final item in _snapshot?.items ?? const <Earthquake>[]) {
       if (item.id == id) return item;

@@ -57,7 +57,7 @@ final class AlertRemoteSource {
       throw const AlertProtocolException();
     } on TimeoutException {
       throw const AlertRemoteUnavailable();
-    } on SocketException {
+    } on IOException {
       throw const AlertRemoteUnavailable();
     } on http.ClientException {
       throw const AlertRemoteUnavailable();

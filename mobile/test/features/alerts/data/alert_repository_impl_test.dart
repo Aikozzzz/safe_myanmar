@@ -174,6 +174,32 @@ void main() {
     expect(local.requestedId, item.id);
   });
 
+  test('watch failures are normalized to safe storage errors', () async {
+    local.watchError = StateError('database path secret');
+    final repository = _repository(local, _successfulClient());
+
+    await expectLater(
+      repository.watchCachedSnapshot().first,
+      throwsA(
+        isA<AlertStorageException>().having(
+          (error) => error.toString(),
+          'safe string',
+          isNot(contains('secret')),
+        ),
+      ),
+    );
+  });
+
+  test('detail read failures are normalized to safe storage errors', () async {
+    local.getByIdError = StateError('database path secret');
+    final repository = _repository(local, _successfulClient());
+
+    await expectLater(
+      repository.getById('usgs:example'),
+      throwsA(isA<AlertStorageException>()),
+    );
+  });
+
   test('a failed request is not retried', () async {
     var calls = 0;
     final repository = _repository(

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -55,7 +56,7 @@ void main() {
   group('AlertListController', () {
     late FakeAlertRepository repository;
     late ProviderContainer container;
-    late Completer<AlertSnapshot> initialRefresh;
+    late FakeAlertRefresh initialRefresh;
 
     setUp(() {
       repository = FakeAlertRepository();
@@ -69,15 +70,17 @@ void main() {
       });
     });
 
-    AlertListController start() {
+    AlertListController start({bool emitInitialCache = true}) {
       container.read(alertListControllerProvider);
-      return container.read(alertListControllerProvider.notifier);
+      final controller = container.read(alertListControllerProvider.notifier);
+      if (emitInitialCache) repository.emit(null);
+      return controller;
     }
 
     AlertListState state() => container.read(alertListControllerProvider);
 
     test('starts loading with no cache while initial refresh is pending', () {
-      start();
+      start(emitInitialCache: false);
 
       expect(
         state(),
@@ -90,11 +93,66 @@ void main() {
           errorKind: null,
         ),
       );
-      expect(repository.refreshCalls, 1);
+      expect(repository.refreshCalls, 0);
     });
 
+    test('null first cache event starts the initial refresh', () async {
+      start(emitInitialCache: false);
+
+      repository.emit(null);
+      await repository.refreshStarted.future;
+
+      expect(repository.refreshCalls, 1);
+      initialRefresh.complete(_snapshot());
+      await container.read(alertListControllerProvider.notifier).refresh();
+    });
+
+    test('fast refresh cannot win before the first cache event', () async {
+      final controller = start(emitInitialCache: false);
+      initialRefresh.complete(_snapshot());
+
+      expect(repository.refreshCalls, 0);
+      expect(state().phase, AlertListPhase.loading);
+
+      repository.emit(_snapshot(items: [earthquakeFixture(title: 'cached')]));
+      await controller.refresh();
+
+      expect(repository.refreshCalls, 1);
+      expect(state().presentationStatus, AlertPresentationStatus.live);
+      expect(state().items.single.title, 'M 5.2 - Myanmar');
+    });
+
+    test(
+      'fast failure observes valid cache and never shows unavailable',
+      () async {
+        repository = FakeAlertRepository()
+          ..queueSynchronousError(const AlertRemoteUnavailable());
+        container.dispose();
+        container = ProviderContainer(
+          overrides: [alertRepositoryProvider.overrideWithValue(repository)],
+        );
+        final phases = <AlertListPhase>[];
+        final subscription = container.listen(
+          alertListControllerProvider,
+          (_, next) => phases.add(next.phase),
+          fireImmediately: true,
+        );
+        addTearDown(subscription.close);
+        final controller = start(emitInitialCache: false);
+
+        repository.emit(_snapshot(items: [earthquakeFixture(title: 'cached')]));
+        await controller.refresh();
+
+        expect(state().phase, AlertListPhase.data);
+        expect(state().items.single.title, 'cached');
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        expect(state().errorKind, AlertListErrorKind.remoteUnavailable);
+        expect(phases, isNot(contains(AlertListPhase.unavailable)));
+      },
+    );
+
     test('shows cached non-empty data before blocked refresh completes', () {
-      start();
+      start(emitInitialCache: false);
 
       repository.emit(_snapshot(status: AlertDataStatus.current));
 
@@ -105,7 +163,7 @@ void main() {
     });
 
     test('shows stale local snapshot before refresh completes', () {
-      start();
+      start(emitInitialCache: false);
 
       repository.emit(_snapshot(status: AlertDataStatus.stale));
 
@@ -205,6 +263,7 @@ void main() {
           await currentRepository.close();
         });
         currentContainer.read(alertListControllerProvider);
+        currentRepository.emit(null);
         final refresh = currentContainer
             .read(alertListControllerProvider.notifier)
             .refresh();
@@ -264,6 +323,182 @@ void main() {
       await refresh;
     });
 
+    test('synchronous persisted current snapshot finishes live', () async {
+      final snapshot = _snapshot();
+      repository = FakeAlertRepository();
+      initialRefresh = repository.queueRefresh(
+        synchronousCacheSnapshot: snapshot,
+      );
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [alertRepositoryProvider.overrideWithValue(repository)],
+      );
+      final controller = start(emitInitialCache: false);
+
+      repository.emit(null);
+      await repository.refreshStarted.future;
+      expect(repository.refreshCalls, 1);
+      expect(state().presentationStatus, AlertPresentationStatus.cached);
+      initialRefresh.complete(snapshot);
+      await controller.refresh();
+
+      expect(state().presentationStatus, AlertPresentationStatus.live);
+      expect(state().errorKind, isNull);
+    });
+
+    test(
+      'matching current cache after completion does not downgrade live',
+      () async {
+        final controller = start();
+        final snapshot = _snapshot();
+        final refresh = controller.refresh();
+        initialRefresh.complete(snapshot);
+        await refresh;
+
+        repository.emit(snapshot);
+
+        expect(state().presentationStatus, AlertPresentationStatus.live);
+        expect(state().errorKind, isNull);
+      },
+    );
+
+    test('differing cache after live success becomes cached data', () async {
+      final controller = start();
+      final refresh = controller.refresh();
+      initialRefresh.complete(_snapshot());
+      await refresh;
+      final updated = earthquakeFixture(
+        id: 'usgs:external',
+        providerEventId: 'external',
+      );
+
+      repository.emit(_snapshot(items: [updated]));
+
+      expect(state().items, [updated]);
+      expect(state().presentationStatus, AlertPresentationStatus.cached);
+      expect(state().errorKind, isNull);
+    });
+
+    test(
+      'persisted stale snapshots remain stale before and after completion',
+      () async {
+        final snapshot = _snapshot(status: AlertDataStatus.stale);
+        repository = FakeAlertRepository();
+        initialRefresh = repository.queueRefresh(
+          synchronousCacheSnapshot: snapshot,
+        );
+        container.dispose();
+        container = ProviderContainer(
+          overrides: [alertRepositoryProvider.overrideWithValue(repository)],
+        );
+        final controller = start(emitInitialCache: false);
+        repository.emit(null);
+        await repository.refreshStarted.future;
+        expect(repository.refreshCalls, 1);
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        initialRefresh.complete(snapshot);
+        await controller.refresh();
+
+        repository.emit(snapshot);
+
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        expect(state().errorKind, isNull);
+      },
+    );
+
+    test(
+      'matching cache after failure preserves stale error outcome',
+      () async {
+        final controller = start(emitInitialCache: false);
+        final cached = _snapshot();
+        repository.emit(cached);
+        final refresh = controller.refresh();
+        initialRefresh.completeError(const AlertRemoteUnavailable());
+        await refresh;
+
+        repository.emit(cached);
+
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        expect(state().errorKind, AlertListErrorKind.remoteUnavailable);
+      },
+    );
+
+    test(
+      'differing cache after failure updates items but preserves error',
+      () async {
+        final controller = start(emitInitialCache: false);
+        repository.emit(_snapshot());
+        final refresh = controller.refresh();
+        initialRefresh.completeError(const AlertRemoteUnavailable());
+        await refresh;
+        final updated = earthquakeFixture(
+          id: 'usgs:external',
+          providerEventId: 'external',
+        );
+
+        repository.emit(_snapshot(items: [updated]));
+
+        expect(state().items, [updated]);
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        expect(state().errorKind, AlertListErrorKind.remoteUnavailable);
+      },
+    );
+
+    test(
+      'unknown refresh failure is safe storage state and completes',
+      () async {
+        final controller = start();
+        final refresh = controller.refresh();
+
+        initialRefresh.completeError(StateError('database path secret'));
+        await refresh;
+
+        expect(state().phase, AlertListPhase.unavailable);
+        expect(state().isRefreshing, isFalse);
+        expect(state().errorKind, AlertListErrorKind.storage);
+        expect(state().toString(), isNot(contains('secret')));
+      },
+    );
+
+    test(
+      'cache error during refresh keeps operation active and coalesced',
+      () async {
+        final controller = start(emitInitialCache: false);
+        repository.emit(_snapshot());
+        final first = controller.refresh();
+        await repository.refreshStarted.future;
+
+        repository.emitError(StateError('cache secret'));
+        final second = controller.refresh();
+
+        expect(repository.refreshCalls, 1);
+        expect(state().isRefreshing, isTrue);
+        expect(state().errorKind, AlertListErrorKind.storage);
+        initialRefresh.complete(_snapshot());
+        await Future.wait([first, second]);
+        expect(state().presentationStatus, AlertPresentationStatus.live);
+        expect(state().isRefreshing, isFalse);
+        expect(state().errorKind, isNull);
+      },
+    );
+
+    test(
+      'cache error outside refresh follows storage failure behavior',
+      () async {
+        final controller = start();
+        final refresh = controller.refresh();
+        initialRefresh.complete(_snapshot());
+        await refresh;
+
+        repository.emitError(StateError('cache secret'));
+
+        expect(state().phase, AlertListPhase.data);
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        expect(state().isRefreshing, isFalse);
+        expect(state().errorKind, AlertListErrorKind.storage);
+      },
+    );
+
     test('disposing controller cancels its cache subscription', () async {
       start();
 
@@ -286,23 +521,21 @@ void main() {
       expect(client.closed, isTrue);
     });
 
-    test('dispose closes the app-scoped database', () async {
-      final database = AppDatabase(NativeDatabase.memory());
-      AppDatabase? disposedDatabase;
+    test('default disposal closes the app-scoped database', () async {
+      final interceptor = _CloseTrackingInterceptor();
+      final database = AppDatabase(
+        NativeDatabase.memory().interceptWith(interceptor),
+      );
       final container = ProviderContainer(
         overrides: [
           appDatabaseFactoryProvider.overrideWithValue(() => database),
-          appDatabaseDisposerProvider.overrideWithValue((value) {
-            disposedDatabase = value;
-          }),
         ],
       );
       container.read(appDatabaseProvider);
 
       container.dispose();
 
-      expect(disposedDatabase, same(database));
-      await database.close();
+      await interceptor.closed.future;
     });
   });
 }
@@ -328,4 +561,14 @@ final class _TrackingClient extends http.BaseClient {
 
   @override
   void close() => closed = true;
+}
+
+final class _CloseTrackingInterceptor extends QueryInterceptor {
+  final Completer<void> closed = Completer<void>();
+
+  @override
+  Future<void> close(QueryExecutor inner) async {
+    await inner.close();
+    closed.complete();
+  }
 }

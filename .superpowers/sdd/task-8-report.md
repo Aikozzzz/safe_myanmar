@@ -58,3 +58,41 @@
 ## Concerns
 
 - No known blockers. UI consumption remains intentionally outside Task 8.
+
+## Review Fixes
+
+### RED Evidence
+
+- Initial ordering tests failed because `AlertListController.build()` called `repository.refresh()` immediately; refresh count was 1 before any cache event, and a synchronous remote failure put the provider itself into an error state before valid cache could be observed.
+- Persistence race tests failed because matching cache emissions always rewrote current API results to `cached`; a synchronous persisted emission also exposed re-entrant stream delivery while the first cache callback was active.
+- Cache-stream error tests failed because `_recordFailure` set `isRefreshing` false while the repository request was still active.
+- Unknown refresh errors escaped the controller future with their raw exception.
+- Repository read tests received raw local-source `StateError` values instead of `AlertStorageException`.
+- The remote-source handshake test received a raw `HandshakeException` instead of `AlertRemoteUnavailable`.
+
+### Implemented Corrections
+
+- Initial refresh is represented as a coalesced pending operation but does not call the repository until the cache stream emits its first data event, including `null`.
+- Initial request startup is explicitly ordered after the first cache callback returns, avoiding synchronous stream re-entry while preserving cache-before-network behavior.
+- The controller records the last authoritative successful snapshot and uses full snapshot equivalence to prevent matching persistence emissions from downgrading `live` or `stale` outcomes.
+- Differing external cache emissions update visible data; recoverable failure status remains stale/error, while a differing post-success snapshot is presented as cached or stale according to its metadata.
+- Cache-stream errors during an active refresh retain `isRefreshing`, keep the operation coalesced, and allow the request result to become authoritative. Outside refresh they follow normal storage-failure behavior.
+- All unexpected refresh exceptions are converted to safe storage state and consumed by the controller, including synchronous repository throws.
+- All `IOException` subclasses, including TLS handshake failures, map to `AlertRemoteUnavailable` without leaking details.
+- Repository cache-watch and detail-read failures now map unexpected local exceptions to safe `AlertStorageException`; replacement failures remain safely wrapped.
+- The test repository can emit persisted snapshots synchronously before completion, explicitly after completion, and emit stream errors. Ordering uses completers rather than delays.
+- Default `appDatabaseProvider` disposal is verified against a real `AppDatabase` using a close-tracking Drift interceptor; only the database factory is overridden.
+
+### Review Verification
+
+- `dart format --output=none --set-exit-if-changed .`: passed, 28 files checked and 0 changed.
+- `flutter analyze`: passed, no issues found.
+- `flutter test test/features/alerts/application/alert_list_controller_test.dart`: passed, 27 tests.
+- `flutter test test/features/alerts/data/alert_repository_impl_test.dart`: passed, 11 tests.
+- `flutter test test/features/alerts/data/alert_remote_source_test.dart`: passed, 6 tests.
+- `flutter test`: passed, 127 tests.
+- Review-fix commit: `fix: make cache-first state race safe` (this report update is included in that commit).
+
+### Review Concerns
+
+- No known blockers. Refresh still performs exactly one repository request and has no automatic retry.

@@ -24,14 +24,23 @@ final class AlertRepositoryImpl implements CachedAlertRepository {
   final DateTime Function() _now;
 
   @override
-  Stream<List<Earthquake>> watchCached() => _localSource.watchSnapshot().map(
+  Stream<List<Earthquake>> watchCached() => watchCachedSnapshot().map(
     (snapshot) =>
         List<Earthquake>.unmodifiable(snapshot?.items ?? const <Earthquake>[]),
   );
 
   @override
-  Stream<AlertSnapshot?> watchCachedSnapshot() =>
-      _localSource.watchSnapshot().map(_toDomainSnapshot);
+  Stream<AlertSnapshot?> watchCachedSnapshot() async* {
+    try {
+      await for (final snapshot in _localSource.watchSnapshot()) {
+        yield _toDomainSnapshot(snapshot);
+      }
+    } on AlertStorageException {
+      rethrow;
+    } catch (_) {
+      throw const AlertStorageException();
+    }
+  }
 
   @override
   Future<AlertSnapshot> refresh() async {
@@ -45,7 +54,15 @@ final class AlertRepositoryImpl implements CachedAlertRepository {
   }
 
   @override
-  Future<Earthquake?> getById(String id) => _localSource.getById(id);
+  Future<Earthquake?> getById(String id) async {
+    try {
+      return await _localSource.getById(id);
+    } on AlertStorageException {
+      rethrow;
+    } catch (_) {
+      throw const AlertStorageException();
+    }
+  }
 
   AlertSnapshot? _toDomainSnapshot(AlertLocalSnapshot? snapshot) {
     if (snapshot == null) return null;
