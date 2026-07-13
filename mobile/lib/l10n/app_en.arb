@@ -12,6 +12,13 @@
       "time": {"type": "String"}
     }
   },
+  "dataStatusSemantics": "{status}. {lastUpdate}",
+  "@dataStatusSemantics": {
+    "placeholders": {
+      "status": {"type": "String"},
+      "lastUpdate": {"type": "String"}
+    }
+  },
   "noRecentEarthquakes": "No recent earthquakes were found in the covered area. This does not guarantee there is no danger.",
   "liveEarthquakeDataUnavailable": "Live earthquake data unavailable.",
   "savedInformationRemains": "Previously saved information remains available below.",
@@ -32,6 +39,12 @@
   "@eventTimeValue": {
     "placeholders": {
       "time": {"type": "String"}
+    }
+  },
+  "utcTimestamp": "{value} UTC",
+  "@utcTimestamp": {
+    "placeholders": {
+      "value": {"type": "String"}
     }
   },
   "depthValue": "Depth: {depth} km",

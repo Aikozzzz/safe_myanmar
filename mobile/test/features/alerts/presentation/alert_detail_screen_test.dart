@@ -68,12 +68,12 @@ void main() {
     expect(find.text('Magnitude 5.2'), findsOneWidget);
     expect(find.text('Location: Myanmar'), findsOneWidget);
     expect(find.text('Depth: 12.5 km'), findsOneWidget);
-    expect(find.text('Event time: Jul 13, 2026, 01:02:03 UTC'), findsOneWidget);
+    expect(find.text('Event time: Jul 13, 2026 01:02:03 UTC'), findsOneWidget);
     expect(
-      find.text('Provider update: Jul 13, 2026, 01:03:04 UTC'),
+      find.text('Provider update: Jul 13, 2026 01:03:04 UTC'),
       findsOneWidget,
     );
-    expect(find.text('Retrieved: Jul 13, 2026, 01:04:05 UTC'), findsOneWidget);
+    expect(find.text('Retrieved: Jul 13, 2026 01:04:05 UTC'), findsOneWidget);
     expect(find.text('Review status: reviewed'), findsOneWidget);
     expect(find.text('Source: USGS'), findsOneWidget);
     expect(
@@ -116,6 +116,23 @@ void main() {
     expect(launchedUris, [Uri.parse('https://earthquake.usgs.gov/example')]);
   });
 
+  testWidgets('trusted USGS subdomain invokes the injected launcher', (
+    tester,
+  ) async {
+    repository.lookupResult = earthquakeFixture(
+      sourceUrl: 'https://events.earthquake.usgs.gov/example',
+    );
+    await pumpDetail(tester);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open USGS source'));
+    await tester.pumpAndSettle();
+
+    expect(launchedUris, [
+      Uri.parse('https://events.earthquake.usgs.gov/example'),
+    ]);
+  });
+
   for (final failure in <String, Future<bool> Function(Uri)>{
     'false result': (_) async => false,
     'exception': (_) => Future<bool>.error(StateError('platform secret')),
@@ -136,20 +153,24 @@ void main() {
     });
   }
 
-  testWidgets('rejects a non-USGS source without invoking launcher', (
+  testWidgets('rejects unsafe source hosts without invoking launcher', (
     tester,
   ) async {
-    repository.lookupResult = earthquakeFixture(
-      sourceUrl: 'https://example.com/event',
-    );
-    await pumpDetail(tester);
-    await tester.pumpAndSettle();
+    for (final sourceUrl in <String>[
+      'https://example.com/event',
+      'https://earthquake.usgs.gov.example.com/event',
+      'https://evilearthquake.usgs.gov/event',
+    ]) {
+      repository.lookupResult = earthquakeFixture(sourceUrl: sourceUrl);
+      await pumpDetail(tester);
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Open USGS source'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open USGS source'));
+      await tester.pumpAndSettle();
 
-    expect(launchedUris, isEmpty);
-    expect(find.text('Could not open USGS source.'), findsOneWidget);
+      expect(launchedUris, isEmpty);
+      expect(find.text('Could not open USGS source.'), findsOneWidget);
+    }
   });
 
   testWidgets('omits absent review status and prohibited classifications', (
@@ -163,10 +184,13 @@ void main() {
     final visibleText = tester
         .widgetList<Text>(find.byType(Text))
         .map((widget) => widget.data ?? '')
-        .join(' ')
-        .toLowerCase();
-    expect(visibleText, isNot(contains('warning')));
-    expect(visibleText, isNot(contains('prediction')));
-    expect(visibleText, isNot(contains('severity')));
+        .join(' ');
+    expect(_prohibitedCopy.hasMatch(visibleText), isFalse);
   });
 }
+
+final _prohibitedCopy = RegExp(
+  r'\b(?:demo|simulation|warning|prediction|severity)\b|'
+  r'\bguarante(?:e|es|ed)\s+(?:safe|safety)\b',
+  caseSensitive: false,
+);

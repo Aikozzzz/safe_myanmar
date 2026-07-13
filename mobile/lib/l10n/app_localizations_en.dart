@@ -32,6 +32,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dataStatusSemantics(String status, String lastUpdate) {
+    return '$status. $lastUpdate';
+  }
+
+  @override
   String get noRecentEarthquakes =>
       'No recent earthquakes were found in the covered area. This does not guarantee there is no danger.';
 
@@ -60,6 +65,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String eventTimeValue(String time) {
     return 'Event time: $time';
+  }
+
+  @override
+  String utcTimestamp(String value) {
+    return '$value UTC';
   }
 
   @override

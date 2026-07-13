@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/app/app.dart';
+import 'package:mobile/app/router.dart';
 import 'package:mobile/app/theme/safe_theme.dart';
 import 'package:mobile/features/alerts/application/providers.dart';
 import 'package:mobile/features/alerts/domain/earthquake.dart';
 import 'package:mobile/features/alerts/presentation/alert_detail_screen.dart';
 import 'package:mobile/features/alerts/presentation/alert_list_screen.dart';
 import 'package:mobile/features/alerts/presentation/source_launcher.dart';
+import 'package:mobile/features/alerts/presentation/widgets/data_status_banner.dart';
 import 'package:mobile/features/alerts/presentation/widgets/earthquake_card.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 
@@ -38,8 +41,9 @@ void main() {
     Widget screen, {
     ThemeData? theme,
     double textScale = 2,
+    Size size = const Size(320, 640),
   }) async {
-    await tester.binding.setSurfaceSize(const Size(320, 640));
+    await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -135,7 +139,7 @@ void main() {
 
     expect(find.text('Magnitude 5.2'), findsOneWidget);
     expect(find.text('Location: Myanmar'), findsOneWidget);
-    expect(find.text('Event time: Jul 13, 2026, 01:02:03 UTC'), findsOneWidget);
+    expect(find.text('Event time: Jul 13, 2026 01:02:03 UTC'), findsOneWidget);
     expect(find.text('Source: USGS'), findsOneWidget);
     expectNoOverflow(tester);
   });
@@ -155,9 +159,9 @@ void main() {
       'Magnitude 5.2',
       'Location: Myanmar',
       'Depth: 12.5 km',
-      'Event time: Jul 13, 2026, 01:02:03 UTC',
-      'Provider update: Jul 13, 2026, 01:03:04 UTC',
-      'Retrieved: Jul 13, 2026, 01:04:05 UTC',
+      'Event time: Jul 13, 2026 01:02:03 UTC',
+      'Provider update: Jul 13, 2026 01:03:04 UTC',
+      'Retrieved: Jul 13, 2026 01:04:05 UTC',
       'Review status: reviewed',
       'Source: USGS',
       'Preliminary earthquake values may change.',
@@ -187,7 +191,7 @@ void main() {
       matchesSemantics(
         label:
             'Earthquake information. Magnitude 5.2. Location: Myanmar. '
-            'Event time: Jul 13, 2026, 01:02:03 UTC. Live information. '
+            'Event time: Jul 13, 2026 01:02:03 UTC. Live information. '
             'Source: USGS',
         hint: 'Open earthquake information details',
         isButton: true,
@@ -240,6 +244,104 @@ void main() {
     final sourceSize = tester.getSize(sourceAction);
     expect(sourceSize.width, greaterThanOrEqualTo(48));
     expect(sourceSize.height, greaterThanOrEqualTo(48));
+  });
+
+  testWidgets(
+    'cached status and updating state are announced with disabled target size',
+    (tester) async {
+      await pumpScreen(tester, const AlertListScreen(), textScale: 1);
+      repository.emit(_snapshot());
+      await tester.pump();
+
+      expect(
+        tester.getSemantics(find.byType(DataStatusBanner)),
+        matchesSemantics(
+          label:
+              'Cached information. Last successful update: '
+              'Jul 13, 2026 01:05:06 UTC',
+          isLiveRegion: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.byType(CircularProgressIndicator)),
+        matchesSemantics(
+          label: 'Updating earthquake information',
+          isLiveRegion: true,
+        ),
+      );
+      final refresh = find.widgetWithText(OutlinedButton, 'Refresh');
+      expect(tester.widget<OutlinedButton>(refresh).onPressed, isNull);
+      final size = tester.getSize(refresh);
+      expect(size.width, greaterThanOrEqualTo(48));
+      expect(size.height, greaterThanOrEqualTo(48));
+
+      await tester.tap(refresh);
+      await tester.pump();
+      expect(repository.refreshCalls, 1);
+    },
+  );
+
+  testWidgets('detail semantics expose required labels in traversal order', (
+    tester,
+  ) async {
+    repository.lookupResult = earthquakeFixture();
+    await pumpScreen(
+      tester,
+      const AlertDetailScreen(earthquakeId: 'usgs:example'),
+      textScale: 1,
+      size: const Size(420, 1200),
+    );
+    await tester.pumpAndSettle();
+
+    final labels = <String>[
+      'Magnitude 5.2',
+      'Location: Myanmar',
+      'Depth: 12.5 km',
+      'Event time: Jul 13, 2026 01:02:03 UTC',
+      'Provider update: Jul 13, 2026 01:03:04 UTC',
+      'Retrieved: Jul 13, 2026 01:04:05 UTC',
+      'Review status: reviewed',
+      'Source: USGS',
+      'Preliminary earthquake values may change.',
+      'Open USGS source',
+    ];
+    expect(find.bySemanticsLabel('Earthquake information'), findsWidgets);
+    for (final label in labels) {
+      expect(find.bySemanticsLabel(label), findsOneWidget);
+    }
+
+    final positions = labels
+        .map((label) => tester.getTopLeft(find.text(label)).dy)
+        .toList();
+    expect(positions, orderedEquals([...positions]..sort()));
+  });
+
+  testWidgets('routed detail standard back target is at least 48 dp', (
+    tester,
+  ) async {
+    final event = earthquakeFixture();
+    repository.lookupResult = event;
+    final router = createRouter();
+    addTearDown(router.dispose);
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: SafeMyanmarApp(router: router),
+      ),
+    );
+    repository.emit(null);
+    await finishList(tester, snapshot: _snapshot(items: [event]));
+
+    await tester.tap(find.text('Magnitude 5.2'));
+    await tester.pumpAndSettle();
+
+    final back = find.byType(BackButton);
+    expect(back, findsOneWidget);
+    final size = tester.getSize(back);
+    expect(size.width, greaterThanOrEqualTo(48));
+    expect(size.height, greaterThanOrEqualTo(48));
   });
 
   for (final entry in <String, ThemeData>{

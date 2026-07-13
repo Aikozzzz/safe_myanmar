@@ -31,32 +31,43 @@ class DataStatusBanner extends StatelessWidget {
         strings.staleInformation,
       ),
     };
+    final lastUpdate = switch (lastSuccessfulRefreshAt) {
+      final refreshedAt? => strings.lastSuccessfulUpdate(
+        formatUtcTimestamp(context, strings, refreshedAt),
+      ),
+      null => null,
+    };
+    final semanticLabel = lastUpdate == null
+        ? label
+        : strings.dataStatusSemantics(label, lastUpdate);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: Theme.of(context).textTheme.titleMedium),
-                  if (lastSuccessfulRefreshAt case final refreshedAt?) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      strings.lastSuccessfulUpdate(
-                        formatUtcTimestamp(context, refreshedAt),
-                      ),
-                    ),
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: Theme.of(context).textTheme.titleMedium),
+                    if (lastUpdate != null) ...[
+                      const SizedBox(height: 4),
+                      Text(lastUpdate),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

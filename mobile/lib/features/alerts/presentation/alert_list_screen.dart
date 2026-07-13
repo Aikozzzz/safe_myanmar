@@ -194,6 +194,8 @@ class _InformationNotice extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Semantics(
         label: message,
+        liveRegion: progress,
+        excludeSemantics: true,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

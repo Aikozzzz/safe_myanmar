@@ -1,3 +1,4 @@
+import '../../../core/security/trusted_usgs_uri.dart';
 import '../domain/earthquake.dart';
 
 final class AlertProtocolException implements Exception {
@@ -236,11 +237,7 @@ DateTime _utcTimestamp(Object? value) {
 
 String _trustedSourceUrl(Object? value) {
   final source = _nonEmptyString(value);
-  final uri = Uri.tryParse(source);
-  if (uri == null ||
-      uri.scheme != 'https' ||
-      (uri.host != 'earthquake.usgs.gov' &&
-          !uri.host.endsWith('.earthquake.usgs.gov'))) {
+  if (parseTrustedUsgsUri(source) == null) {
     throw const AlertProtocolException();
   }
   return source;

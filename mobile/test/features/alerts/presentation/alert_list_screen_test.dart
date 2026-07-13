@@ -29,6 +29,24 @@ void main() {
     await repository.close();
   });
 
+  test('prohibited-copy matcher is case-insensitive and allows caution', () {
+    for (final text in <String>[
+      'DEMO',
+      'Simulation',
+      'Guaranteed safe',
+      'GUARANTEED SAFETY',
+      'Warning',
+      'PREDICTION',
+      'Severity',
+    ]) {
+      expect(_prohibitedCopy.hasMatch(text), isTrue, reason: text);
+    }
+    expect(
+      _prohibitedCopy.hasMatch('This does not guarantee there is no danger.'),
+      isFalse,
+    );
+  });
+
   Future<void> pumpList(
     WidgetTester tester, {
     ValueChanged<String>? onOpenEarthquake,
@@ -102,7 +120,7 @@ void main() {
     expect(find.text('Magnitude 5.2'), findsNWidgets(2));
     expect(find.text('Location: Myanmar'), findsNWidgets(2));
     expect(
-      find.text('Event time: Jul 13, 2026, 01:02:03 UTC'),
+      find.text('Event time: Jul 13, 2026 01:02:03 UTC'),
       findsNWidgets(2),
     );
     expect(find.text('Live information'), findsNWidgets(3));
@@ -234,17 +252,20 @@ void main() {
   ) async {
     await pumpList(tester);
     repository.emit(null);
-    await finishInitialRefresh(tester, snapshot: _snapshot());
+    await finishInitialRefresh(tester, snapshot: _snapshot(items: const []));
 
     final visibleText = tester
         .widgetList<Text>(find.byType(Text))
         .map((widget) => widget.data ?? '')
-        .join(' ')
-        .toLowerCase();
-    expect(visibleText, isNot(contains('simulation')));
-    expect(visibleText, isNot(contains('warning')));
-    expect(visibleText, isNot(contains('prediction')));
-    expect(visibleText, isNot(contains('severity')));
+        .join(' ');
+    expect(
+      visibleText,
+      contains(
+        'No recent earthquakes were found in the covered area. '
+        'This does not guarantee there is no danger.',
+      ),
+    );
+    expect(_prohibitedCopy.hasMatch(visibleText), isFalse);
   });
 
   testWidgets('app starts on list and card navigation preserves encoded ID', (
@@ -316,4 +337,10 @@ AlertSnapshot _snapshot({
   items: items ?? [earthquakeFixture()],
   dataStatus: status,
   lastSuccessfulRefreshAt: _refreshedAt,
+);
+
+final _prohibitedCopy = RegExp(
+  r'\b(?:demo|simulation|warning|prediction|severity)\b|'
+  r'\bguarante(?:e|es|ed)\s+(?:safe|safety)\b',
+  caseSensitive: false,
 );

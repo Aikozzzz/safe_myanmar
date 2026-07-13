@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/security/trusted_usgs_uri.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/providers.dart';
 import '../domain/earthquake.dart';
@@ -129,19 +130,19 @@ class _DetailContent extends ConsumerWidget {
         _DetailRow(
           icon: Icons.schedule_outlined,
           text: strings.eventTimeValue(
-            formatUtcTimestamp(context, earthquake.eventAt),
+            formatUtcTimestamp(context, strings, earthquake.eventAt),
           ),
         ),
         _DetailRow(
           icon: Icons.update_outlined,
           text: strings.providerUpdateValue(
-            formatUtcTimestamp(context, earthquake.providerUpdatedAt),
+            formatUtcTimestamp(context, strings, earthquake.providerUpdatedAt),
           ),
         ),
         _DetailRow(
           icon: Icons.download_done_outlined,
           text: strings.retrievedValue(
-            formatUtcTimestamp(context, earthquake.retrievedAt),
+            formatUtcTimestamp(context, strings, earthquake.retrievedAt),
           ),
         ),
         if (reviewStatus != null && reviewStatus.isNotEmpty)
@@ -169,11 +170,9 @@ class _DetailContent extends ConsumerWidget {
 
   Future<void> _openSource(BuildContext context, WidgetRef ref) async {
     final strings = AppLocalizations.of(context)!;
-    final uri = Uri.tryParse(earthquake.sourceUrl);
+    final uri = parseTrustedUsgsUri(earthquake.sourceUrl);
     var launched = false;
-    if (uri != null &&
-        uri.scheme == 'https' &&
-        uri.host == 'earthquake.usgs.gov') {
+    if (uri != null) {
       try {
         launched = await ref.read(sourceLauncherProvider)(uri);
       } catch (_) {

@@ -136,6 +136,12 @@ abstract class AppLocalizations {
   /// **'Last successful update: {time}'**
   String lastSuccessfulUpdate(String time);
 
+  /// No description provided for @dataStatusSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{status}. {lastUpdate}'**
+  String dataStatusSemantics(String status, String lastUpdate);
+
   /// No description provided for @noRecentEarthquakes.
   ///
   /// In en, this message translates to:
@@ -177,6 +183,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Event time: {time}'**
   String eventTimeValue(String time);
+
+  /// No description provided for @utcTimestamp.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} UTC'**
+  String utcTimestamp(String value);
 
   /// No description provided for @depthValue.
   ///
