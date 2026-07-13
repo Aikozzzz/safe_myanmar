@@ -172,16 +172,67 @@ dart run build_runner build
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
-flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
 
-The clean Windows debug APK build passes with the normal Gradle home and
-`PUB_CACHE`, `TEMP`, and `TMP` placed under the ignored
-`.superpowers/android-build` directory on the worktree drive. The tracked Kotlin
-settings disable incremental compilation and use in-process compiler execution
-to avoid unreliable cross-drive caches. Android `cmdline-tools` and license
-warnings remain in `flutter doctor`, but they did not block this debug APK build.
-Android device E2E remains blocked until an Android device or AVD is available.
+For a reproducible Windows debug APK build, run the following block from the
+repository root. If Flutter is installed outside
+`$env:USERPROFILE\develop\flutter`, adjust `$flutterBin`. The block deliberately
+removes process-local `GRADLE_USER_HOME`; do not point it at an empty isolated
+directory because the existing wrapper download in `%USERPROFILE%\.gradle` must
+be reused.
+
+```powershell
+$repoRoot = (Get-Location).Path
+$mobileRoot = Join-Path $repoRoot "mobile"
+$buildEnvironmentRoot = Join-Path $repoRoot ".superpowers\android-build"
+$flutterBin = Join-Path $env:USERPROFILE "develop\flutter\bin"
+
+if (-not (Test-Path -LiteralPath $flutterBin)) {
+    throw "Update `$flutterBin to the local Flutter bin directory."
+}
+foreach ($directory in @(
+    $buildEnvironmentRoot,
+    (Join-Path $buildEnvironmentRoot "pub-cache"),
+    (Join-Path $buildEnvironmentRoot "temp"),
+    (Join-Path $buildEnvironmentRoot "tmp")
+)) {
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+}
+
+$env:PATH = "$flutterBin;$env:PATH"
+$env:PUB_CACHE = Join-Path $buildEnvironmentRoot "pub-cache"
+$env:TEMP = Join-Path $buildEnvironmentRoot "temp"
+$env:TMP = Join-Path $buildEnvironmentRoot "tmp"
+Remove-Item Env:GRADLE_USER_HOME -ErrorAction SilentlyContinue
+
+Push-Location (Join-Path $mobileRoot "android")
+try {
+    & ".\gradlew.bat" --stop
+    if ($LASTEXITCODE -ne 0) { throw "Could not stop Gradle." }
+} finally {
+    Pop-Location
+}
+
+Push-Location $mobileRoot
+try {
+    flutter clean
+    if ($LASTEXITCODE -ne 0) { throw "Flutter clean failed." }
+    flutter pub get
+    if ($LASTEXITCODE -ne 0) { throw "Flutter pub get failed." }
+    dart run build_runner build
+    if ($LASTEXITCODE -ne 0) { throw "Build runner failed." }
+    flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+    if ($LASTEXITCODE -ne 0) { throw "Debug APK build failed." }
+} finally {
+    Pop-Location
+}
+```
+
+The clean build passes with the tracked Kotlin settings that disable incremental
+compilation and use in-process compiler execution to avoid unreliable Windows
+cross-drive caches. Android `cmdline-tools` and license warnings remain in
+`flutter doctor`, but they did not block this debug APK build. Android device E2E
+remains blocked until an Android device or AVD is available.
 
 The deterministic end-to-end test uses an ephemeral PostgreSQL test database,
 a local test-only USGS-protocol server, the real FastAPI process, real mobile

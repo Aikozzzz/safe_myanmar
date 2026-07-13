@@ -84,24 +84,58 @@ flutter test
 
 ### Clean Debug APK Verification
 
-The normal existing Gradle home was retained. Only `PUB_CACHE`, `TEMP`, and
-`TMP` were placed under the ignored `.superpowers/android-build` directory on
-the worktree drive. Gradle was stopped and Flutter output was cleaned before the
-build:
+The normal existing Gradle home was retained. The following copy-paste block is
+run from the repository root. If Flutter is installed outside
+`$env:USERPROFILE\develop\flutter`, `$flutterBin` must be adjusted. The block
+deliberately removes process-local `GRADLE_USER_HOME`; it must not point to an
+empty isolated directory because the existing wrapper download in
+`%USERPROFILE%\.gradle` is reused.
 
 ```powershell
-mobile/android/gradlew.bat --stop
-Set-Location mobile
-flutter clean
-flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
-```
+$repoRoot = (Get-Location).Path
+$mobileRoot = Join-Path $repoRoot "mobile"
+$buildEnvironmentRoot = Join-Path $repoRoot ".superpowers\android-build"
+$flutterBin = Join-Path $env:USERPROFILE "develop\flutter\bin"
 
-The build environment used these repository-relative locations:
+if (-not (Test-Path -LiteralPath $flutterBin)) {
+    throw "Update `$flutterBin to the local Flutter bin directory."
+}
+foreach ($directory in @(
+    $buildEnvironmentRoot,
+    (Join-Path $buildEnvironmentRoot "pub-cache"),
+    (Join-Path $buildEnvironmentRoot "temp"),
+    (Join-Path $buildEnvironmentRoot "tmp")
+)) {
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+}
 
-```text
-PUB_CACHE=.superpowers/android-build/pub-cache
-TEMP=.superpowers/android-build/temp
-TMP=.superpowers/android-build/tmp
+$env:PATH = "$flutterBin;$env:PATH"
+$env:PUB_CACHE = Join-Path $buildEnvironmentRoot "pub-cache"
+$env:TEMP = Join-Path $buildEnvironmentRoot "temp"
+$env:TMP = Join-Path $buildEnvironmentRoot "tmp"
+Remove-Item Env:GRADLE_USER_HOME -ErrorAction SilentlyContinue
+
+Push-Location (Join-Path $mobileRoot "android")
+try {
+    & ".\gradlew.bat" --stop
+    if ($LASTEXITCODE -ne 0) { throw "Could not stop Gradle." }
+} finally {
+    Pop-Location
+}
+
+Push-Location $mobileRoot
+try {
+    flutter clean
+    if ($LASTEXITCODE -ne 0) { throw "Flutter clean failed." }
+    flutter pub get
+    if ($LASTEXITCODE -ne 0) { throw "Flutter pub get failed." }
+    dart run build_runner build
+    if ($LASTEXITCODE -ne 0) { throw "Build runner failed." }
+    flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+    if ($LASTEXITCODE -ne 0) { throw "Debug APK build failed." }
+} finally {
+    Pop-Location
+}
 ```
 
 ### Docker Cleanup
