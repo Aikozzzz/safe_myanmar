@@ -13,6 +13,7 @@ $databaseUrl = "postgresql+psycopg://safemyanmar_test:safemyanmar_test_password@
 $provider = $null
 $api = $null
 $adb = $null
+$devicePort = 8000
 $reverseConfigured = $false
 $locationPushed = $false
 $runError = $null
@@ -24,6 +25,14 @@ $originalDatabaseUrlExists = Test-Path Env:DATABASE_URL
 $originalDatabaseUrlValue = $env:DATABASE_URL
 $originalUsgsFeedUrlExists = Test-Path Env:USGS_FEED_URL
 $originalUsgsFeedUrlValue = $env:USGS_FEED_URL
+$originalEnvironmentExists = Test-Path Env:ENVIRONMENT
+$originalEnvironmentValue = $env:ENVIRONMENT
+$originalCurrentMaxAgeSecondsExists = Test-Path Env:CURRENT_MAX_AGE_SECONDS
+$originalCurrentMaxAgeSecondsValue = $env:CURRENT_MAX_AGE_SECONDS
+$originalRefreshMinimumSecondsExists = Test-Path Env:REFRESH_MINIMUM_SECONDS
+$originalRefreshMinimumSecondsValue = $env:REFRESH_MINIMUM_SECONDS
+$originalProviderTimeoutSecondsExists = Test-Path Env:PROVIDER_TIMEOUT_SECONDS
+$originalProviderTimeoutSecondsValue = $env:PROVIDER_TIMEOUT_SECONDS
 
 function Restore-EnvironmentVariable {
     param(
@@ -37,6 +46,39 @@ function Restore-EnvironmentVariable {
         [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
     } else {
         [Environment]::SetEnvironmentVariable($Name, $null, "Process")
+    }
+}
+
+function Invoke-NativeCommand {
+    param(
+        [string]$FilePath,
+        [string[]]$Arguments,
+        [int]$TimeoutMilliseconds = 10000
+    )
+
+    $identifier = [Guid]::NewGuid().ToString("N")
+    $standardOutputPath = Join-Path ([IO.Path]::GetTempPath()) "safemyanmar-$identifier.out"
+    $standardErrorPath = Join-Path ([IO.Path]::GetTempPath()) "safemyanmar-$identifier.err"
+    $process = $null
+    try {
+        $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments -PassThru -NoNewWindow `
+            -RedirectStandardOutput $standardOutputPath -RedirectStandardError $standardErrorPath
+        $null = $process.Handle
+        if (-not $process.WaitForExit($TimeoutMilliseconds)) {
+            try { $process.Kill() } catch { }
+            $process.WaitForExit(2000) | Out-Null
+            throw "Native command timed out."
+        }
+
+        return [PSCustomObject]@{
+            ExitCode = $process.ExitCode
+            StdOut = [IO.File]::ReadAllText($standardOutputPath)
+            StdErr = [IO.File]::ReadAllText($standardErrorPath)
+        }
+    } finally {
+        if ($null -ne $process) { $process.Dispose() }
+        Remove-Item -LiteralPath $standardOutputPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $standardErrorPath -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -98,6 +140,11 @@ try {
         $env:PATH = "$FlutterBin;$env:PATH"
     }
 
+    $env:ENVIRONMENT = "test"
+    $env:CURRENT_MAX_AGE_SECONDS = "300"
+    $env:REFRESH_MINIMUM_SECONDS = "60"
+    $env:PROVIDER_TIMEOUT_SECONDS = "10.0"
+
     $adbCommand = Get-Command adb -ErrorAction SilentlyContinue
     if ($null -ne $adbCommand) {
         $adb = $adbCommand.Source
@@ -107,13 +154,13 @@ try {
     }
     if ($null -eq $adb) { throw "adb is required for Android integration." }
 
-    $deviceState = & $adb -s $DeviceId get-state 2>&1
-    if ($LASTEXITCODE -ne 0 -or ($deviceState | Out-String).Trim() -ne "device") {
+    $deviceState = Invoke-NativeCommand -FilePath $adb -Arguments @("-s", $DeviceId, "get-state")
+    if ($deviceState.ExitCode -ne 0 -or $deviceState.StdOut.Trim() -ne "device") {
         throw "The selected Android device is not ready."
     }
-    $emulatorFlag = & $adb -s $DeviceId shell getprop ro.kernel.qemu 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "Could not inspect the Android device." }
-    $isEmulator = ($emulatorFlag | Out-String).Trim() -eq "1"
+    $emulatorFlag = Invoke-NativeCommand -FilePath $adb -Arguments @("-s", $DeviceId, "shell", "getprop", "ro.kernel.qemu")
+    if ($emulatorFlag.ExitCode -ne 0) { throw "Could not inspect the Android device." }
+    $isEmulator = $emulatorFlag.StdOut.Trim() -eq "1"
 
     if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
         $ApiBaseUrl = if ($isEmulator) {
@@ -122,19 +169,33 @@ try {
             "http://127.0.0.1:8000"
         }
     }
-    $parsedApiBaseUrl = $null
-    if (-not [Uri]::TryCreate($ApiBaseUrl, [UriKind]::Absolute, [ref]$parsedApiBaseUrl)) {
-        throw "ApiBaseUrl must be an absolute URL."
-    }
 
-    if (-not $isEmulator) {
-        & $adb -s $DeviceId reverse tcp:8000 tcp:8000 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "Could not configure adb reverse." }
+    if ($isEmulator) {
+        if ($ApiBaseUrl -cne "http://10.0.2.2:8000") {
+            throw "ApiBaseUrl must target the locally orchestrated emulator API."
+        }
+    } else {
+        $localUrlPattern = '^http://(?:127\.0\.0\.1|localhost):(?<port>[0-9]{1,5})/?$'
+        $localUrlMatch = [regex]::Match(
+            $ApiBaseUrl,
+            $localUrlPattern,
+            [Text.RegularExpressions.RegexOptions]::IgnoreCase
+        )
+        if (-not $localUrlMatch.Success) {
+            throw "ApiBaseUrl must target the locally orchestrated physical-device API."
+        }
+        $devicePort = [int]$localUrlMatch.Groups["port"].Value
+        if ($devicePort -lt 1 -or $devicePort -gt 65535) {
+            throw "ApiBaseUrl contains an invalid port."
+        }
+
         $reverseConfigured = $true
+        $reverse = Invoke-NativeCommand -FilePath $adb -Arguments @("-s", $DeviceId, "reverse", "tcp:$devicePort", "tcp:8000")
+        if ($reverse.ExitCode -ne 0) { throw "Could not configure adb reverse." }
     }
 
-    & docker compose --profile integration up -d --wait --wait-timeout 30 integration-db
-    if ($LASTEXITCODE -ne 0) { throw "Could not start integration database." }
+    $databaseStart = Invoke-NativeCommand -FilePath "docker" -Arguments @("compose", "--profile", "integration", "up", "-d", "--wait", "--wait-timeout", "30", "integration-db") -TimeoutMilliseconds 60000
+    if ($databaseStart.ExitCode -ne 0) { throw "Could not start integration database." }
 
     $env:DATABASE_URL = $databaseUrl
     $migrationSucceeded = $false
@@ -187,9 +248,9 @@ try {
 
     if ($null -ne $adb) {
         try {
-            $clearResult = & $adb -s $DeviceId shell pm clear org.safemyanmar.mobile 2>&1
-            $clearOutput = ($clearResult | Out-String).Trim()
-            if ($LASTEXITCODE -ne 0 -or $clearOutput -ne "Success") {
+            $clearResult = Invoke-NativeCommand -FilePath $adb -Arguments @("-s", $DeviceId, "shell", "pm", "clear", "org.safemyanmar.mobile")
+            $clearOutput = $clearResult.StdOut.Trim()
+            if ($clearResult.ExitCode -ne 0 -or $clearOutput -ne "Success") {
                 $cleanupErrors.Add("Android application data")
             }
         } catch {
@@ -197,8 +258,8 @@ try {
         }
         if ($reverseConfigured) {
             try {
-                & $adb -s $DeviceId reverse --remove tcp:8000 2>&1 | Out-Null
-                if ($LASTEXITCODE -ne 0) { $cleanupErrors.Add("adb reverse") }
+                $reverseRemoval = Invoke-NativeCommand -FilePath $adb -Arguments @("-s", $DeviceId, "reverse", "--remove", "tcp:$devicePort")
+                if ($reverseRemoval.ExitCode -ne 0) { $cleanupErrors.Add("adb reverse") }
             } catch {
                 $cleanupErrors.Add("adb reverse")
             }
@@ -206,8 +267,8 @@ try {
     }
 
     try {
-        & docker compose --profile integration rm -f -s integration-db 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { $cleanupErrors.Add("integration database") }
+        $databaseRemoval = Invoke-NativeCommand -FilePath "docker" -Arguments @("compose", "--profile", "integration", "rm", "-f", "-s", "integration-db") -TimeoutMilliseconds 30000
+        if ($databaseRemoval.ExitCode -ne 0) { $cleanupErrors.Add("integration database") }
     } catch {
         $cleanupErrors.Add("integration database")
     }
@@ -221,6 +282,18 @@ try {
     try {
         Restore-EnvironmentVariable "USGS_FEED_URL" $originalUsgsFeedUrlExists $originalUsgsFeedUrlValue
     } catch { $cleanupErrors.Add("USGS_FEED_URL") }
+    try {
+        Restore-EnvironmentVariable "ENVIRONMENT" $originalEnvironmentExists $originalEnvironmentValue
+    } catch { $cleanupErrors.Add("ENVIRONMENT") }
+    try {
+        Restore-EnvironmentVariable "CURRENT_MAX_AGE_SECONDS" $originalCurrentMaxAgeSecondsExists $originalCurrentMaxAgeSecondsValue
+    } catch { $cleanupErrors.Add("CURRENT_MAX_AGE_SECONDS") }
+    try {
+        Restore-EnvironmentVariable "REFRESH_MINIMUM_SECONDS" $originalRefreshMinimumSecondsExists $originalRefreshMinimumSecondsValue
+    } catch { $cleanupErrors.Add("REFRESH_MINIMUM_SECONDS") }
+    try {
+        Restore-EnvironmentVariable "PROVIDER_TIMEOUT_SECONDS" $originalProviderTimeoutSecondsExists $originalProviderTimeoutSecondsValue
+    } catch { $cleanupErrors.Add("PROVIDER_TIMEOUT_SECONDS") }
 }
 
 if ($null -ne $runError) {

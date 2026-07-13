@@ -70,3 +70,28 @@ def test_production_settings_accept_remote_tls_database():
     )
 
     assert settings.database_url == PRODUCTION_DATABASE_URL
+
+
+@pytest.mark.parametrize(
+    ("username", "password"),
+    [
+        ("safemyanmar_dev", "strong-production-password"),
+        ("production_user", "safemyanmar_dev_password"),
+    ],
+)
+def test_production_settings_reject_known_compose_development_credentials(
+    username, password
+):
+    database_url = (
+        f"postgresql+psycopg://{username}:{password}@"
+        "db.internal.example/safemyanmar?sslmode=require"
+    )
+
+    with pytest.raises(ValidationError) as caught:
+        Settings(database_url=database_url, environment="production")
+
+    message = str(caught.value)
+    assert "Production DATABASE_URL" in message
+    assert database_url not in message
+    assert username not in message
+    assert password not in message

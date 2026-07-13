@@ -53,7 +53,10 @@ def test_integration_harness_removes_dedicated_database_container():
         encoding="utf-8"
     )
 
-    assert "docker compose --profile integration rm -f -s integration-db" in harness
+    assert (
+        'Arguments @("compose", "--profile", "integration", "rm", "-f", "-s", '
+        '"integration-db")' in harness
+    )
 
 
 def test_integration_harness_supports_configurable_emulator_and_physical_urls():
@@ -64,7 +67,7 @@ def test_integration_harness_supports_configurable_emulator_and_physical_urls():
     assert "[string]$ApiBaseUrl" in harness
     assert '"http://10.0.2.2:8000"' in harness
     assert '"http://127.0.0.1:8000"' in harness
-    assert "reverse tcp:8000 tcp:8000" in harness
+    assert '"reverse", "tcp:$devicePort", "tcp:8000"' in harness
     assert "--dart-define=API_BASE_URL=$ApiBaseUrl" in harness
 
 
@@ -73,10 +76,80 @@ def test_integration_harness_restores_process_environment():
         encoding="utf-8"
     )
 
-    for name in ("PATH", "DATABASE_URL", "USGS_FEED_URL"):
+    for name in (
+        "PATH",
+        "DATABASE_URL",
+        "USGS_FEED_URL",
+        "ENVIRONMENT",
+        "CURRENT_MAX_AGE_SECONDS",
+        "REFRESH_MINIMUM_SECONDS",
+        "PROVIDER_TIMEOUT_SECONDS",
+    ):
         assert f"$original{name.title().replace('_', '')}Exists" in harness
         assert f"$original{name.title().replace('_', '')}Value" in harness
         assert f'Restore-EnvironmentVariable "{name}"' in harness
+
+
+def test_integration_harness_overrides_inherited_runtime_settings():
+    harness = (ROOT / "tools" / "run-live-alerts-integration.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    expected = {
+        "ENVIRONMENT": "test",
+        "CURRENT_MAX_AGE_SECONDS": "300",
+        "REFRESH_MINIMUM_SECONDS": "60",
+        "PROVIDER_TIMEOUT_SECONDS": "10.0",
+    }
+    for name, value in expected.items():
+        assignment = f'$env:{name} = "{value}"'
+        assert assignment in harness
+        assert harness.index(assignment) < harness.index("$api = Start-Process")
+
+
+def test_integration_harness_restricts_api_url_to_orchestrated_local_api():
+    harness = (ROOT / "tools" / "run-live-alerts-integration.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert '$ApiBaseUrl -cne "http://10.0.2.2:8000"' in harness
+    assert "127\\.0\\.0\\.1|localhost" in harness
+    assert "(?<port>[0-9]{1,5})" in harness
+    assert "$devicePort -lt 1 -or $devicePort -gt 65535" in harness
+    assert '"tcp:$devicePort"' in harness
+    assert '"tcp:8000"' in harness
+    assert "https://" not in harness
+
+
+def test_integration_harness_bounds_native_adb_and_cleanup_commands():
+    harness = (ROOT / "tools" / "run-live-alerts-integration.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert "function Invoke-NativeCommand" in harness
+    assert "$null = $process.Handle" in harness
+    assert ".WaitForExit($TimeoutMilliseconds)" in harness
+    assert ".Kill()" in harness
+    assert "Native command timed out" in harness
+    assert harness.count("Invoke-NativeCommand") >= 8
+    assert "pm clear org.safemyanmar.mobile" not in harness
+    assert "reverse --remove tcp:8000" not in harness
+    assert (
+        'Arguments @("compose", "--profile", "integration", "rm", "-f", "-s", '
+        '"integration-db")' in harness
+    )
+
+
+def test_architecture_distinguishes_debug_device_transport_from_release_https():
+    architecture = (
+        ROOT / "docs" / "architecture" / "live-earthquake-slice.md"
+    ).read_text(encoding="utf-8")
+
+    assert "`10.0.2.2:8000`" in architecture
+    assert "`localhost`" in architecture
+    assert "`127.0.0.1`" in architecture
+    assert "`adb reverse`" in architecture
+    assert "Release API endpoints must use HTTPS" in architecture
 
 
 def test_integration_harness_bounds_waits_and_validates_android_cleanup():
@@ -86,7 +159,7 @@ def test_integration_harness_bounds_waits_and_validates_android_cleanup():
 
     assert "[int]$TimeoutSeconds" in harness
     assert "Stop-ChildProcess" in harness
-    assert "pm clear org.safemyanmar.mobile" in harness
+    assert '"shell", "pm", "clear", "org.safemyanmar.mobile"' in harness
     assert '$clearOutput -ne "Success"' in harness
-    assert "reverse --remove tcp:8000" in harness
+    assert '"reverse", "--remove", "tcp:$devicePort"' in harness
     assert "$cleanupErrors" in harness

@@ -67,11 +67,13 @@ The backend default is only the production USGS all-day feed. The controlled
 only by test tooling, and is never imported or referenced by `backend/app` or
 `mobile/lib`.
 
-Release API endpoints must use HTTPS. Android debug builds alone contain a
-network-security policy allowing cleartext to the emulator host `10.0.2.2`.
-Main/release configuration has no global cleartext permission. Physical devices
-need a reachable HTTPS API unless a developer deliberately provides a separate,
-secure local setup.
+Release API endpoints must use HTTPS, and main/release Android configuration has
+no cleartext exception. The controlled debug integration path is separate: an
+emulator reaches the host API at `10.0.2.2:8000`, while a physical device uses
+`localhost` or `127.0.0.1` with an explicit device-side port mapped to host port
+8000 by `adb reverse`. Android debug network policy permits cleartext only for
+these local hosts. The integration harness rejects remote hosts and never uses
+its `-ApiBaseUrl` option to contact a remote API.
 
 ## Security And Privacy
 

@@ -182,14 +182,22 @@ harness auto-selects `10.0.2.2` for an emulator and configures `adb reverse` wit
 tools/run-live-alerts-integration.ps1 -DeviceId <android-device-id>
 ```
 
-Use `-ApiBaseUrl <url>` to override the detected debug URL and `-FlutterBin
+Use `-ApiBaseUrl <url>` only to select the locally orchestrated API. An emulator
+accepts exactly `http://10.0.2.2:8000`. A physical device accepts
+`http://127.0.0.1:<port>` or `http://localhost:<port>` with an explicit port from
+1 through 65535 and an optional trailing `/`; the harness maps that device port
+to host port 8000 with `adb reverse`. Remote hosts, HTTPS, credentials, query
+parameters, fragments, and non-root paths are rejected. Use `-FlutterBin
 <directory>` only when Flutter is not already on `PATH`.
 
 The harness bounds readiness/process waits, stops its API/provider processes,
 validates Android application-data cleanup, removes any `adb reverse` rule,
 stops the ephemeral integration database, and restores `PATH`, `DATABASE_URL`,
-and `USGS_FEED_URL`. It never calls emergency services, Mapbox, or a remote API;
-only the separate opt-in live smoke calls USGS.
+`USGS_FEED_URL`, `ENVIRONMENT`, `CURRENT_MAX_AGE_SECONDS`,
+`REFRESH_MINIMUM_SECONDS`, and `PROVIDER_TIMEOUT_SECONDS`. It sets deterministic
+test/default timing values so inherited settings cannot alter the scenario. It
+never calls emergency services, Mapbox, or a remote API; only the separate
+opt-in live smoke calls USGS.
 
 ## Repository Structure
 

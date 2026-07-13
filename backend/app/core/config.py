@@ -13,6 +13,8 @@ _PLACEHOLDER_VALUES = {
     "password",
     "placeholder",
     "replace_me",
+    "safemyanmar_dev",
+    "safemyanmar_dev_password",
     "user",
     "username",
 }
