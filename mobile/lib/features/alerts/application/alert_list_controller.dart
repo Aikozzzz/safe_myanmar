@@ -12,27 +12,31 @@ import 'providers.dart';
 
 final class AlertListController extends Notifier<AlertListState> {
   late CachedAlertRepository _repository;
+  late Completer<void> _cacheReadiness;
   StreamSubscription<AlertSnapshot?>? _cacheSubscription;
   Future<void>? _activeRefresh;
   AlertSnapshot? _authoritativeSnapshot;
   bool _hasCache = false;
-  bool _hasObservedInitialCache = false;
   bool _disposed = false;
 
   @override
   AlertListState build() {
     _repository = ref.watch(alertRepositoryProvider);
+    _cacheReadiness = Completer<void>();
+    late Future<void> initialOperation;
+    initialOperation = _runInitialRefresh().whenComplete(() {
+      if (identical(_activeRefresh, initialOperation)) _activeRefresh = null;
+    });
+    _activeRefresh = initialOperation;
     ref.onDispose(() {
       _disposed = true;
+      _completeCacheReadiness();
       unawaited(_cacheSubscription?.cancel());
     });
     _cacheSubscription = _repository.watchCachedSnapshot().listen(
       _onCache,
       onError: _onCacheError,
     );
-    final initialRefresh = Completer<void>();
-    _activeRefresh = initialRefresh.future;
-    _initialRefresh = initialRefresh;
     return AlertListState(
       phase: AlertListPhase.loading,
       items: const [],
@@ -42,8 +46,6 @@ final class AlertListController extends Notifier<AlertListState> {
       errorKind: null,
     );
   }
-
-  Completer<void>? _initialRefresh;
 
   Future<void> refresh() {
     final active = _activeRefresh;
@@ -64,14 +66,10 @@ final class AlertListController extends Notifier<AlertListState> {
     return operation;
   }
 
-  void _startInitialRefresh() {
-    final completion = _initialRefresh!;
-    final pending = completion.future;
-    _initialRefresh = null;
-    _completeRefresh(Future.sync(_repository.refresh)).whenComplete(() {
-      if (!completion.isCompleted) completion.complete();
-      if (identical(_activeRefresh, pending)) _activeRefresh = null;
-    });
+  Future<void> _runInitialRefresh() async {
+    await _cacheReadiness.future;
+    if (_disposed) return;
+    await _completeRefresh(Future.sync(_repository.refresh));
   }
 
   Future<void> _completeRefresh(Future<AlertSnapshot> request) async {
@@ -105,18 +103,17 @@ final class AlertListController extends Notifier<AlertListState> {
 
   void _onCache(AlertSnapshot? snapshot) {
     if (_disposed) return;
-    final isFirstCacheEvent = !_hasObservedInitialCache;
-    _hasObservedInitialCache = true;
     if (snapshot != null) {
       _hasCache = true;
-      final preserveOutcome =
-          state.errorKind != null ||
-          (!state.isRefreshing &&
-              _snapshotsEqual(snapshot, _authoritativeSnapshot));
+      final preserveAuthoritative =
+          !state.isRefreshing &&
+          _snapshotsEqual(snapshot, _authoritativeSnapshot);
       state = AlertListState(
         phase: _phaseFor(snapshot.items),
         items: snapshot.items,
-        presentationStatus: preserveOutcome
+        presentationStatus: state.errorKind != null
+            ? AlertPresentationStatus.stale
+            : preserveAuthoritative
             ? state.presentationStatus
             : snapshot.dataStatus == AlertDataStatus.stale
             ? AlertPresentationStatus.stale
@@ -126,11 +123,7 @@ final class AlertListController extends Notifier<AlertListState> {
         errorKind: state.errorKind,
       );
     }
-    if (isFirstCacheEvent) {
-      scheduleMicrotask(() {
-        if (!_disposed) _startInitialRefresh();
-      });
-    }
+    _completeCacheReadiness();
   }
 
   void _onCacheError(Object _, StackTrace _) {
@@ -142,6 +135,7 @@ final class AlertListController extends Notifier<AlertListState> {
         isRefreshing: true,
         errorKind: AlertListErrorKind.storage,
       );
+      _completeCacheReadiness();
       return;
     }
     _recordFailure(AlertListErrorKind.storage);
@@ -171,6 +165,10 @@ final class AlertListController extends Notifier<AlertListState> {
 
   AlertListPhase _phaseFor(List<Earthquake> items) =>
       items.isEmpty ? AlertListPhase.empty : AlertListPhase.data;
+
+  void _completeCacheReadiness() {
+    if (!_cacheReadiness.isCompleted) _cacheReadiness.complete();
+  }
 
   bool _snapshotsEqual(AlertSnapshot left, AlertSnapshot? right) {
     if (right == null ||

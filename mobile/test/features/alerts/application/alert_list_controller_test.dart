@@ -107,6 +107,59 @@ void main() {
       await container.read(alertListControllerProvider.notifier).refresh();
     });
 
+    test(
+      'first cache error starts one coalesced refresh and success wins',
+      () async {
+        final controller = start(emitInitialCache: false);
+        final first = controller.refresh();
+
+        repository.emitError(StateError('cache secret'));
+        await repository.refreshStarted.future;
+        final second = controller.refresh();
+
+        expect(repository.refreshCalls, 1);
+        expect(state().phase, AlertListPhase.loading);
+        expect(state().isRefreshing, isTrue);
+        expect(state().errorKind, AlertListErrorKind.storage);
+        initialRefresh.complete(_snapshot());
+        await Future.wait([first, second]);
+        expect(state().phase, AlertListPhase.data);
+        expect(state().presentationStatus, AlertPresentationStatus.live);
+        expect(state().isRefreshing, isFalse);
+        expect(state().errorKind, isNull);
+      },
+    );
+
+    test('first cache error request failure applies request error', () async {
+      final controller = start(emitInitialCache: false);
+      final first = controller.refresh();
+
+      repository.emitError(StateError('cache secret'));
+      await repository.refreshStarted.future;
+      final second = controller.refresh();
+      initialRefresh.completeError(const AlertProtocolException());
+      await Future.wait([first, second]);
+
+      expect(repository.refreshCalls, 1);
+      expect(state().phase, AlertListPhase.unavailable);
+      expect(state().isRefreshing, isFalse);
+      expect(state().errorKind, AlertListErrorKind.invalidData);
+    });
+
+    test(
+      'disposal before first event settles waiters without a request',
+      () async {
+        final controller = start(emitInitialCache: false);
+        final waiting = controller.refresh();
+
+        container.dispose();
+
+        await expectLater(waiting, completes);
+        expect(repository.refreshCalls, 0);
+        await repository.cacheCancelled.future;
+      },
+    );
+
     test('fast refresh cannot win before the first cache event', () async {
       final controller = start(emitInitialCache: false);
       initialRefresh.complete(_snapshot());
@@ -295,6 +348,29 @@ void main() {
       expect(state().presentationStatus, AlertPresentationStatus.live);
       expect(state().errorKind, isNull);
     });
+
+    test(
+      'late cache after unavailable is stale with preserved error',
+      () async {
+        final controller = start();
+        final refresh = controller.refresh();
+        initialRefresh.completeError(const AlertRemoteUnavailable());
+        await refresh;
+        expect(state().phase, AlertListPhase.unavailable);
+
+        repository.emit(_snapshot());
+
+        expect(state().phase, AlertListPhase.data);
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        expect(state().errorKind, AlertListErrorKind.remoteUnavailable);
+
+        repository.emit(_snapshot(items: const []));
+
+        expect(state().phase, AlertListPhase.empty);
+        expect(state().presentationStatus, AlertPresentationStatus.stale);
+        expect(state().errorKind, AlertListErrorKind.remoteUnavailable);
+      },
+    );
 
     test('two concurrent refresh calls share one repository request', () async {
       final controller = start();

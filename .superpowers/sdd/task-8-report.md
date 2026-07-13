@@ -96,3 +96,32 @@
 ### Review Concerns
 
 - No known blockers. Refresh still performs exactly one repository request and has no automatic retry.
+
+## Initial Cache Gate Follow-Up
+
+### RED Evidence
+
+- A first cache-stream error left the previous synthetic initial-refresh completer unresolved, so no repository request started and all callers awaiting `refresh()` timed out.
+- Disposing the provider before any cache event cancelled the subscription but did not settle the synthetic initial-refresh future, so an awaiting caller timed out.
+- After an initial no-cache request failed to unavailable, a later valid cache snapshot retained the unavailable state's null presentation status instead of becoming stale data with the safe error.
+
+### Implemented Corrections
+
+- The controller now creates one explicit cache-readiness completer and one `_activeRefresh` future for the entire initial cache-gate-plus-request operation.
+- The readiness gate completes on the first data event, including `null`, the first stream error, or provider disposal.
+- Disposal before readiness settles all coalesced callers, cancels the cache subscription, and exits before calling the repository.
+- A first cache error keeps loading/refreshing state with safe storage classification while the request runs. Success clears it; request failure replaces it with the request's own safe classification.
+- Late non-null cache after unavailable changes the phase to data or empty, explicitly presents stale data, and preserves the existing safe error kind.
+- Existing persistence-emission ordering, snapshot-equivalence, duplicate suppression, and no-retry behavior remain covered.
+
+### Follow-Up Verification
+
+- `dart format --output=none --set-exit-if-changed .`: passed, 28 files checked and 0 changed.
+- `flutter analyze`: passed, no issues found.
+- `flutter test test/features/alerts/application/alert_list_controller_test.dart`: passed, 31 tests.
+- `flutter test`: passed, 131 tests.
+- Follow-up commit: `fix: settle initial cache gate` (this report update is included in that commit).
+
+### Follow-Up Concerns
+
+- No known blockers. The initial operation always settles and still performs at most one repository request.
