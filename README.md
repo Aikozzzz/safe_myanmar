@@ -140,7 +140,7 @@ and directions increment; no Mapbox package or request exists now.
 The tracked
 [live-earthquake verification record](docs/verification/live-earthquake-vertical-slice.md)
 summarizes the latest authoritative results, commands run, security checks, and
-the Android E2E/APK blockers that remain unresolved.
+the Android E2E blocker and APK/toolchain status.
 
 Start an ephemeral dedicated PostgreSQL test database:
 
@@ -174,6 +174,14 @@ flutter analyze
 flutter test
 flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
+
+The clean Windows debug APK build passes with the normal Gradle home and
+`PUB_CACHE`, `TEMP`, and `TMP` placed under the ignored
+`.superpowers/android-build` directory on the worktree drive. The tracked Kotlin
+settings disable incremental compilation and use in-process compiler execution
+to avoid unreliable cross-drive caches. Android `cmdline-tools` and license
+warnings remain in `flutter doctor`, but they did not block this debug APK build.
+Android device E2E remains blocked until an Android device or AVD is available.
 
 The deterministic end-to-end test uses an ephemeral PostgreSQL test database,
 a local test-only USGS-protocol server, the real FastAPI process, real mobile

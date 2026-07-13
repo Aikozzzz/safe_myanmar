@@ -5,14 +5,13 @@
 Verification was recorded on 2026-07-13 for the SafeMyanmar live-earthquake
 vertical slice. The latest authoritative backend suite result is **181 passed,
 1 skipped** at commit `7de1ffb`; the skipped test is the separately invoked
-opt-in live USGS smoke. The latest full mobile suite result is **170 passed** at
-commit `dd7111d`. The later `7de1ffb` follow-up changed no mobile runtime,
-Android configuration, or Dart tests, and its Dart format and Flutter analysis
-checks passed.
+opt-in live USGS smoke. The latest full mobile suite result is **171 passed**.
+Flutter analysis passed, and a clean debug APK now builds successfully with the
+tracked Kotlin reliability settings described below.
 
-Backend, mobile non-device, Docker, live-USGS, startup, contract, and security
-checks passed as recorded below. Android device E2E and APK assembly did **not**
-pass and remain blocked for the exact reasons in [Android Blockers](#android-blockers).
+Backend, mobile non-device, Docker, live-USGS, startup, contract, security, and
+debug APK checks passed as recorded below. Android device E2E did **not** run and
+remains blocked for the exact reasons in [Android Blockers](#android-blockers).
 
 This record is derived from the Task 10 verification report. It contains no
 production secrets, raw credential-bearing database URLs, or test-provider
@@ -38,6 +37,7 @@ process details.
 | `a57fcf3` | Initial end-to-end tooling, documentation, Docker, live-provider, startup, security, and mobile non-device verification |
 | `dd7111d` | Release/configuration hardening, exact OpenAPI provenance, Alembic precedence, and latest full mobile suite |
 | `7de1ffb` | Production credential denial, deterministic integration environment, local-only API targeting, and bounded native-command cleanup |
+| `33169d6` | Tracked verification record for the vertical slice evidence available before the APK stabilization |
 
 ## Commands Run
 
@@ -82,6 +82,28 @@ flutter analyze
 flutter test
 ```
 
+### Clean Debug APK Verification
+
+The normal existing Gradle home was retained. Only `PUB_CACHE`, `TEMP`, and
+`TMP` were placed under the ignored `.superpowers/android-build` directory on
+the worktree drive. Gradle was stopped and Flutter output was cleaned before the
+build:
+
+```powershell
+mobile/android/gradlew.bat --stop
+Set-Location mobile
+flutter clean
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+The build environment used these repository-relative locations:
+
+```text
+PUB_CACHE=.superpowers/android-build/pub-cache
+TEMP=.superpowers/android-build/temp
+TMP=.superpowers/android-build/tmp
+```
+
 ### Docker Cleanup
 
 ```powershell
@@ -111,15 +133,20 @@ commands.
   references, `provider=usgs`, and `kind=earthquake_information`, with no
   severity or freshness fields.
 
-### Mobile
+### Mobile And APK
 
-- Latest full suite: **170 passed** at `dd7111d`.
+- Latest full suite: **171 passed**.
 - Localization generation and build-runner generation passed.
 - Dart format completed with no changes and Flutter analysis reported no issues.
 - The mobile contract test parsed the normalized backend response with the
   production DTO.
 - Main/release Android configuration has no cleartext exception. Debug
   cleartext access is limited to `localhost`, `127.0.0.1`, and `10.0.2.2`.
+- Android configuration tests require exact `kotlin.incremental=false` and
+  `kotlin.compiler.execution.strategy=in-process` settings with their Windows
+  cross-drive reliability rationale.
+- After stopping Gradle and cleaning Flutter output, the debug APK build passed
+  in 69.1 seconds and produced `build/app/outputs/flutter-apk/app-debug.apk`.
 
 ### Docker, Live, And Startup
 
@@ -171,6 +198,10 @@ commands.
   Windows PowerShell 5.1. Materializing the process handle fixed it; subsequent
   bounded success, timeout, output, exit-code, Docker, and URL-boundary checks
   passed.
+- A clean APK experiment isolated the remaining Kotlin failure to incremental
+  cross-drive cache behavior. Disabling Kotlin incremental compilation and
+  running the compiler in-process produced a successful clean debug APK while
+  retaining the normal Gradle home.
 
 ## Android Blockers
 
@@ -183,26 +214,27 @@ commands.
   **not run**. The real Android app/API/Drift online-to-stale transition remains
   unverified on a device.
 
-### Toolchain And APK
+### Toolchain Warnings And APK Result
 
 - `flutter doctor -v` reported missing Android `cmdline-tools`, unknown Android
   license status, and no Android device. It also reported missing Visual Studio
   desktop tooling, which is unrelated to this Android-only increment.
-- The following required build command was attempted and did **not** pass:
+- The `cmdline-tools` and license warnings remain, but they did not block the
+  clean debug build after the Kotlin reliability settings were tracked.
+- The following required build command now **passes**:
 
   ```powershell
   flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
   ```
 
-- Three attempts failed in `:url_launcher_android:compileDebugKotlin` with
-  Kotlin 2.3.20 incremental-cache errors. Reported failures included
-  `Could not close incremental caches` and `Storage ... is already registered`.
-- The failure involved Kotlin incremental-cache paths spanning the system Pub
-  cache drive and the worktree drive. Disabling incremental compilation,
-  stopping Gradle daemons, cleaning Flutter output, and rebuilding with a
-  same-drive temporary Pub cache did not resolve it.
-- No tracked speculative Gradle workaround was added. APK creation remains
-  blocked, not passed.
+- Earlier attempts failed in `:url_launcher_android:compileDebugKotlin` with
+  Kotlin 2.3.20 incremental-cache errors spanning the system Pub cache and
+  worktree drives. The minimal tracked fix is now covered by an Android
+  configuration regression test.
+- The successful build used the normal Gradle home and placed `PUB_CACHE`,
+  `TEMP`, and `TMP` under `.superpowers/android-build` on the worktree drive.
+- APK assembly is verified; installation and execution remain unverified because
+  no Android device or AVD is available.
 
 ## Limitations
 
