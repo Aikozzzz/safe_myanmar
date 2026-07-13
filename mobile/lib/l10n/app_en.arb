@@ -2,7 +2,79 @@
   "@@locale": "en",
   "appName": "SafeMyanmar",
   "earthquakeInformation": "Earthquake information",
+  "refresh": "Refresh",
+  "liveInformation": "Live information",
+  "cachedInformation": "Cached information",
+  "staleInformation": "Stale information",
+  "lastSuccessfulUpdate": "Last successful update: {time}",
+  "@lastSuccessfulUpdate": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "noRecentEarthquakes": "No recent earthquakes were found in the covered area. This does not guarantee there is no danger.",
+  "liveEarthquakeDataUnavailable": "Live earthquake data unavailable.",
+  "savedInformationRemains": "Previously saved information remains available below.",
+  "couldNotUpdateLiveInformation": "Could not update live information.",
+  "magnitudeValue": "Magnitude {magnitude}",
+  "@magnitudeValue": {
+    "placeholders": {
+      "magnitude": {"type": "String"}
+    }
+  },
+  "locationValue": "Location: {place}",
+  "@locationValue": {
+    "placeholders": {
+      "place": {"type": "String"}
+    }
+  },
+  "eventTimeValue": "Event time: {time}",
+  "@eventTimeValue": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "depthValue": "Depth: {depth} km",
+  "@depthValue": {
+    "placeholders": {
+      "depth": {"type": "String"}
+    }
+  },
+  "providerUpdateValue": "Provider update: {time}",
+  "@providerUpdateValue": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "retrievedValue": "Retrieved: {time}",
+  "@retrievedValue": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "reviewStatusValue": "Review status: {status}",
+  "@reviewStatusValue": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
   "dataSourceUsGS": "Source: USGS",
+  "openUsGSsource": "Open USGS source",
+  "couldNotOpenUsGSsource": "Could not open USGS source.",
+  "earthquakeInformationNotFound": "Earthquake information was not found.",
+  "backToEarthquakeInformation": "Back to earthquake information",
+  "earthquakeCardSemantics": "{type}. {magnitude}. {location}. {eventTime}. {status}. {source}",
+  "@earthquakeCardSemantics": {
+    "placeholders": {
+      "type": {"type": "String"},
+      "magnitude": {"type": "String"},
+      "location": {"type": "String"},
+      "eventTime": {"type": "String"},
+      "status": {"type": "String"},
+      "source": {"type": "String"}
+    }
+  },
+  "earthquakeCardHint": "Open earthquake information details",
   "preliminaryNotice": "Preliminary earthquake values may change.",
   "loadingEarthquakes": "Updating earthquake information"
 }

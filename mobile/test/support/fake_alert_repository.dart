@@ -15,7 +15,14 @@ final class FakeAlertRepository implements CachedAlertRepository {
   final Completer<void> cacheCancelled = Completer<void>();
   final Completer<void> refreshStarted = Completer<void>();
   final List<FakeAlertRefresh> _refreshes = [];
+  final List<String> lookupIds = [];
+  Earthquake? lookupResult;
+  Completer<Earthquake?>? lookupCompleter;
   int refreshCalls = 0;
+
+  void completeNext(AlertSnapshot snapshot) {
+    _refreshes[refreshCalls - 1].complete(snapshot);
+  }
 
   FakeAlertRefresh queueRefresh({AlertSnapshot? synchronousCacheSnapshot}) {
     final refresh = FakeAlertRefresh(
@@ -27,6 +34,10 @@ final class FakeAlertRepository implements CachedAlertRepository {
 
   void queueSynchronousError(Object error) =>
       _refreshes.add(FakeAlertRefresh(synchronousError: error));
+
+  void failNextSynchronously(Object error) {
+    _refreshes[refreshCalls] = FakeAlertRefresh(synchronousError: error);
+  }
 
   void emit(AlertSnapshot? snapshot) => _cache.add(snapshot);
 
@@ -51,7 +62,10 @@ final class FakeAlertRepository implements CachedAlertRepository {
   }
 
   @override
-  Future<Earthquake?> getById(String id) async => null;
+  Future<Earthquake?> getById(String id) {
+    lookupIds.add(id);
+    return lookupCompleter?.future ?? Future.value(lookupResult);
+  }
 
   Future<void> close() => _cache.close();
 }

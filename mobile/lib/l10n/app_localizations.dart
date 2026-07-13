@@ -106,11 +106,150 @@ abstract class AppLocalizations {
   /// **'Earthquake information'**
   String get earthquakeInformation;
 
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @liveInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Live information'**
+  String get liveInformation;
+
+  /// No description provided for @cachedInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached information'**
+  String get cachedInformation;
+
+  /// No description provided for @staleInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Stale information'**
+  String get staleInformation;
+
+  /// No description provided for @lastSuccessfulUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Last successful update: {time}'**
+  String lastSuccessfulUpdate(String time);
+
+  /// No description provided for @noRecentEarthquakes.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent earthquakes were found in the covered area. This does not guarantee there is no danger.'**
+  String get noRecentEarthquakes;
+
+  /// No description provided for @liveEarthquakeDataUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Live earthquake data unavailable.'**
+  String get liveEarthquakeDataUnavailable;
+
+  /// No description provided for @savedInformationRemains.
+  ///
+  /// In en, this message translates to:
+  /// **'Previously saved information remains available below.'**
+  String get savedInformationRemains;
+
+  /// No description provided for @couldNotUpdateLiveInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update live information.'**
+  String get couldNotUpdateLiveInformation;
+
+  /// No description provided for @magnitudeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Magnitude {magnitude}'**
+  String magnitudeValue(String magnitude);
+
+  /// No description provided for @locationValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Location: {place}'**
+  String locationValue(String place);
+
+  /// No description provided for @eventTimeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Event time: {time}'**
+  String eventTimeValue(String time);
+
+  /// No description provided for @depthValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Depth: {depth} km'**
+  String depthValue(String depth);
+
+  /// No description provided for @providerUpdateValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider update: {time}'**
+  String providerUpdateValue(String time);
+
+  /// No description provided for @retrievedValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrieved: {time}'**
+  String retrievedValue(String time);
+
+  /// No description provided for @reviewStatusValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Review status: {status}'**
+  String reviewStatusValue(String status);
+
   /// No description provided for @dataSourceUsGS.
   ///
   /// In en, this message translates to:
   /// **'Source: USGS'**
   String get dataSourceUsGS;
+
+  /// No description provided for @openUsGSsource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open USGS source'**
+  String get openUsGSsource;
+
+  /// No description provided for @couldNotOpenUsGSsource.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open USGS source.'**
+  String get couldNotOpenUsGSsource;
+
+  /// No description provided for @earthquakeInformationNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Earthquake information was not found.'**
+  String get earthquakeInformationNotFound;
+
+  /// No description provided for @backToEarthquakeInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to earthquake information'**
+  String get backToEarthquakeInformation;
+
+  /// No description provided for @earthquakeCardSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{type}. {magnitude}. {location}. {eventTime}. {status}. {source}'**
+  String earthquakeCardSemantics(
+    String type,
+    String magnitude,
+    String location,
+    String eventTime,
+    String status,
+    String source,
+  );
+
+  /// No description provided for @earthquakeCardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open earthquake information details'**
+  String get earthquakeCardHint;
 
   /// No description provided for @preliminaryNotice.
   ///

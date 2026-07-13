@@ -287,8 +287,11 @@ The final stack can be adjusted according to course requirements.
 
 The current Android-only mobile foundation includes generated localization,
 accessible light and dark themes, earthquake domain contracts, strict alert API
-decoding, a migration-backed Drift cache, and cache-first Riverpod alert state.
-Maps, location, and emergency feature screens remain future mobile increments.
+decoding, a migration-backed Drift cache, cache-first Riverpod state, and
+accessible earthquake information list and detail screens. `url_launcher` is
+used only for user-initiated, validated HTTPS USGS source links behind an
+injectable boundary so widget tests never open a browser. Maps, location, and
+other emergency feature screens remain future mobile increments.
 
 ### Backend
 
