@@ -8,7 +8,7 @@ void main() {
   setUpAll(() {
     manifest = File(
       'android/app/src/main/AndroidManifest.xml',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
   });
 
   test('SOS composer requests no SMS or contacts permission', () {
