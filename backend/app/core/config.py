@@ -1,7 +1,7 @@
 from ipaddress import ip_address
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
@@ -35,9 +35,11 @@ class Settings(BaseSettings):
     provider_timeout_seconds: float = 10.0
     refresh_minimum_seconds: int = 60
     current_max_age_seconds: int = 300
+    enable_simulation_data: bool = False
+    mapbox_directions_access_token: SecretStr | None = None
 
     @model_validator(mode="after")
-    def validate_database_url(self) -> "Settings":
+    def validate_settings(self) -> "Settings":
         try:
             url = make_url(self.database_url)
         except ArgumentError as error:
@@ -47,6 +49,9 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL must use postgresql+psycopg.")
         if self.environment != "production":
             return self
+
+        if self.enable_simulation_data:
+            raise ValueError("Production must not enable simulation data.")
 
         components = (url.username, url.password, url.host, url.database)
         if any(

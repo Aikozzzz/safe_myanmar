@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from sqlalchemy import create_engine
 
 from app.api.health import router as health_router
-from app.api.v1.router import router as v1_router
+from app.api.v1.router import create_router as create_v1_router
 from app.core.config import Settings
 from app.core.errors import register_error_handlers
 from app.core.request_id import RequestIdMiddleware
@@ -29,6 +29,24 @@ def create_app() -> FastAPI:
         refresh_minimum_seconds=settings.refresh_minimum_seconds,
         current_max_age_seconds=settings.current_max_age_seconds,
     )
+    directions_provider = None
+    navigation_service = None
+    simulation_route_guard = None
+    if settings.enable_simulation_data:
+        from app.api.v1.navigation import SimulationRouteGuard
+        from app.providers.mapbox.directions import MapboxDirectionsProvider
+        from app.services.navigation import NavigationService
+
+        mapbox_token = (
+            settings.mapbox_directions_access_token.get_secret_value()
+            if settings.mapbox_directions_access_token is not None
+            else None
+        )
+        directions_provider = MapboxDirectionsProvider(
+            mapbox_token, settings.provider_timeout_seconds
+        )
+        navigation_service = NavigationService(True, directions_provider)
+        simulation_route_guard = SimulationRouteGuard()
 
     @asynccontextmanager
     async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
@@ -36,16 +54,25 @@ def create_app() -> FastAPI:
         try:
             client.close()
         finally:
-            engine.dispose()
+            try:
+                if directions_provider is not None:
+                    directions_provider.close()
+            finally:
+                engine.dispose()
 
     application = FastAPI(title="SafeMyanmar API", lifespan=lifespan)
     application.state.engine = engine
     application.state.session_factory = session_factory
     application.state.earthquake_service = earthquake_service
+    if navigation_service is not None:
+        application.state.navigation_service = navigation_service
+        application.state.simulation_route_guard = simulation_route_guard
     application.add_middleware(RequestIdMiddleware)
     register_error_handlers(application)
     application.include_router(health_router)
-    application.include_router(v1_router)
+    application.include_router(
+        create_v1_router(enable_simulation_data=settings.enable_simulation_data)
+    )
     return application
 
 

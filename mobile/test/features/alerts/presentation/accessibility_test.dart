@@ -321,7 +321,7 @@ void main() {
   ) async {
     final event = earthquakeFixture();
     repository.lookupResult = event;
-    final router = createRouter();
+    final router = createRouter(initialLocation: '/alerts');
     addTearDown(router.dispose);
     await tester.binding.setSurfaceSize(const Size(320, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));

@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -8,10 +9,17 @@ from app.core.request_id import get_request_id
 
 
 class ApiError(Exception):
-    def __init__(self, status_code: int, code: str, message: str) -> None:
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
         self.status_code = status_code
         self.code = code
         self.message = message
+        self.headers = headers
 
 
 def error_response(
@@ -38,9 +46,22 @@ def error_response(
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(RequestValidationError)
+    async def validation_error_handler(
+        request: Request, _exc: RequestValidationError
+    ) -> JSONResponse:
+        return error_response(
+            request,
+            422,
+            "invalid_request",
+            "Request validation failed.",
+        )
+
     @app.exception_handler(ApiError)
     async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
-        return error_response(request, exc.status_code, exc.code, exc.message)
+        return error_response(
+            request, exc.status_code, exc.code, exc.message, headers=exc.headers
+        )
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error_handler(

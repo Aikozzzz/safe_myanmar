@@ -140,5 +140,22 @@ void main() {
         expect(ApiConfig.fromRaw(entry.key).alertsUri.toString(), entry.value);
       }
     });
+
+    test('resolves all navigation contract endpoints under API v1', () {
+      final config = ApiConfig.fromRaw('https://example.com/mobile-gateway/');
+
+      expect(
+        config.sheltersUri.toString(),
+        'https://example.com/mobile-gateway/api/v1/shelters',
+      );
+      expect(
+        config.hazardsUri.toString(),
+        'https://example.com/mobile-gateway/api/v1/hazards',
+      );
+      expect(
+        config.routeSuggestionsUri.toString(),
+        'https://example.com/mobile-gateway/api/v1/route-suggestions',
+      );
+    });
   });
 }

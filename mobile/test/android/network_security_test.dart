@@ -48,7 +48,7 @@ void main() {
     expect(debugPolicy, isNot(contains('<base-config')));
   });
 
-  test('main manifest requests no sensitive or out-of-scope permissions', () {
+  test('main manifest requests only Internet and foreground location', () {
     final manifest = File(
       'android/app/src/main/AndroidManifest.xml',
     ).readAsStringSync();
@@ -56,6 +56,59 @@ void main() {
       r'<uses-permission\s+android:name="([^"]+)"\s*/>',
     ).allMatches(manifest).map((match) => match.group(1)).toSet();
 
-    expect(permissions, {'android.permission.INTERNET'});
+    expect(permissions, {
+      'android.permission.INTERNET',
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.ACCESS_FINE_LOCATION',
+    });
+    for (final prohibited in [
+      'android.permission.ACCESS_BACKGROUND_LOCATION',
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_LOCATION',
+    ]) {
+      expect(manifest, isNot(contains(prohibited)));
+    }
+  });
+
+  test('debug APK verifies merged transitive permissions fail closed', () {
+    final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+
+    expect(gradle, contains('verifyDebugMergedManifest'));
+    expect(gradle, contains('dependsOn("processDebugMainManifest")'));
+    for (final permission in [
+      'android.permission.ACCESS_NETWORK_STATE',
+      'android.permission.ACCESS_WIFI_STATE',
+    ]) {
+      expect(gradle, contains('"$permission"'));
+    }
+    for (final prohibited in [
+      'android.permission.ACCESS_BACKGROUND_LOCATION',
+      'android.permission.SEND_SMS',
+      'android.permission.READ_SMS',
+      'android.permission.RECEIVE_SMS',
+    ]) {
+      expect(gradle, contains('"$prohibited"'));
+    }
+    expect(
+      gradle,
+      contains('check(permission !in manifest)'),
+      reason: 'the merged APK manifest must reject prohibited permissions',
+    );
+    expect(
+      gradle,
+      contains('dependsOn(verifyDebugMergedManifest)'),
+      reason: 'every debug APK must run the merged-manifest verification',
+    );
+  });
+
+  test('mobile documentation discloses merged permissions and GLES limit', () {
+    final readme = File('README.md').readAsStringSync();
+
+    expect(readme, contains('`ACCESS_NETWORK_STATE`'));
+    expect(readme, contains('`ACCESS_WIFI_STATE`'));
+    expect(readme, contains('No background location permission'));
+    expect(readme, contains('does not request Android SMS'));
+    expect(readme, contains('GLES 3'));
+    expect(readme, contains('future no-map product flavor'));
   });
 }

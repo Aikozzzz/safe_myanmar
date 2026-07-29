@@ -4,22 +4,24 @@ abstract final class SafeTheme {
   static ThemeData light() {
     return _theme(
       brightness: Brightness.light,
-      surface: const Color(0xFFFDFCFC),
-      onSurface: const Color(0xFF201D1D),
-      primary: const Color(0xFF0056B3),
-      onPrimary: const Color(0xFFFDFCFC),
-      error: const Color(0xFFB42318),
-      onError: const Color(0xFFFDFCFC),
+      background: const Color(0xFFF7FAFA),
+      surface: const Color(0xFFFFFFFF),
+      onSurface: const Color(0xFF14212B),
+      primary: const Color(0xFF0E7C78),
+      onPrimary: const Color(0xFFFFFFFF),
+      error: const Color(0xFFD92D20),
+      onError: const Color(0xFFFFFFFF),
     );
   }
 
   static ThemeData dark() {
     return _theme(
       brightness: Brightness.dark,
-      surface: const Color(0xFF201D1D),
-      onSurface: const Color(0xFFFDFCFC),
-      primary: const Color(0xFF9CCAFF),
-      onPrimary: const Color(0xFF002B5C),
+      background: const Color(0xFF0B171D),
+      surface: const Color(0xFF14212B),
+      onSurface: const Color(0xFFF7FAFA),
+      primary: const Color(0xFF70D5CF),
+      onPrimary: const Color(0xFF003734),
       error: const Color(0xFFFFB4AB),
       onError: const Color(0xFF690005),
     );
@@ -27,6 +29,7 @@ abstract final class SafeTheme {
 
   static ThemeData _theme({
     required Brightness brightness,
+    required Color background,
     required Color surface,
     required Color onSurface,
     required Color primary,
@@ -53,7 +56,7 @@ abstract final class SafeTheme {
       platform: null,
       colorScheme: colorScheme,
       black: _systemTextTheme(onSurface),
-      white: _systemTextTheme(surface),
+      white: _systemTextTheme(onSurface),
     );
 
     return ThemeData(
@@ -61,13 +64,19 @@ abstract final class SafeTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       typography: typography,
-      scaffoldBackgroundColor: surface,
+      scaffoldBackgroundColor: background,
       canvasColor: surface,
       materialTapTargetSize: MaterialTapTargetSize.padded,
       elevatedButtonTheme: const ElevatedButtonThemeData(style: buttonStyle),
       filledButtonTheme: const FilledButtonThemeData(style: buttonStyle),
       outlinedButtonTheme: const OutlinedButtonThemeData(style: buttonStyle),
       textButtonTheme: const TextButtonThemeData(style: buttonStyle),
+      iconButtonTheme: const IconButtonThemeData(style: buttonStyle),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surface,
+        height: 80,
+        indicatorColor: primary.withValues(alpha: 0.16),
+      ),
     );
   }
 

@@ -276,7 +276,7 @@ void main() {
       providerEventId: 'id/with space',
     );
     repository.lookupResult = event;
-    final router = createRouter();
+    final router = createRouter(initialLocation: '/alerts');
     addTearDown(router.dispose);
     await tester.pumpWidget(
       UncontrolledProviderScope(

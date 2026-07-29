@@ -1,39 +1,71 @@
 # SafeMyanmar
 
 SafeMyanmar is an academic Android disaster-information application for the
-Mobile and Ubiquitous Computing subject. The current implemented vertical slice
-shows live USGS earthquake observations for an approximate Myanmar coverage
-area through a Flutter app, FastAPI API, PostgreSQL server snapshot, and offline
-Drift cache.
+Mobile and Ubiquitous Computing subject. The implemented app combines live USGS
+earthquake observations, explicit foreground location use, opt-in fictional
+navigation data, offline emergency guidance, local SOS preparation, and
+constrained on-device assistance.
 
-This is not an official warning or earthquake-prediction system. It does not
-provide complete all-disaster coverage or guarantee safety. USGS values are
-informational and preliminary values may change. Follow authorized local
-instructions and official emergency services when available.
+SafeMyanmar is not an official warning, earthquake-prediction, emergency
+dispatch, medical, or guaranteed-safety service. USGS observations are
+informational and preliminary values may change. Shelters, hazards, and route
+suggestions are clearly labeled **SIMULATION** and are not real emergency data.
+Follow authorized local instructions and contact official emergency or medical
+services when available.
 
 ## Implemented Scope
 
-- Android Flutter list and detail screens with localization-ready, accessible
-  Material light/dark presentation.
-- Live USGS `all_day.geojson` retrieval by the backend only.
-- Strict validation and normalization into PostgreSQL.
-- Exact versioned list/detail API with USGS source attribution and UTC times.
-- Drift/SQLite cache-first mobile behavior with live, cached, stale, successful
-  empty, and unavailable states.
-- Riverpod state management and `go_router` navigation.
-- Backend unit, API, migration, repository, provider, security, live-network,
-  and integration tests; mobile unit, DTO, Drift, Riverpod, widget,
-  accessibility, security-configuration, contract, and Android integration
-  tests.
+- Material 3 five-tab shell: Home, Map, SOS, Guide, and More. The earthquake
+  list and detail screens are opened from Home.
+- Backend-only retrieval of the live USGS `all_day.geojson` feed, strict
+  normalization into PostgreSQL, and versioned list/detail APIs with USGS
+  attribution and UTC timestamps.
+- Cache-first earthquake states for live, cached, stale, successful empty, and
+  unavailable data. Alert detail preserves magnitude, depth, coordinates, event
+  time, provider update and retrieval times, review status, version, and the
+  trusted USGS source link.
+- Explicit foreground location flow with approximate/precise, denied,
+  permanently denied, disabled-service, retry, and last-known-location states.
+  The app requests no background location permission.
+- Mapbox map rendering when an optional public mobile token is supplied.
+  Shelters, hazards, and route suggestions are fictional runtime SIMULATION data
+  that remains disabled by default and is rejected in production.
+- Up to three Mapbox Directions alternatives ranked by simulated hazard
+  intersections, duration, and distance. Users can select an alternative and
+  can still view cached or current shelter/hazard information if routing fails.
+- Drift schema v3 for earthquake, shelter, hazard, and route caches plus
+  versioned, source-backed emergency Guide content.
+- Device-local profile and up to ten emergency contacts in Android secure
+  storage. Contacts must be explicitly selected for SOS use.
+- Persisted SOS drafts with recipient and optional location snapshots,
+  five-minute duplicate suppression, hold-to-confirm, and an accessible
+  confirmation path. SafeMyanmar opens the external native SMS composer; it
+  does not send SMS itself and cannot verify sent or delivered status.
+- Bilingual English/Myanmar offline Guide articles with source, review date,
+  content version, translation warning, category filtering, and search.
+- A deterministic offline intent classifier and structured SOS text extraction.
+  Optional checksum-gated ONNX intent refinement and LiteRT-LM rewording can be
+  provisioned separately; no model artifacts are bundled.
+- Riverpod state management, `go_router` navigation, localization-ready UI,
+  light/dark themes, semantic status announcements, and 48dp touch targets.
 
-There are no runtime demo or simulated records. Controlled
-`integration-fixture` data exists only under test paths and is never referenced
-by `backend/app` or `mobile/lib`.
+See [the context-aware mobile flow](docs/architecture/context-aware-mobile-flow.md),
+[the live-alert subsystem architecture](docs/architecture/live-earthquake-slice.md),
+[optional AI model provisioning](docs/architecture/optional-ai-model-provisioning.md),
+[the step-by-step run instructions](Instruction.md),
+[the implemented mobile design](DESIGN.md),
+[the alert API](docs/api/alerts.md), and
+[the simulation navigation API](backend/docs/api/simulation-navigation.md).
 
-## Data Boundaries
+The archived Figma zip is a design reference only. It is not included as app
+assets and is not loaded by the shipped runtime.
 
-The backend includes events whose coordinates are within these inclusive coarse
-coverage bounds:
+## Data And Safety Boundaries
+
+### Live earthquake observations
+
+The backend includes USGS events whose coordinates are within these inclusive
+coarse coverage bounds:
 
 | Boundary | Value |
 |---|---:|
@@ -47,10 +79,17 @@ affected-area assessment, or claim that places outside it are safe. Provider
 refresh attempts are throttled to 60 seconds. A successful server snapshot is
 current for five minutes, then explicitly stale. A provider failure preserves
 the last successful server and mobile snapshots; failure before any success is
-not shown as an empty result.
+not shown as an empty result. There are no simulated earthquake alerts in the
+runtime path; controlled alert fixtures remain test-only.
 
-See [the slice architecture](docs/architecture/live-earthquake-slice.md) and
-[alert API reference](docs/api/alerts.md) for exact behavior.
+### Simulation navigation
+
+Runtime simulation exists only for the separately gated shelter, hazard, and
+route endpoints. `ENABLE_SIMULATION_DATA=false` is the default, production
+startup rejects `true`, and every simulation response carries data or generation
+timestamps, `SafeMyanmar Demo` attribution, and an uncertainty notice. Route
+ranking uses fictional polygons and Mapbox geometry; it must not be interpreted
+as an official evacuation route or a guarantee that conditions are safe.
 
 ## Prerequisites
 
@@ -82,14 +121,22 @@ Set-Location backend
 .venv/Scripts/python -m uvicorn app.main:app --reload
 ```
 
-The API listens at `http://localhost:8000`. Useful endpoints are:
+The API listens at `http://localhost:8000`. Implemented endpoints are:
 
 ```text
-GET /health/live
-GET /health/ready
-GET /api/v1/alerts
-GET /api/v1/alerts/{id}
+GET  /health/live
+GET  /health/ready
+GET  /api/v1/alerts
+GET  /api/v1/alerts/{id}
+GET  /api/v1/shelters
+GET  /api/v1/hazards
+POST /api/v1/route-suggestions
 ```
+
+The last three endpoints return `404 simulation_data_disabled` unless runtime
+simulation is explicitly enabled. Route suggestions additionally require the
+backend-only Mapbox Directions token. See the linked API references for exact
+schemas, validation, and safe error envelopes.
 
 To run the API in Docker instead:
 
@@ -110,37 +157,51 @@ dart run build_runner build
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
 
+To render the Mapbox map, add a restricted public token:
+
+```powershell
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000 `
+  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=pk.replace_with_restricted_public_token
+```
+
 `10.0.2.2` reaches the host from the standard Android emulator. Cleartext HTTP
 to that host is permitted only by the Android debug network-security policy.
 Release API communication must use HTTPS. For deliberate debug development on a
 physical device, run `adb reverse tcp:8000 tcp:8000` and use
-`http://127.0.0.1:8000`; otherwise use a reachable HTTPS endpoint. Do not assume
-device `localhost` points to the development computer without `adb reverse`.
+`http://127.0.0.1:8000`; otherwise use a reachable HTTPS endpoint. Device
+`localhost` does not refer to the development computer without `adb reverse`.
 
 ## Configuration
 
-Root `.env.example` documents the cross-layer contract. Runtime consumers are:
+Root `.env.example` documents the cross-layer contract. Flutter values are
+compile-time `--dart-define` values; Flutter does not load the `.env` file.
+Backend values are read from `backend/.env` when the API starts in `backend/`.
 
 | Variable | Consumer | Requirement and default |
 |---|---|---|
-| `API_BASE_URL` | Flutter compile-time `--dart-define` | Required; HTTPS in release. Emulator debug example: `http://10.0.2.2:8000` |
-| `DATABASE_URL` | FastAPI, Alembic | Required `postgresql+psycopg` URL. Production requires non-loopback, non-placeholder values and `sslmode=require` |
-| `USGS_FEED_URL` | FastAPI | Optional; defaults to the live USGS all-day feed |
-| `PROVIDER_TIMEOUT_SECONDS` | FastAPI | Optional; default `10.0` |
-| `REFRESH_MINIMUM_SECONDS` | FastAPI | Optional; default `60` |
-| `CURRENT_MAX_AGE_SECONDS` | FastAPI | Optional; default `300` |
-| `ENVIRONMENT` | FastAPI, Alembic | Optional: `development` (default), `test`, or `production`; controls production database validation |
-| `MAPBOX_ACCESS_TOKEN` | None in this slice | Future maps increment only; not read, required, or validated |
+| `API_BASE_URL` | Flutter | Required compile-time value; HTTPS in release. Emulator debug example: `http://10.0.2.2:8000` |
+| `MAPBOX_PUBLIC_ACCESS_TOKEN` | Flutter | Optional restricted `pk.*` public token supplied with `--dart-define`; without it the map shows a configuration state |
+| `DATABASE_URL` | FastAPI, Alembic | Required `postgresql+psycopg` URL; production requires non-placeholder values, a non-loopback host, and `sslmode=require` |
+| `ENVIRONMENT` | FastAPI, Alembic | `development` by default; also accepts `test` or `production` |
+| `USGS_FEED_URL` | FastAPI | Defaults to the live USGS all-day feed |
+| `PROVIDER_TIMEOUT_SECONDS` | FastAPI | Defaults to `10.0`; used by USGS and Mapbox requests |
+| `REFRESH_MINIMUM_SECONDS` | FastAPI | Defaults to `60` |
+| `CURRENT_MAX_AGE_SECONDS` | FastAPI | Defaults to `300` |
+| `ENABLE_SIMULATION_DATA` | FastAPI | Defaults to `false`; must remain false in production |
+| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | FastAPI | Optional secret; required only for simulation route suggestions |
 
-Never commit a real `.env` file. Mapbox is selected for a future map, geocoding,
-and directions increment; no Mapbox package or request exists now.
+Never commit a real `.env` file or Mapbox secret. Restrict the public mobile
+token by application/package and allowed APIs. The mobile public token is
+embedded in the built app and must not be treated as a secret. The backend
+Directions token must never be passed to Flutter.
 
 ## Testing
 
 The tracked
 [live-earthquake verification record](docs/verification/live-earthquake-vertical-slice.md)
-summarizes the latest authoritative results, commands run, security checks, and
-the Android E2E blocker and APK/toolchain status.
+is historical evidence for the original alert slice. It records the exact
+results, commands, security checks, Android E2E blocker, and APK/toolchain state
+at that point; it is not a claim about later feature test totals.
 
 Start an ephemeral dedicated PostgreSQL test database:
 
@@ -228,40 +289,21 @@ try {
 }
 ```
 
-The clean build passes with the tracked Kotlin settings that disable incremental
-compilation and use in-process compiler execution to avoid unreliable Windows
-cross-drive caches. Android `cmdline-tools` and license warnings remain in
-`flutter doctor`, but they did not block this debug APK build. Android device E2E
-remains blocked until an Android device or AVD is available.
-
-The deterministic end-to-end test uses an ephemeral PostgreSQL test database,
+The deterministic alert end-to-end test uses an ephemeral PostgreSQL database,
 a local test-only USGS-protocol server, the real FastAPI process, real mobile
-wiring, and persisted Drift storage. It first verifies populated list/detail
-content, then stops the API and verifies stale cached content and safe failure
-copy. With an Android target listed by `flutter devices`, run from the root. The
-harness auto-selects `10.0.2.2` for an emulator and configures `adb reverse` with
-`127.0.0.1` for a physical device:
+wiring, and persisted Drift storage. It verifies populated list/detail content,
+then stops the API and verifies stale cached content and safe failure copy. With
+an Android target listed by `flutter devices`, run:
 
 ```powershell
 tools/run-live-alerts-integration.ps1 -DeviceId <android-device-id>
 ```
 
-Use `-ApiBaseUrl <url>` only to select the locally orchestrated API. An emulator
-accepts exactly `http://10.0.2.2:8000`. A physical device accepts
-`http://127.0.0.1:<port>` or `http://localhost:<port>` with an explicit port from
-1 through 65535 and an optional trailing `/`; the harness maps that device port
-to host port 8000 with `adb reverse`. Remote hosts, HTTPS, credentials, query
-parameters, fragments, and non-root paths are rejected. Use `-FlutterBin
-<directory>` only when Flutter is not already on `PATH`.
-
-The harness bounds readiness/process waits, stops its API/provider processes,
-validates Android application-data cleanup, removes any `adb reverse` rule,
-stops the ephemeral integration database, and restores `PATH`, `DATABASE_URL`,
-`USGS_FEED_URL`, `ENVIRONMENT`, `CURRENT_MAX_AGE_SECONDS`,
-`REFRESH_MINIMUM_SECONDS`, and `PROVIDER_TIMEOUT_SECONDS`. It sets deterministic
-test/default timing values so inherited settings cannot alter the scenario. It
-never calls emergency services, Mapbox, or a remote API; only the separate
-opt-in live smoke calls USGS.
+The harness auto-selects `10.0.2.2` for an emulator and configures `adb reverse`
+with `127.0.0.1` for a physical device. Its `-ApiBaseUrl` option accepts only the
+locally orchestrated API; it rejects remote hosts, credentials, query strings,
+fragments, and non-root paths. It never calls emergency services, Mapbox, or a
+remote API. Only the separate opt-in live smoke calls USGS.
 
 ## Repository Structure
 
@@ -269,27 +311,42 @@ opt-in live smoke calls USGS.
 SafeMyanmar/
 |-- backend/
 |   |-- alembic/                 PostgreSQL migrations
-|   |-- app/                     FastAPI runtime source
-|   `-- tests/                   unit/API/integration/security fixtures
+|   |-- app/                     FastAPI runtime and providers
+|   |-- docs/api/                simulation navigation API reference
+|   `-- tests/                   unit, API, integration, security tests
 |-- mobile/
-|   |-- android/                 Android main/debug configuration
-|   |-- integration_test/        real app/API/Drift scenario
-|   |-- lib/                     Flutter runtime source
-|   `-- test/                    unit/widget/contract tests
+|   |-- android/                 Android config and optional native AI bridge
+|   |-- integration_test/        real app/API/Drift alert scenario
+|   |-- lib/                     Flutter app and feature modules
+|   `-- test/                    unit, widget, contract, security tests
 |-- docs/
-|   |-- api/alerts.md
-|   |-- architecture/live-earthquake-slice.md
-|   `-- verification/live-earthquake-vertical-slice.md
+|   |-- api/                     live alert API reference
+|   |-- architecture/            alert, context, and AI provisioning notes
+|   `-- verification/            dated verification records
 |-- tools/run-live-alerts-integration.ps1
+|-- DESIGN.md
 |-- docker-compose.yml
 |-- .env.example
 `-- README.md
 ```
 
-## Deferred Features
+## Deferred And Explicit Limitations
 
-Authentication, user location, maps and Mapbox, shelters, hazard zones, route
-suggestions, SOS and emergency contacts, Rescue Beacon Mode, reviewed first-aid
-content, AI assistance, notifications, damage reporting, additional disaster
-providers, and official rescue-service integration are later increments. Future
-route suggestions must remain timestamped and uncertain, never guaranteed safe.
+- Live provider coverage remains USGS earthquakes only. There are no official
+  Myanmar warnings, evacuation orders, impact/severity classification, push
+  notifications, or additional live disaster providers.
+- Shelters and hazards are fixed fictional demonstrations. Simulation routes
+  rely on current Mapbox availability and simplistic polygon-intersection
+  ranking; they are not verified field conditions or guaranteed safe routes.
+- The app has no authentication, cloud profile synchronization, rescue-team
+  dashboard, damage reporting, official rescue-service integration, Rescue
+  Beacon Mode, Bluetooth/peer-to-peer messaging, or background location.
+- SOS is a local draft and handoff workflow only. The user reviews and sends in
+  an external SMS app; SafeMyanmar has no sent, delivered, dispatch, retry, or
+  rescue acknowledgement signal.
+- Guide content is a small reviewed offline set, not diagnosis or comprehensive
+  medical care. Myanmar translations carry a review warning.
+- Deterministic guidance remains available without models. Optional ONNX and
+  LiteRT-LM artifacts require separate licensed provisioning, exact manifests,
+  matching checksums, and supported device resources. No artifact download,
+  credential handling, or model update service is implemented.

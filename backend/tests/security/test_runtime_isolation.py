@@ -1,4 +1,3 @@
-import re
 import subprocess
 from pathlib import Path
 
@@ -25,12 +24,15 @@ def test_runtime_has_no_integration_fixture_or_test_server_references():
     assert "localhost:8001" not in text
 
 
-def test_runtime_does_not_access_future_mapbox_configuration_or_demo_records():
+def test_runtime_simulation_data_is_explicitly_gated_and_attributed():
     text = runtime_text()
 
     assert "MAPBOX_ACCESS_TOKEN" not in text
-    assert re.search(r"\bSIMULATION\b", text, re.IGNORECASE) is None
-    assert "demo_alert" not in text.lower()
+    assert "mapbox_directions_access_token" in text
+    assert "enable_simulation_data" in text
+    assert "SafeMyanmar Demo" in text
+    assert "SIMULATION:" in text
+    assert "https://api.mapbox.com/directions/v5/mapbox" in text
 
 
 def test_runtime_backend_default_is_only_the_live_usgs_feed():

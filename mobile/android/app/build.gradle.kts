@@ -43,3 +43,52 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.27.0")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.14.0")
+}
+
+val verifyDebugMergedManifest by tasks.registering {
+    group = "verification"
+    description = "Checks safety-sensitive permissions in the merged debug manifest."
+    dependsOn("processDebugMainManifest")
+    doLast {
+        val mergedManifest = layout.buildDirectory
+            .dir("intermediates/merged_manifest/debug")
+            .get()
+            .asFile
+            .walkTopDown()
+            .firstOrNull { it.isFile && it.name == "AndroidManifest.xml" }
+            ?: error("Merged debug AndroidManifest.xml was not generated")
+        val manifest = mergedManifest.readText()
+        listOf(
+            "android.permission.INTERNET",
+            "android.permission.ACCESS_COARSE_LOCATION",
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_NETWORK_STATE",
+            "android.permission.ACCESS_WIFI_STATE",
+        ).forEach { permission ->
+            check(permission in manifest) { "Expected merged permission missing: $permission" }
+        }
+        listOf(
+            "android.permission.ACCESS_BACKGROUND_LOCATION",
+            "android.permission.SEND_SMS",
+            "android.permission.READ_SMS",
+            "android.permission.RECEIVE_SMS",
+            "android.permission.READ_CONTACTS",
+        ).forEach { permission ->
+            check(permission !in manifest) { "Prohibited merged permission: $permission" }
+        }
+        check("android:glEsVersion=\"0x00030000\"" in manifest)
+        check(
+            Regex(
+                "glEsVersion=\\\"0x00030000\\\"[\\s\\S]*?required=\\\"true\\\"",
+            ).containsMatchIn(manifest),
+        )
+    }
+}
+
+tasks.matching { it.name == "assembleDebug" }.configureEach {
+    dependsOn(verifyDebugMergedManifest)
+}

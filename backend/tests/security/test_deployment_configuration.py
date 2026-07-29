@@ -11,13 +11,30 @@ def test_api_image_contains_alembic_configuration_and_migrations():
 
 
 def test_root_environment_example_matches_cross_layer_contract():
-    expected = """API_BASE_URL=http://localhost:8000
-DATABASE_URL=postgresql+psycopg://safemyanmar_dev:safemyanmar_dev_password@localhost:5432/safemyanmar
-USGS_FEED_URL=https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson
-ENVIRONMENT=development
-# Future map increment only; unused by the current application:
-MAPBOX_ACCESS_TOKEN=replace_when_map_feature_is_implemented
-"""
+    expected = (
+        "# Flutter compile-time contract. Flutter does not load this file; pass "
+        "these as\n"
+        "# --dart-define values. The public Mapbox token is embedded in the app "
+        "and is not\n"
+        "# a secret; restrict it by application/package and allowed APIs.\n"
+        "API_BASE_URL=http://localhost:8000\n"
+        "MAPBOX_PUBLIC_ACCESS_TOKEN=pk.replace_with_restricted_public_token\n"
+        "\n"
+        "# Backend runtime contract. Copy backend/.env.example to backend/.env.\n"
+        "DATABASE_URL=postgresql+psycopg://safemyanmar_dev:"
+        "safemyanmar_dev_password@localhost:5432/safemyanmar\n"
+        "ENVIRONMENT=development\n"
+        "USGS_FEED_URL=https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/"
+        "all_day.geojson\n"
+        "PROVIDER_TIMEOUT_SECONDS=10.0\n"
+        "REFRESH_MINIMUM_SECONDS=60\n"
+        "CURRENT_MAX_AGE_SECONDS=300\n"
+        "ENABLE_SIMULATION_DATA=false\n"
+        "# Optional backend secret. Required only for route suggestions when "
+        "simulation\n"
+        "# data is enabled. Never pass this token to Flutter.\n"
+        "MAPBOX_DIRECTIONS_ACCESS_TOKEN=\n"
+    )
 
     example = ROOT / ".env.example"
     assert example.is_file(), "root environment contract must exist"
@@ -34,6 +51,8 @@ def test_backend_environment_example_lists_only_consumed_settings():
     assert "CURRENT_MAX_AGE_SECONDS=300" in backend_example
     assert "ENVIRONMENT=development" in backend_example
     assert "API_BASE_URL" not in backend_example
+    assert "ENABLE_SIMULATION_DATA=false" in backend_example
+    assert "MAPBOX_DIRECTIONS_ACCESS_TOKEN=" in backend_example
     assert "MAPBOX_ACCESS_TOKEN" not in backend_example
 
 

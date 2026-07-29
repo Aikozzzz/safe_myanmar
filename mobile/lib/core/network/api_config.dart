@@ -28,10 +28,20 @@ final class ApiConfig {
   final Uri baseUri;
 
   Uri get alertsUri {
+    return _apiV1Uri('alerts');
+  }
+
+  Uri get sheltersUri => _apiV1Uri('shelters');
+
+  Uri get hazardsUri => _apiV1Uri('hazards');
+
+  Uri get routeSuggestionsUri => _apiV1Uri('route-suggestions');
+
+  Uri _apiV1Uri(String resource) {
     final segments = baseUri.pathSegments.where(
       (segment) => segment.isNotEmpty,
     );
-    return baseUri.replace(pathSegments: [...segments, 'api', 'v1', 'alerts']);
+    return baseUri.replace(pathSegments: [...segments, 'api', 'v1', resource]);
   }
 
   static const _isProductionBuild = bool.fromEnvironment('dart.vm.product');

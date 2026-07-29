@@ -2,11 +2,16 @@
 
 ## Scope
 
-The implemented slice is an Android Flutter application backed by FastAPI and
-PostgreSQL. It displays USGS earthquake observations within an approximate
-Myanmar coverage box and persists them on both server and device. It does not
-collect user location or implement maps, shelters, routes, warnings, prediction,
-authentication, SOS, Rescue Beacon, first aid, AI, or notifications.
+This document isolates the implemented live-earthquake subsystem: an Android
+Flutter client backed by FastAPI and PostgreSQL that displays USGS observations
+within an approximate Myanmar coverage box and persists them on server and
+device. The wider app also implements foreground location, opt-in fictional
+SIMULATION navigation, local SOS drafts, offline Guide content, constrained
+assistance, and secure local profile/contact storage. Those features are covered
+in [the context-aware mobile flow](context-aware-mobile-flow.md).
+
+The alert subsystem itself does not provide warnings, prediction, severity,
+authentication, notifications, or simulated earthquake records.
 
 The inclusive coverage bounds are latitude `8.284` to `30.043` and longitude
 `90.689` to `102.676`. They include a coarse 1.5-degree border buffer. They are
@@ -62,10 +67,13 @@ from failure and cautions that no result does not guarantee no danger.
 
 ## Configuration And Transport
 
-The backend default is only the production USGS all-day feed. The controlled
-`integration-fixture` provider is under `backend/tests/fixtures/`, is started
-only by test tooling, and is never imported or referenced by `backend/app` or
-`mobile/lib`.
+The earthquake provider default is the production USGS all-day feed. The
+controlled `integration-fixture` provider is under `backend/tests/fixtures/`, is
+started only by test tooling, and is never imported or referenced by
+`backend/app` or `mobile/lib`. Separately, runtime shelter, hazard, and route
+records are fixed fictional data behind `ENABLE_SIMULATION_DATA`, which defaults
+to false and is forbidden in production. They never enter the alert tables or
+alert API.
 
 Release API endpoints must use HTTPS, and main/release Android configuration has
 no cleartext exception. The controlled debug integration path is separate: an
@@ -77,12 +85,17 @@ its `-ApiBaseUrl` option to contact a remote API.
 
 ## Security And Privacy
 
-This slice needs only Android Internet permission. It requests no location, SMS,
-call, camera, microphone, contacts, notification, or background permission. It
-stores provider observations and synchronization timestamps, not user location
-or personal data. Database credentials come from local environment configuration
-and real `.env` files are ignored. `MAPBOX_ACCESS_TOKEN` is not read; it is a
-placeholder for a future maps increment.
+The alert flow needs Internet access and stores provider observations plus sync
+timestamps, not user location or personal data. The wider Android app also
+declares coarse/fine foreground location; it declares no background location,
+SMS-send, call, camera, microphone, contacts, notification, or model-download
+permission. Profile/contact/SOS records use secure local storage, while map and
+Guide caches use app-private Drift storage.
+
+Database credentials and the Mapbox Directions secret come from backend local
+environment configuration; real `.env` files are ignored. The optional mobile
+`MAPBOX_PUBLIC_ACCESS_TOKEN` is a restricted public compile-time token and must
+never be replaced with the backend secret.
 
 USGS observations are informational and preliminary values may change. They are
 not official Myanmar warnings, earthquake predictions, complete all-disaster

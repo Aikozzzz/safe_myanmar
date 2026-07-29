@@ -11,12 +11,13 @@ void main() {
 
       expect(theme.brightness, Brightness.light);
       expect(theme.useMaterial3, isTrue);
-      expect(theme.colorScheme.surface, const Color(0xFFFDFCFC));
-      expect(theme.colorScheme.onSurface, const Color(0xFF201D1D));
-      expect(theme.colorScheme.primary, const Color(0xFF0056B3));
-      expect(theme.colorScheme.onPrimary, const Color(0xFFFDFCFC));
-      expect(theme.colorScheme.error, const Color(0xFFB42318));
-      expect(theme.colorScheme.onError, const Color(0xFFFDFCFC));
+      expect(theme.scaffoldBackgroundColor, const Color(0xFFF7FAFA));
+      expect(theme.colorScheme.surface, const Color(0xFFFFFFFF));
+      expect(theme.colorScheme.onSurface, const Color(0xFF14212B));
+      expect(theme.colorScheme.primary, const Color(0xFF0E7C78));
+      expect(theme.colorScheme.onPrimary, const Color(0xFFFFFFFF));
+      expect(theme.colorScheme.error, const Color(0xFFD92D20));
+      expect(theme.colorScheme.onError, const Color(0xFFFFFFFF));
     });
 
     test('uses Material 3 with dedicated dark color roles', () {
@@ -24,10 +25,11 @@ void main() {
 
       expect(theme.brightness, Brightness.dark);
       expect(theme.useMaterial3, isTrue);
-      expect(theme.colorScheme.surface, const Color(0xFF201D1D));
-      expect(theme.colorScheme.onSurface, const Color(0xFFFDFCFC));
-      expect(theme.colorScheme.primary, const Color(0xFF9CCAFF));
-      expect(theme.colorScheme.onPrimary, const Color(0xFF002B5C));
+      expect(theme.scaffoldBackgroundColor, const Color(0xFF0B171D));
+      expect(theme.colorScheme.surface, const Color(0xFF14212B));
+      expect(theme.colorScheme.onSurface, const Color(0xFFF7FAFA));
+      expect(theme.colorScheme.primary, const Color(0xFF70D5CF));
+      expect(theme.colorScheme.onPrimary, const Color(0xFF003734));
       expect(theme.colorScheme.error, const Color(0xFFFFB4AB));
       expect(theme.colorScheme.onError, const Color(0xFF690005));
     });
@@ -45,6 +47,7 @@ void main() {
           theme.filledButtonTheme.style,
           theme.outlinedButtonTheme.style,
           theme.textButtonTheme.style,
+          theme.iconButtonTheme.style,
         ]) {
           final size = minimumSize(style);
           expect(size.width, greaterThanOrEqualTo(48));
@@ -60,6 +63,7 @@ void main() {
         expect(theme.textTheme.bodySmall?.fontFamily, isNull);
         expect(theme.textTheme.titleLarge?.fontFamily, isNull);
         expect(theme.textTheme.labelLarge?.fontFamily, isNull);
+        expect(theme.textTheme.bodyMedium?.color, theme.colorScheme.onSurface);
       });
 
       testWidgets(

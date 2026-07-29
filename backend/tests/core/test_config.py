@@ -72,6 +72,34 @@ def test_production_settings_accept_remote_tls_database():
     assert settings.database_url == PRODUCTION_DATABASE_URL
 
 
+def test_simulation_data_is_disabled_by_default():
+    settings = Settings(database_url=DEVELOPMENT_DATABASE_URL)
+
+    assert settings.enable_simulation_data is False
+    assert settings.mapbox_directions_access_token is None
+
+
+def test_production_rejects_enabled_simulation_data():
+    with pytest.raises(ValidationError, match="must not enable simulation data"):
+        Settings(
+            database_url=PRODUCTION_DATABASE_URL,
+            environment="production",
+            enable_simulation_data=True,
+        )
+
+
+def test_mapbox_directions_token_is_secret():
+    settings = Settings(
+        database_url=DEVELOPMENT_DATABASE_URL,
+        mapbox_directions_access_token="sensitive-token",
+    )
+
+    assert "sensitive-token" not in repr(settings)
+    assert settings.mapbox_directions_access_token.get_secret_value() == (
+        "sensitive-token"
+    )
+
+
 @pytest.mark.parametrize(
     ("username", "password"),
     [
