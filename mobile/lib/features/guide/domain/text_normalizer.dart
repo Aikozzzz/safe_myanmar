@@ -1,0 +1,61 @@
+final class NormalizedEmergencyText {
+  NormalizedEmergencyText({required this.text, required List<String> tokens})
+    : tokens = List.unmodifiable(tokens);
+
+  final String text;
+  final List<String> tokens;
+}
+
+NormalizedEmergencyText normalizeEmergencyText(String input) {
+  var text = input.toLowerCase().trim();
+  const digits = <String, String>{
+    '၀': '0',
+    '၁': '1',
+    '၂': '2',
+    '၃': '3',
+    '၄': '4',
+    '၅': '5',
+    '၆': '6',
+    '၇': '7',
+    '၈': '8',
+    '၉': '9',
+  };
+  for (final entry in digits.entries) {
+    text = text.replaceAll(entry.key, entry.value);
+  }
+  const aliases = <String, String>{
+    'ငလျင်လှုပ်': ' earthquake ',
+    'ငလျင်': ' earthquake ',
+    'ပိတ်မိနေ': ' trapped ',
+    'ပိတ်မိ': ' trapped ',
+    'အပျက်အစီးအောက်': ' rubble trapped ',
+    'ရှေးဦးသူနာပြု': ' first aid ',
+    'ဒဏ်ရာရ': ' injured ',
+    'သွေးထွက်': ' bleeding ',
+    'မီးလောင်': ' fire ',
+    'မီးခိုး': ' smoke ',
+    'ရေကြီး': ' flood ',
+    'ရေလျှံ': ' flood ',
+    'လုံခြုံတဲ့လမ်း': ' safe route ',
+    'လမ်းကြောင်း': ' route ',
+    'ခိုလှုံရာ': ' shelter ',
+    'ပျောက်ဆုံး': ' missing ',
+    'အရေးပေါ်စာပို့': ' send sos ',
+    'အက်စ်အိုအက်စ်': ' sos ',
+    'အကူအညီတောင်း': ' send sos help ',
+    'ပျက်စီးမှုတိုင်': ' report damage ',
+    'ပျက်စီး': ' damage ',
+    'ဘက်ထရီ': ' battery ',
+    'နေရာ': ' location ',
+  };
+  for (final entry in aliases.entries) {
+    text = text.replaceAll(entry.key, entry.value);
+  }
+  text = text
+      .replaceAll(RegExp(r"[’']"), '')
+      .replaceAll(RegExp(r'[^a-z0-9\u1000-\u109f]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  final tokens = text.isEmpty ? const <String>[] : text.split(' ');
+  return NormalizedEmergencyText(text: tokens.join(' '), tokens: tokens);
+}

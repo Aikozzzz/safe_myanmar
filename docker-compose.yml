@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-safemyanmar}
+      POSTGRES_USER: ${POSTGRES_USER:-safemyanmar_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-safemyanmar_dev_password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-safemyanmar_dev}:${POSTGRES_PASSWORD:-safemyanmar_dev_password}@db:5432/${POSTGRES_DB:-safemyanmar}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  integration-db:
+    profiles: ["integration"]
+    image: postgres:16
+    environment:
+      POSTGRES_DB: safemyanmar_test
+      POSTGRES_USER: safemyanmar_test
+      POSTGRES_PASSWORD: safemyanmar_test_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safemyanmar_test -d safemyanmar_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+
+volumes:
+  postgres_data:

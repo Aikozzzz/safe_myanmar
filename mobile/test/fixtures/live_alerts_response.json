@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "id": "usgs:integration-fixture-001",
+      "provider": "usgs",
+      "provider_event_id": "integration-fixture-001",
+      "kind": "earthquake_information",
+      "title": "M 4.6 - integration-fixture-001 near Mandalay",
+      "place": "integration-fixture-001 near Mandalay",
+      "magnitude": 4.6,
+      "depth_km": 10.5,
+      "latitude": 21.9588,
+      "longitude": 96.0891,
+      "event_at": "2026-07-13T01:02:03Z",
+      "provider_updated_at": "2026-07-13T01:03:04Z",
+      "retrieved_at": "2026-07-13T01:04:05Z",
+      "review_status": "reviewed",
+      "source_url": "https://earthquake.usgs.gov/earthquakes/eventpage/integration-fixture-001",
+      "version": 1
+    }
+  ],
+  "data_status": "current",
+  "last_successful_refresh_at": "2026-07-13T01:04:05Z",
+  "provider": "usgs"
+}

@@ -1,613 +1,352 @@
 # SafeMyanmar
 
-> **AI Context-Aware Disaster Response Mobile Application for Myanmar**
+SafeMyanmar is an academic Android disaster-information application for the
+Mobile and Ubiquitous Computing subject. The implemented app combines live USGS
+earthquake observations, explicit foreground location use, opt-in fictional
+navigation data, offline emergency guidance, local SOS preparation, and
+constrained on-device assistance.
+
+SafeMyanmar is not an official warning, earthquake-prediction, emergency
+dispatch, medical, or guaranteed-safety service. USGS observations are
+informational and preliminary values may change. Shelters, hazards, and route
+suggestions are clearly labeled **SIMULATION** and are not real emergency data.
+Follow authorized local instructions and contact official emergency or medical
+services when available.
+
+## Implemented Scope
+
+- Material 3 five-tab shell: Home, Map, SOS, Guide, and More. The earthquake
+  list and detail screens are opened from Home.
+- Backend-only retrieval of the live USGS `all_day.geojson` feed, strict
+  normalization into PostgreSQL, and versioned list/detail APIs with USGS
+  attribution and UTC timestamps.
+- Cache-first earthquake states for live, cached, stale, successful empty, and
+  unavailable data. Alert detail preserves magnitude, depth, coordinates, event
+  time, provider update and retrieval times, review status, version, and the
+  trusted USGS source link.
+- Explicit foreground location flow with approximate/precise, denied,
+  permanently denied, disabled-service, retry, and last-known-location states.
+  The app requests no background location permission.
+- Mapbox map rendering when an optional public mobile token is supplied.
+  Shelters, hazards, and route suggestions are fictional runtime SIMULATION data
+  that remains disabled by default and is rejected in production.
+- Up to three Mapbox Directions alternatives ranked by simulated hazard
+  intersections, duration, and distance. Users can select an alternative and
+  can still view cached or current shelter/hazard information if routing fails.
+- Drift schema v3 for earthquake, shelter, hazard, and route caches plus
+  versioned, source-backed emergency Guide content.
+- Device-local profile and up to ten emergency contacts in Android secure
+  storage. Contacts must be explicitly selected for SOS use.
+- Persisted SOS drafts with recipient and optional location snapshots,
+  five-minute duplicate suppression, hold-to-confirm, and an accessible
+  confirmation path. SafeMyanmar opens the external native SMS composer; it
+  does not send SMS itself and cannot verify sent or delivered status.
+- Bilingual English/Myanmar offline Guide articles with source, review date,
+  content version, translation warning, category filtering, and search.
+- A deterministic offline intent classifier and structured SOS text extraction.
+  Optional checksum-gated ONNX intent refinement and LiteRT-LM rewording can be
+  provisioned separately; no model artifacts are bundled.
+- Riverpod state management, `go_router` navigation, localization-ready UI,
+  light/dark themes, semantic status announcements, and 48dp touch targets.
+
+See [the context-aware mobile flow](docs/architecture/context-aware-mobile-flow.md),
+[the live-alert subsystem architecture](docs/architecture/live-earthquake-slice.md),
+[optional AI model provisioning](docs/architecture/optional-ai-model-provisioning.md),
+[the step-by-step run instructions](Instruction.md),
+[the implemented mobile design](DESIGN.md),
+[the alert API](docs/api/alerts.md), and
+[the simulation navigation API](backend/docs/api/simulation-navigation.md).
+
+The archived Figma zip is a design reference only. It is not included as app
+assets and is not loaded by the shipped runtime.
+
+## Data And Safety Boundaries
+
+### Live earthquake observations
+
+The backend includes USGS events whose coordinates are within these inclusive
+coarse coverage bounds:
+
+| Boundary | Value |
+|---|---:|
+| Minimum latitude | `8.284` |
+| Maximum latitude | `30.043` |
+| Minimum longitude | `90.689` |
+| Maximum longitude | `102.676` |
+
+The box includes a 1.5-degree border buffer. It is not a political border,
+affected-area assessment, or claim that places outside it are safe. Provider
+refresh attempts are throttled to 60 seconds. A successful server snapshot is
+current for five minutes, then explicitly stale. A provider failure preserves
+the last successful server and mobile snapshots; failure before any success is
+not shown as an empty result. There are no simulated earthquake alerts in the
+runtime path; controlled alert fixtures remain test-only.
+
+### Simulation navigation
+
+Runtime simulation exists only for the separately gated shelter, hazard, and
+route endpoints. `ENABLE_SIMULATION_DATA=false` is the default, production
+startup rejects `true`, and every simulation response carries data or generation
+timestamps, `SafeMyanmar Demo` attribution, and an uncertainty notice. Route
+ranking uses fictional polygons and Mapbox geometry; it must not be interpreted
+as an official evacuation route or a guarantee that conditions are safe.
+
+## Prerequisites
+
+- Git.
+- Python 3.13 (the backend currently targets Python 3.13).
+- Flutter stable 3.44.6 or a compatible newer stable release.
+- Android SDK and an Android emulator/device for app launch and integration.
+- Docker Desktop with Docker Compose for PostgreSQL and container checks, or a
+  compatible local PostgreSQL 16 instance.
+
+Ensure `python`, `flutter`, `adb`, and `docker` are available on `PATH` as needed.
 
-SafeMyanmar is a mobile disaster-response application designed for the **Mobile and Ubiquitous Computing** subject. It helps people receive trusted disaster alerts, locate safer evacuation routes, request emergency assistance, and access first-aid guidance before, during, and after natural disasters.
+## Backend Setup
 
-The project combines **mobile computing, ubiquitous computing, GPS, mobile sensors, edge computing, cloud computing, artificial intelligence, and optional high-performance computing** to provide fast and context-aware emergency support.
+From the repository root:
 
----
-
-## Project Information
-
-| Item | Description |
-|---|---|
-| Project Name | SafeMyanmar |
-| Project Type | Mobile Application |
-| Subject | Mobile and Ubiquitous Computing |
-| Target Platform | Android, with possible future iOS support |
-| Main Context | Disaster preparedness and emergency response in Myanmar |
-| Current Status | Academic prototype / MVP |
-
----
-
-## Problem Statement
-
-Myanmar is vulnerable to earthquakes, floods, cyclones, fires, landslides, and severe weather. During emergencies, people may have difficulty:
-
-- receiving verified and timely information;
-- identifying safe evacuation routes;
-- contacting family members or rescue teams;
-- sharing their current or last known location;
-- finding reliable first-aid instructions;
-- accessing online services when mobile connectivity is unstable.
-
-SafeMyanmar addresses these problems through a mobile-first and context-aware emergency platform.
-
----
-
-## Project Objectives
-
-SafeMyanmar aims to:
-
-- provide trusted disaster alerts from verified sources;
-- detect the user's location and suggest safer evacuation routes;
-- allow users to send SOS messages quickly;
-- help nearby people or rescue teams locate trapped victims;
-- provide emergency and first-aid guidance;
-- continue offering essential information during limited connectivity;
-- reduce disaster response time;
-- demonstrate practical mobile and ubiquitous computing concepts.
-
----
-
-## Target Users
-
-- Citizens
-- Families
-- Students
-- Volunteers
-- Rescue teams
-- Humanitarian organizations
-- Government disaster-management organizations
-
----
-
-## Core Features
-
-### 1. Trusted Disaster Alerts
-
-Users receive verified alerts for events such as:
-
-- earthquakes;
-- floods;
-- fires;
-- landslides;
-- cyclones;
-- heavy rain;
-- severe weather.
-
-Each alert may include the disaster type, affected area, severity, time, safety instructions, and source.
-
-### 2. GPS Safe-Route Navigation
-
-The app detects the user's current location and recommends a safer route by considering:
-
-- nearby evacuation shelters;
-- blocked roads;
-- flooded areas;
-- fire danger zones;
-- updated disaster conditions.
-
-The route can be recalculated when the user's position or environmental conditions change.
-
-### 3. SOS Emergency Button
-
-The SOS feature prepares or sends an emergency message containing:
-
-- the user's GPS location;
-- date and time;
-- emergency status;
-- optional personal message;
-- last known location when a live connection is unavailable.
-
-The message can be shared with saved emergency contacts. Integration with official rescue services is treated as a future feature unless an authorized service is available.
-
-### 4. Rescue Beacon Mode
-
-When activated, Rescue Beacon Mode can:
-
-- play a loud emergency alarm;
-- flash the phone flashlight in an SOS pattern;
-- display a large **HELP** message;
-- periodically share location when connectivity is available;
-- reduce non-essential activity to preserve battery.
-
-### 5. AI Emergency Assistant
-
-The assistant provides guidance for questions such as:
-
-- What should I do during an earthquake?
-- How can I control bleeding?
-- What should I do for a burn?
-- What should I do if I am trapped?
-
-When the internet is available, the app may use a cloud AI service. During limited connectivity, it falls back to an offline emergency knowledge base.
-
-> The AI assistant is an educational support feature and must not replace professional medical advice or instructions from authorized emergency personnel.
-
-### 6. Offline First-Aid Guide
-
-Essential instructions remain available locally for:
-
-- CPR;
-- bleeding control;
-- burns;
-- fractures;
-- earthquake safety;
-- flood safety;
-- fire safety.
-
-### 7. Trusted Disaster Reports
-
-The application displays reports from verified organizations, such as:
-
-- government disaster-management agencies;
-- meteorology and weather agencies;
-- fire services;
-- earthquake monitoring services;
-- recognized humanitarian organizations.
-
-### 8. Damage Reporting
-
-A future reporting feature may allow users to submit:
-
-- photos;
-- GPS coordinates;
-- descriptions;
-- date and time;
-- damage category.
-
-Examples include flooded roads, fallen trees, fires, damaged buildings, and blocked roads. Reports should be reviewed before public distribution.
-
----
-
-## Mobile Computing Concepts
-
-SafeMyanmar demonstrates the following mobile-computing concepts:
-
-### GPS and Location Services
-
-- detects the user's real-time location;
-- finds nearby shelters;
-- supports evacuation navigation;
-- attaches location to SOS and damage reports.
-
-### Mobile Sensors and Hardware
-
-- GPS;
-- camera;
-- flashlight;
-- accelerometer for future movement or impact detection;
-- network-state monitoring;
-- battery-state monitoring.
-
-### Wireless Communication
-
-- mobile networks such as 4G and 5G;
-- Wi-Fi;
-- push notifications;
-- Bluetooth or nearby-device communication as a future enhancement.
-
-### Mobility
-
-The app continues adapting while the user moves by updating location, route, nearby threats, shelters, and emergency recommendations.
-
----
-
-## Ubiquitous Computing Concepts
-
-SafeMyanmar is designed as a **context-aware system**. It observes relevant context such as:
-
-- the user's location;
-- the current disaster type;
-- nearby danger areas;
-- the nearest shelter;
-- internet availability;
-- battery level;
-- time;
-- possible assistance required.
-
-Based on this context, the application can automatically prioritize relevant alerts, cache emergency information, update routes, and recommend suitable actions with minimal user interaction.
-
----
-
-## Edge and Offline Computing
-
-Important emergency functions should not depend completely on the cloud.
-
-Local or edge-side processing may handle:
-
-- offline first-aid content;
-- cached alerts and shelter information;
-- local route segments;
-- network-state detection;
-- beacon operation;
-- queued SOS or damage reports;
-- synchronization when connectivity returns.
-
-This improves response time, reduces network dependency, and supports users during unstable connectivity.
-
----
-
-## System Architecture
-
-```mermaid
-flowchart TD
-    A[Trusted Data Sources<br/>Government, Weather, Earthquake and Disaster Services]
-    B[Cloud Backend]
-    C[AI Emergency Assistant]
-    D[Disaster Database]
-    E[Notification Service]
-    F[Edge and Offline Layer]
-    G[SafeMyanmar Mobile App]
-    H[GPS and Location]
-    I[Camera and Sensors]
-    J[Flashlight and Beacon]
-    K[User Emergency Features]
-
-    A --> B
-    B --> C
-    B --> D
-    B --> E
-    B <--> F
-    F <--> G
-    G --> H
-    G --> I
-    G --> J
-    G --> K
+```powershell
+py -3.13 -m venv backend/.venv
+backend/.venv/Scripts/python -m pip install -r backend/requirements.txt
+Copy-Item backend/.env.example backend/.env
+docker compose up -d db
+backend/.venv/Scripts/python -m alembic -c backend/alembic.ini upgrade head
 ```
 
-### Simplified Data Flow
+Start the API from `backend/` so Pydantic loads `backend/.env`:
 
-1. Trusted services publish disaster information.
-2. The backend validates, stores, and distributes alerts.
-3. The notification service sends relevant alerts to users.
-4. The mobile app combines alerts with the user's current context.
-5. Offline and edge components preserve essential functionality.
-6. SOS, location, and user reports are synchronized when a connection is available.
+```powershell
+Set-Location backend
+.venv/Scripts/python -m uvicorn app.main:app --reload
+```
 
----
-
-## Recommended Technology Stack
-
-The final stack can be adjusted according to course requirements.
-
-### Mobile Application
-
-- **Flutter**
-- Dart
-- Material Design
-- Provider, Riverpod, or BLoC for state management
-- SQLite, Hive, or Isar for offline storage
-- Google Maps SDK or OpenStreetMap
-- Geolocator for GPS
-- Firebase Cloud Messaging for notifications
-
-### Backend
-
-- **FastAPI** with Python
-- PostgreSQL
-- Redis for caching and temporary emergency data
-- WebSocket or Server-Sent Events for live updates
-- REST API for alerts, shelters, SOS requests, and reports
-
-### Cloud Services
-
-- Firebase Authentication or JWT-based authentication
-- Firebase Cloud Messaging
-- Object storage for report photos
-- Cloud-hosted API and database
-
-### AI and Data Processing
-
-- Rule-based offline emergency assistant for the MVP
-- Cloud AI service for enhanced question answering
-- Optional image classification for future damage analysis
-- Optional HPC-based simulation and large-scale route optimization
-
----
-
-## Suggested Project Structure
+The API listens at `http://localhost:8000`. Implemented endpoints are:
 
 ```text
-SafeMyanmar/
-├── mobile/
-│   ├── lib/
-│   │   ├── core/
-│   │   ├── models/
-│   │   ├── services/
-│   │   ├── features/
-│   │   │   ├── alerts/
-│   │   │   ├── navigation/
-│   │   │   ├── sos/
-│   │   │   ├── beacon/
-│   │   │   ├── assistant/
-│   │   │   └── first_aid/
-│   │   └── main.dart
-│   ├── assets/
-│   │   ├── first_aid/
-│   │   ├── maps/
-│   │   └── icons/
-│   └── pubspec.yaml
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   ├── database/
-│   │   └── main.py
-│   ├── tests/
-│   └── requirements.txt
-├── docs/
-│   ├── architecture/
-│   ├── api/
-│   └── screenshots/
-├── .env.example
-├── LICENSE
-└── README.md
+GET  /health/live
+GET  /health/ready
+GET  /api/v1/alerts
+GET  /api/v1/alerts/{id}
+GET  /api/v1/shelters
+GET  /api/v1/hazards
+POST /api/v1/route-suggestions
 ```
 
----
+The last three endpoints return `404 simulation_data_disabled` unless runtime
+simulation is explicitly enabled. Route suggestions additionally require the
+backend-only Mapbox Directions token. See the linked API references for exact
+schemas, validation, and safe error envelopes.
 
-## MVP Scope
+To run the API in Docker instead:
 
-A realistic academic MVP should focus on:
-
-- user registration or guest access;
-- disaster-alert list and detail screen;
-- GPS location detection;
-- map with shelters and danger zones;
-- SOS message generation and emergency-contact sharing;
-- Rescue Beacon Mode;
-- offline first-aid guide;
-- local caching of essential disaster information;
-- demonstration of context-aware recommendations.
-
-Features involving official rescue dispatch, nationwide live hazard routing, or medical diagnosis should remain outside the MVP unless supported by authorized and reliable data providers.
-
----
-
-## Functional Requirements
-
-- The app shall display verified disaster alerts.
-- The app shall request and process location permission.
-- The app shall identify nearby shelters from available data.
-- The app shall display a suggested evacuation route.
-- The app shall allow the user to activate SOS mode.
-- The app shall store emergency contacts locally or securely.
-- The app shall activate audio, flashlight, and visual rescue signals.
-- The app shall provide offline first-aid guidance.
-- The app shall cache recently received alerts.
-- The app shall synchronize pending data after connectivity returns.
-- The app shall notify users about relevant nearby disasters.
-
----
-
-## Non-Functional Requirements
-
-### Performance
-
-- Emergency screens should open quickly.
-- Cached content should remain usable without internet access.
-- Location and route updates should avoid unnecessary battery usage.
-
-### Reliability
-
-- Essential information should be stored locally.
-- Failed requests should be retried safely.
-- Pending SOS and reports should be queued until connectivity returns.
-
-### Security and Privacy
-
-- Location must only be collected with permission.
-- Sensitive data must be encrypted during transmission.
-- Access tokens and API keys must not be hard-coded.
-- Emergency contacts must be stored securely.
-- Public reports should not reveal unnecessary personal information.
-
-### Usability
-
-- The interface should support one-handed use.
-- Emergency actions should use large and clear controls.
-- Critical instructions should use simple language.
-- The app should support Myanmar and English in a future multilingual version.
-- Important screens should remain readable in low-light and stressful conditions.
-
-### Accessibility
-
-- large text support;
-- high-contrast emergency interfaces;
-- icon and text labels;
-- vibration and sound feedback;
-- compatibility with screen readers where possible.
-
----
-
-## Required Mobile Permissions
-
-Depending on the implemented features, the application may request:
-
-- precise or approximate location;
-- background location only when clearly required;
-- camera access;
-- flashlight access;
-- notification permission;
-- internet and network-state access;
-- vibration;
-- local storage access where applicable.
-
-Permissions should be requested only when needed, with a clear explanation.
-
----
-
-## Installation
-
-### Prerequisites
-
-- Flutter SDK
-- Android Studio or Visual Studio Code
-- Android SDK
-- Python 3.11 or later
-- PostgreSQL
-- Git
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/your-username/safemyanmar.git
-cd safemyanmar
+```powershell
+docker compose build api
+docker compose up -d db
+docker compose run --rm api alembic upgrade head
+docker compose up api
 ```
 
-### Run the Mobile Application
+## Mobile Setup
 
-```bash
-cd mobile
+```powershell
+Set-Location mobile
 flutter pub get
-flutter run
+flutter gen-l10n
+dart run build_runner build
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
 
-### Run the Backend
+To render the Mapbox map, add a restricted public token:
 
-```bash
-cd backend
-
-python -m venv .venv
+```powershell
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000 `
+  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=pk.replace_with_restricted_public_token
 ```
 
-Activate the environment:
+`10.0.2.2` reaches the host from the standard Android emulator. Cleartext HTTP
+to that host is permitted only by the Android debug network-security policy.
+Release API communication must use HTTPS. For deliberate debug development on a
+physical device, run `adb reverse tcp:8000 tcp:8000` and use
+`http://127.0.0.1:8000`; otherwise use a reachable HTTPS endpoint. Device
+`localhost` does not refer to the development computer without `adb reverse`.
 
-```bash
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
+## Configuration
 
-# macOS or Linux
-source .venv/bin/activate
-```
+Root `.env.example` documents the cross-layer contract. Flutter values are
+compile-time `--dart-define` values; Flutter does not load the `.env` file.
+Backend values are read from `backend/.env` when the API starts in `backend/`.
 
-Install dependencies and start the API:
+| Variable | Consumer | Requirement and default |
+|---|---|---|
+| `API_BASE_URL` | Flutter | Required compile-time value; HTTPS in release. Emulator debug example: `http://10.0.2.2:8000` |
+| `MAPBOX_PUBLIC_ACCESS_TOKEN` | Flutter | Optional restricted `pk.*` public token supplied with `--dart-define`; without it the map shows a configuration state |
+| `DATABASE_URL` | FastAPI, Alembic | Required `postgresql+psycopg` URL; production requires non-placeholder values, a non-loopback host, and `sslmode=require` |
+| `ENVIRONMENT` | FastAPI, Alembic | `development` by default; also accepts `test` or `production` |
+| `USGS_FEED_URL` | FastAPI | Defaults to the live USGS all-day feed |
+| `PROVIDER_TIMEOUT_SECONDS` | FastAPI | Defaults to `10.0`; used by USGS and Mapbox requests |
+| `REFRESH_MINIMUM_SECONDS` | FastAPI | Defaults to `60` |
+| `CURRENT_MAX_AGE_SECONDS` | FastAPI | Defaults to `300` |
+| `ENABLE_SIMULATION_DATA` | FastAPI | Defaults to `false`; must remain false in production |
+| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | FastAPI | Optional secret; required only for simulation route suggestions |
 
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
----
-
-## Environment Variables
-
-Create a `.env` file from `.env.example`.
-
-```env
-API_BASE_URL=http://localhost:8000
-DATABASE_URL=postgresql://user:password@localhost:5432/safemyanmar
-JWT_SECRET=replace_with_a_secure_secret
-MAPS_API_KEY=replace_with_your_map_key
-FIREBASE_PROJECT_ID=replace_with_project_id
-AI_API_KEY=replace_only_if_cloud_ai_is_enabled
-```
-
-Never commit real secrets to the repository.
-
----
+Never commit a real `.env` file or Mapbox secret. Restrict the public mobile
+token by application/package and allowed APIs. The mobile public token is
+embedded in the built app and must not be treated as a secret. The backend
+Directions token must never be passed to Flutter.
 
 ## Testing
 
-Recommended testing areas include:
+The tracked
+[live-earthquake verification record](docs/verification/live-earthquake-vertical-slice.md)
+is historical evidence for the original alert slice. It records the exact
+results, commands, security checks, Android E2E blocker, and APK/toolchain state
+at that point; it is not a claim about later feature test totals.
 
-- unit tests for alert filtering and context rules;
-- widget tests for emergency screens;
-- API tests for alerts, shelters, SOS, and reports;
-- offline-mode tests;
-- location-permission tests;
-- low-battery and poor-network simulations;
-- usability testing for quick SOS activation.
+Start an ephemeral dedicated PostgreSQL test database:
 
-Example commands:
-
-```bash
-# Flutter tests
-cd mobile
-flutter test
-
-# Backend tests
-cd backend
-pytest
+```powershell
+docker compose --profile integration up -d integration-db
+$env:TEST_DATABASE_URL = "postgresql+psycopg://safemyanmar_test:safemyanmar_test_password@localhost:5433/safemyanmar_test"
 ```
 
----
+Run backend checks from the root:
 
-## Future Enhancements
+```powershell
+backend/.venv/Scripts/python -m ruff format --check backend
+backend/.venv/Scripts/python -m ruff check backend
+backend/.venv/Scripts/python -m pytest backend/tests -v
+```
 
-- verified user-generated damage reports;
-- rescue-team dashboard;
-- multilingual Myanmar and English support;
-- Bluetooth-based nearby distress broadcasting;
-- peer-to-peer communication during network outages;
-- accelerometer-based impact detection;
-- disaster-image recognition;
-- damage-severity prediction;
-- personalized emergency recommendations;
-- official rescue-service integration;
-- large-scale evacuation optimization;
-- flood and earthquake simulation using HPC resources.
+The external-network smoke is opt-in and uses the default live USGS URL:
 
----
+```powershell
+$env:RUN_LIVE_USGS_TESTS = "1"
+backend/.venv/Scripts/python -m pytest backend/tests/integration/test_live_usgs_smoke.py -v
+```
 
-## Academic Relevance
+Run mobile checks from `mobile/`:
 
-SafeMyanmar demonstrates practical use of:
+```powershell
+flutter gen-l10n
+dart run build_runner build
+dart format --output=none --set-exit-if-changed .
+flutter analyze
+flutter test
+```
 
-- mobile computing;
-- ubiquitous and context-aware computing;
-- GPS and mobile sensors;
-- wireless communication;
-- push notifications;
-- offline-first design;
-- edge computing;
-- cloud computing;
-- artificial intelligence;
-- optional high-performance computing.
+For a reproducible Windows debug APK build, run the following block from the
+repository root. If Flutter is installed outside
+`$env:USERPROFILE\develop\flutter`, adjust `$flutterBin`. The block deliberately
+removes process-local `GRADLE_USER_HOME`; do not point it at an empty isolated
+directory because the existing wrapper download in `%USERPROFILE%\.gradle` must
+be reused.
 
-The project shows how a mobile device can sense context, communicate wirelessly, adapt to changing conditions, and provide useful services while the user is moving.
+```powershell
+$repoRoot = (Get-Location).Path
+$mobileRoot = Join-Path $repoRoot "mobile"
+$buildEnvironmentRoot = Join-Path $repoRoot ".superpowers\android-build"
+$flutterBin = Join-Path $env:USERPROFILE "develop\flutter\bin"
 
----
+if (-not (Test-Path -LiteralPath $flutterBin)) {
+    throw "Update `$flutterBin to the local Flutter bin directory."
+}
+foreach ($directory in @(
+    $buildEnvironmentRoot,
+    (Join-Path $buildEnvironmentRoot "pub-cache"),
+    (Join-Path $buildEnvironmentRoot "temp"),
+    (Join-Path $buildEnvironmentRoot "tmp")
+)) {
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+}
 
-## Limitations
+$env:PATH = "$flutterBin;$env:PATH"
+$env:PUB_CACHE = Join-Path $buildEnvironmentRoot "pub-cache"
+$env:TEMP = Join-Path $buildEnvironmentRoot "temp"
+$env:TMP = Join-Path $buildEnvironmentRoot "tmp"
+Remove-Item Env:GRADLE_USER_HOME -ErrorAction SilentlyContinue
 
-- Disaster information is only as reliable as its data sources.
-- GPS accuracy may decrease indoors or in dense urban areas.
-- Safe-route recommendations may be incomplete when road data is outdated.
-- SMS, calls, and internet services may fail during major disasters.
-- The prototype must not claim direct connection to rescue organizations unless such integration is officially implemented.
-- First-aid and AI guidance should not be treated as a substitute for trained professionals.
+Push-Location (Join-Path $mobileRoot "android")
+try {
+    & ".\gradlew.bat" --stop
+    if ($LASTEXITCODE -ne 0) { throw "Could not stop Gradle." }
+} finally {
+    Pop-Location
+}
 
----
+Push-Location $mobileRoot
+try {
+    flutter clean
+    if ($LASTEXITCODE -ne 0) { throw "Flutter clean failed." }
+    flutter pub get
+    if ($LASTEXITCODE -ne 0) { throw "Flutter pub get failed." }
+    dart run build_runner build
+    if ($LASTEXITCODE -ne 0) { throw "Build runner failed." }
+    flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+    if ($LASTEXITCODE -ne 0) { throw "Debug APK build failed." }
+} finally {
+    Pop-Location
+}
+```
 
-## Emergency Disclaimer
+The deterministic alert end-to-end test uses an ephemeral PostgreSQL database,
+a local test-only USGS-protocol server, the real FastAPI process, real mobile
+wiring, and persisted Drift storage. It verifies populated list/detail content,
+then stops the API and verifies stale cached content and safe failure copy. With
+an Android target listed by `flutter devices`, run:
 
-SafeMyanmar is an academic disaster-support application. It does not guarantee rescue, route safety, medical accuracy, or continuous network availability. In a real emergency, users should follow instructions from local authorities and contact officially recognized emergency services whenever possible.
+```powershell
+tools/run-live-alerts-integration.ps1 -DeviceId <android-device-id>
+```
 
----
+The harness auto-selects `10.0.2.2` for an emulator and configures `adb reverse`
+with `127.0.0.1` for a physical device. Its `-ApiBaseUrl` option accepts only the
+locally orchestrated API; it rejects remote hosts, credentials, query strings,
+fragments, and non-root paths. It never calls emergency services, Mapbox, or a
+remote API. Only the separate opt-in live smoke calls USGS.
 
-## Contributors
+## Repository Structure
 
-| Name | Role |
-|---|---|
-| Add team member | Mobile Developer |
-| Add team member | Backend Developer |
-| Add team member | UI/UX Designer |
-| Add team member | Research and Documentation |
+```text
+SafeMyanmar/
+|-- backend/
+|   |-- alembic/                 PostgreSQL migrations
+|   |-- app/                     FastAPI runtime and providers
+|   |-- docs/api/                simulation navigation API reference
+|   `-- tests/                   unit, API, integration, security tests
+|-- mobile/
+|   |-- android/                 Android config and optional native AI bridge
+|   |-- integration_test/        real app/API/Drift alert scenario
+|   |-- lib/                     Flutter app and feature modules
+|   `-- test/                    unit, widget, contract, security tests
+|-- docs/
+|   |-- api/                     live alert API reference
+|   |-- architecture/            alert, context, and AI provisioning notes
+|   `-- verification/            dated verification records
+|-- tools/run-live-alerts-integration.ps1
+|-- DESIGN.md
+|-- docker-compose.yml
+|-- .env.example
+`-- README.md
+```
 
----
+## Deferred And Explicit Limitations
 
-## License
-
-This project is intended for academic and educational use. Add an open-source license such as MIT if the project will be published publicly.
-
----
-
-## Acknowledgements
-
-This project is inspired by the need for accessible, trusted, and context-aware disaster-response technology for communities in Myanmar.
+- Live provider coverage remains USGS earthquakes only. There are no official
+  Myanmar warnings, evacuation orders, impact/severity classification, push
+  notifications, or additional live disaster providers.
+- Shelters and hazards are fixed fictional demonstrations. Simulation routes
+  rely on current Mapbox availability and simplistic polygon-intersection
+  ranking; they are not verified field conditions or guaranteed safe routes.
+- The app has no authentication, cloud profile synchronization, rescue-team
+  dashboard, damage reporting, official rescue-service integration, Rescue
+  Beacon Mode, Bluetooth/peer-to-peer messaging, or background location.
+- SOS is a local draft and handoff workflow only. The user reviews and sends in
+  an external SMS app; SafeMyanmar has no sent, delivered, dispatch, retry, or
+  rescue acknowledgement signal.
+- Guide content is a small reviewed offline set, not diagnosis or comprehensive
+  medical care. Myanmar translations carry a review warning.
+- Deterministic guidance remains available without models. Optional ONNX and
+  LiteRT-LM artifacts require separate licensed provisioning, exact manifests,
+  matching checksums, and supported device resources. No artifact download,
+  credential handling, or model update service is implemented.

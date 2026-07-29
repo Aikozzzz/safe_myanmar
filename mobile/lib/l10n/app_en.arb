@@ -1,0 +1,529 @@
+{
+  "@@locale": "en",
+  "appName": "SafeMyanmar",
+  "navigationHome": "Home",
+  "navigationMap": "Map",
+  "navigationSos": "SOS",
+  "navigationGuide": "Guide",
+  "navigationMore": "More",
+  "homeTitle": "SafeMyanmar",
+  "homeDescription": "Emergency information and tools based on currently available information.",
+  "viewEarthquakeInformation": "View earthquake information",
+  "mapTitle": "Map",
+  "locationHeading": "Your location",
+  "locationNotRequestedTitle": "Location access is off",
+  "locationExplanation": "Mapbox may receive SDK, device, and usage telemetry when the app starts, before location permission; your device location is not included then. Choosing Use my location constructs and centers the remote Mapbox map, disclosing the viewed map area. Your exact origin goes to the SafeMyanmar backend and Mapbox Directions only after you request a route.",
+  "locationPrivacyDescription": "Before you choose Use my location, SafeMyanmar does not request device location or construct the map. Shelter refresh and Mapbox telemetry may use the network without device location. SafeMyanmar does not keep a location history or request background location.",
+  "useMyLocation": "Use my location",
+  "tryLocationAgain": "Try location again",
+  "locationRequestingTitle": "Requesting location",
+  "locationRequestingDescription": "Checking permission and finding your current location.",
+  "findingYourLocation": "Finding your location",
+  "preciseLocationAvailable": "Precise location available",
+  "preciseLocationDescription": "Your device provided precise foreground location access.",
+  "approximateLocationAvailable": "Approximate location available",
+  "approximateLocationDescription": "Your device provided approximate foreground location access. The position may cover a wider area.",
+  "locationPermissionDenied": "Location permission denied",
+  "locationPermissionDeniedDescription": "SafeMyanmar cannot access location unless you choose to allow it.",
+  "locationPermissionPermanentlyDenied": "Location permission permanently denied",
+  "locationPermissionPermanentlyDeniedDescription": "SafeMyanmar will not ask again. You can change location permission in app settings.",
+  "locationServicesDisabled": "Location services are off",
+  "locationServicesDisabledDescription": "Turn on device location services before trying again.",
+  "lastKnownLocation": "Last known location",
+  "lastKnownLocationDescription": "A live location was unavailable. This is the last known location reported by your device.",
+  "locationRecoverableError": "Location temporarily unavailable",
+  "locationRecoverableErrorDescription": "SafeMyanmar could not get a current or last known location. You can try again.",
+  "openAppSettings": "Open app settings",
+  "openLocationSettings": "Open location settings",
+  "couldNotOpenLocationSettings": "Could not open location settings.",
+  "locationCoordinates": "Location: {latitude}, {longitude}",
+  "@locationCoordinates": {
+    "placeholders": {
+      "latitude": {"type": "String"},
+      "longitude": {"type": "String"}
+    }
+  },
+  "locationCapturedAt": "Location time: {time}",
+  "@locationCapturedAt": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "lastKnownLocationAt": "Last known at: {time}",
+  "@lastKnownLocationAt": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "simulationLabel": "SIMULATION",
+  "simulationNavigationHeading": "Simulation shelter and route information",
+  "navigationSource": "Source: {source}",
+  "@navigationSource": {
+    "placeholders": {"source": {"type": "String"}}
+  },
+  "shelterDataTime": "Shelter data: {time}",
+  "@shelterDataTime": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "hazardDataTime": "Hazard data: {time}",
+  "@hazardDataTime": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "navigationCachedAt": "Saved for offline use: {time}",
+  "@navigationCachedAt": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "navigationDataLoading": "Loading simulation shelters and hazards",
+  "navigationDataUnavailable": "Simulation shelter or hazard information could not be updated.",
+  "navigationCachedWarning": "Previously loaded simulation information remains visible and is stale.",
+  "retryNavigationData": "Retry shelter and hazard data",
+  "mapConfigurationUnavailableTitle": "Map configuration unavailable",
+  "mapConfigurationUnavailableDescription": "A valid public Mapbox token was not provided. Location, shelter, hazard, and route controls remain available, but the map cannot be displayed.",
+  "mapTemporarilyUnavailableTitle": "Map temporarily unavailable",
+  "mapTemporarilyUnavailableDescription": "Mapbox map or style data could not load because the device may be offline or the map configuration may be unavailable. Shelter details and controls remain available.",
+  "mapContentSemantics": "Interactive map showing current or last-known location, simulation shelters, relevant hazards, and route options. The selected route uses a wider line.",
+  "chooseShelter": "Shelter",
+  "shelterListHeading": "Available simulation shelters",
+  "shelterListEmpty": "No cached simulation shelter details are available.",
+  "chooseDisasterType": "Disaster type",
+  "chooseTravelProfile": "Travel profile",
+  "earthquakeDisaster": "Earthquake",
+  "floodDisaster": "Flood",
+  "fireDisaster": "Fire",
+  "cycloneDisaster": "Cyclone",
+  "landslideDisaster": "Landslide",
+  "severeWeatherDisaster": "Severe weather",
+  "walkingProfile": "Walking",
+  "drivingProfile": "Driving",
+  "requestRouteSuggestions": "Request route suggestions",
+  "retryRouteSuggestions": "Retry route suggestions",
+  "updatingRouteSuggestions": "Requesting route suggestions",
+  "routingUnavailable": "Route suggestions could not be updated. Shelters and hazards remain visible; try again.",
+  "cachedRouteWarning": "A previously loaded route response remains visible and is stale.",
+  "cachedRouteAt": "Route saved at: {time}",
+  "@cachedRouteAt": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "noRoutesReturned": "The server returned no route options. No alternative was created by SafeMyanmar.",
+  "routeSuggested": "Suggested",
+  "routeAlternative": "Alternative {number}",
+  "@routeAlternative": {
+    "placeholders": {"number": {"type": "int"}}
+  },
+  "routeSelected": "Selected route",
+  "routeProfileValue": "Profile: {profile}",
+  "@routeProfileValue": {
+    "placeholders": {"profile": {"type": "String"}}
+  },
+  "routeDistanceValue": "Distance: {distance} m",
+  "@routeDistanceValue": {
+    "placeholders": {"distance": {"type": "String"}}
+  },
+  "routeDurationValue": "Duration: {duration} min",
+  "@routeDurationValue": {
+    "placeholders": {"duration": {"type": "String"}}
+  },
+  "routeHazardIntersections": "Hazard intersections: {count}",
+  "@routeHazardIntersections": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "routeRationale": "Rationale: {rationale}",
+  "@routeRationale": {
+    "placeholders": {"rationale": {"type": "String"}}
+  },
+  "routeGeneratedAt": "Generated: {time}",
+  "@routeGeneratedAt": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "routeHazardDataAt": "Hazard data: {time}",
+  "@routeHazardDataAt": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "routeDirectionsProvider": "Directions provider: {provider}",
+  "@routeDirectionsProvider": {
+    "placeholders": {"provider": {"type": "String"}}
+  },
+  "routeProfileReason": "Profile selection: {reason}",
+  "@routeProfileReason": {
+    "placeholders": {"reason": {"type": "String"}}
+  },
+  "uncertaintyNotice": "Uncertainty: {notice}",
+  "@uncertaintyNotice": {
+    "placeholders": {"notice": {"type": "String"}}
+  },
+  "mapSuggestedSelectedLabel": "Suggested selected route",
+  "mapAlternativeLabel": "Alternative {number}",
+  "@mapAlternativeLabel": {
+    "placeholders": {"number": {"type": "int"}}
+  },
+  "sosTitle": "SOS",
+  "sosIntroduction": "Prepare an emergency SMS for people you selected. Opening this screen does not prepare or send anything.",
+  "sosRecipientsHeading": "Selected recipients",
+  "sosRecipientPreview": "{name}: {phoneNumber}",
+  "@sosRecipientPreview": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "phoneNumber": {"type": "String"}
+    }
+  },
+  "sosNoRecipientsTitle": "No contacts selected",
+  "sosNoRecipientsDescription": "Select at least one saved emergency contact before preparing an SOS draft.",
+  "sosManageContacts": "Open More contacts",
+  "sosSharedDataHeading": "Exact SMS preview",
+  "sosStoredDataHeading": "Draft details stored securely",
+  "sosProfileNamePreview": "Profile name: {name}",
+  "@sosProfileNamePreview": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "sosProfileNameUnavailable": "Profile name: Not included",
+  "sosCurrentLocationPreview": "Current {precision} location: {latitude}, {longitude}. Captured {time}.",
+  "@sosCurrentLocationPreview": {
+    "placeholders": {
+      "precision": {"type": "String"},
+      "latitude": {"type": "String"},
+      "longitude": {"type": "String"},
+      "time": {"type": "String"}
+    }
+  },
+  "sosLastKnownLocationPreview": "Last-known {precision} location: {latitude}, {longitude}. Captured {time}.",
+  "@sosLastKnownLocationPreview": {
+    "placeholders": {
+      "precision": {"type": "String"},
+      "latitude": {"type": "String"},
+      "longitude": {"type": "String"},
+      "time": {"type": "String"}
+    }
+  },
+  "sosLocationUnavailable": "Location unavailable. No coordinates will be included.",
+  "sosPrecise": "precise",
+  "sosApproximate": "approximate",
+  "sosDraftCreatedAt": "Created: {time}",
+  "@sosDraftCreatedAt": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "sosDraftCreatedWhenConfirmed": "Created time will be recorded when you confirm.",
+  "sosOptionalMessageLabel": "Optional concise message",
+  "sosOptionalMessageHint": "For example: I need help leaving this area.",
+  "sosComposerDisclosure": "SafeMyanmar only opens your phone's messaging app. That app controls SMS transmission and delivery, and SafeMyanmar cannot verify either.",
+  "sosHoldToOpen": "Hold for 3 seconds to prepare and open messaging",
+  "sosHoldProgress": "Keep holding: {percent}%",
+  "@sosHoldProgress": {
+    "placeholders": {"percent": {"type": "int"}}
+  },
+  "sosHoldCancelled": "Hold cancelled. Nothing was opened.",
+  "sosHoldSemanticsHint": "Press and hold continuously for 3 seconds. Activate for an accessible confirmation path.",
+  "sosAccessibleConfirmation": "Use confirmation dialogs instead",
+  "sosConfirmPreviewTitle": "Confirm SOS draft details",
+  "sosConfirmPreviewDescription": "Review the recipients and exact SMS preview on this screen. Continue only if you want to prepare this draft.",
+  "sosContinue": "Continue",
+  "sosConfirmComposerTitle": "Open the messaging app?",
+  "sosConfirmComposerDescription": "This second confirmation prepares the secure draft and asks your phone to open its messaging app with the recipients and body filled in. You must choose whether to send it there.",
+  "sosOpenMessaging": "Prepare and open messaging",
+  "sosNotNow": "Not now",
+  "sosComposerOpenedNotice": "Messaging was opened. SafeMyanmar cannot verify SMS transmission or delivery. The draft is retained for retry or removal.",
+  "sosComposerFailedNotice": "The messaging app could not be opened. The prepared draft was retained so you can retry or remove it.",
+  "sosDraftSaveFailed": "The SOS draft could not be saved securely. No messaging app was opened.",
+  "sosMaximumDrafts": "The secure SOS queue already has 5 drafts. Remove one before preparing another.",
+  "sosDraftQueueHeading": "SOS drafts and history",
+  "sosDraftQueueEmpty": "No SOS drafts have been prepared on this device.",
+  "sosStatusLabel": "Status: {status}",
+  "@sosStatusLabel": {
+    "placeholders": {"status": {"type": "String"}}
+  },
+  "sosStatusPrepared": "Prepared",
+  "sosStatusComposerOpened": "Messaging app opened; outcome unknown",
+  "sosStatusFailedToOpen": "Messaging app failed to open",
+  "sosStatusCancelled": "Cancelled",
+  "sosOpenAgain": "Open again",
+  "sosCancelDraft": "Cancel draft",
+  "sosRemoveDraft": "Remove draft",
+  "sosRetryComposerTitle": "Open this draft again?",
+  "sosRetryComposerDescription": "SafeMyanmar will ask your phone to open messaging with this saved draft. You must choose whether to send it there.",
+  "sosCancelDraftTitle": "Cancel this draft?",
+  "sosCancelDraftDescription": "The draft will remain in history with a Cancelled status and will not open automatically.",
+  "sosRemoveDraftTitle": "Remove this draft?",
+  "sosRemoveDraftDescription": "This permanently removes the draft snapshot from secure storage on this device.",
+  "sosQueueLoading": "Loading secure SOS drafts",
+  "sosQueueReadErrorTitle": "SOS drafts temporarily unavailable",
+  "sosQueueReadErrorDescription": "SafeMyanmar could not read the secure SOS queue. No private draft details were exposed. Try again.",
+  "sosQueueDataErrorTitle": "Stored SOS drafts cannot be opened",
+  "sosQueueDataErrorDescription": "The secure SOS queue is damaged or uses an unsupported version. It has not been changed. Retry, or reset only this queue.",
+  "sosQueueWriteErrorTitle": "SOS draft change was not saved",
+  "sosQueueWriteErrorDescription": "The previously saved SOS queue remains available. Try the change again.",
+  "sosResetQueue": "Reset SOS queue",
+  "sosResetQueueTitle": "Reset unreadable SOS queue?",
+  "sosResetQueueDescription": "This permanently removes only the unreadable SOS drafts from this device. Your profile and contacts remain unchanged.",
+  "sosMessageHeader": "User-prepared SafeMyanmar emergency message.",
+  "sosMessageProfileName": "Profile name: {name}",
+  "@sosMessageProfileName": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "sosMessageCurrentLocation": "Current {precision} location: {latitude}, {longitude} at {time}. Map: {mapsLink}",
+  "@sosMessageCurrentLocation": {
+    "placeholders": {
+      "precision": {"type": "String"},
+      "latitude": {"type": "String"},
+      "longitude": {"type": "String"},
+      "time": {"type": "String"},
+      "mapsLink": {"type": "String"}
+    }
+  },
+  "sosMessageLastKnownLocation": "Last-known {precision} location: {latitude}, {longitude} at {time}. Map: {mapsLink}",
+  "@sosMessageLastKnownLocation": {
+    "placeholders": {
+      "precision": {"type": "String"},
+      "latitude": {"type": "String"},
+      "longitude": {"type": "String"},
+      "time": {"type": "String"},
+      "mapsLink": {"type": "String"}
+    }
+  },
+  "sosMessageLocationUnavailable": "Location unavailable; no coordinates included.",
+  "sosMessageUserText": "Message: {message}",
+  "@sosMessageUserText": {
+    "placeholders": {"message": {"type": "String"}}
+  },
+  "sosMessageAuthorizedHelp": "Please contact authorized emergency or medical help when possible.",
+  "guideTitle": "Guide",
+  "guideIntroduction": "Search a small, reviewed emergency guide stored on this device. It works without a network connection.",
+  "guideOfflineVerifiedLabel": "Offline verified-content retrieval",
+  "guideAskAssistant": "Ask the constrained assistant",
+  "guideSearchLabel": "Search emergency guidance",
+  "guideSearchHint": "Earthquake, trapped, flood, fire, first aid",
+  "guideSearchAction": "Search",
+  "guideCategories": "Categories",
+  "guideCategoryAll": "All",
+  "guideCategoryEarthquake": "Earthquake",
+  "guideCategoryFlood": "Flood",
+  "guideCategoryFire": "Fire",
+  "guideCategoryFirstAid": "First aid",
+  "guideLoading": "Loading offline emergency guidance",
+  "guideNoResults": "No approved offline article matched this search.",
+  "guideStorageError": "Offline guidance could not be read from this device.",
+  "guideTranslationWarning": "Academic prototype: Burmese translations require review by qualified local language and emergency experts before deployment.",
+  "guideArticleTitle": "Emergency guide",
+  "guideArticleUnavailable": "This approved offline article is unavailable.",
+  "guideOpenArticleHint": "Open approved emergency article",
+  "guideApprovedSource": "Approved source record",
+  "guideSourceName": "Source: {source}",
+  "@guideSourceName": {"placeholders": {"source": {"type": "String"}}},
+  "guideContentVersion": "Content version: {version}",
+  "@guideContentVersion": {"placeholders": {"version": {"type": "int"}}},
+  "guideReviewedDate": "Reviewed: {date}",
+  "@guideReviewedDate": {"placeholders": {"date": {"type": "String"}}},
+  "guideSourceDate": "Source updated: {date}",
+  "@guideSourceDate": {"placeholders": {"date": {"type": "String"}}},
+  "guideContentWarning": "Emergency information may not cover every situation. Follow authorized local instructions and contact authorized local emergency or medical services when possible.",
+  "guideSourceSemantics": "Approved source {source}, content version {version}",
+  "@guideSourceSemantics": {"placeholders": {"source": {"type": "String"}, "version": {"type": "int"}}},
+  "assistantTitle": "Offline assistant",
+  "assistantOfflineVerified": "Offline verified-content retrieval (source-backed, not generative)",
+  "assistantDeterministicActive": "Deterministic offline verified-content retrieval is active.",
+  "assistantOnnxChecking": "Checking optional ONNX intent refinement availability.",
+  "assistantOnnxAvailable": "Optional ONNX intent refinement is available for deterministic unknown results.",
+  "assistantOnnxUnavailable": "Optional ONNX intent refinement is unavailable. Missing optional models are normal; deterministic retrieval remains active.",
+  "assistantGemmaChecking": "Checking optional Gemma local rewording availability.",
+  "assistantGemmaAvailable": "Optional Gemma local rewording is available for eligible noncritical articles.",
+  "assistantGemmaUnavailable": "Optional Gemma local rewording is unavailable. Missing optional models are normal; exact verified articles remain available.",
+  "assistantIntroduction": "This tool always matches questions with a deterministic classifier and retrieves approved articles on this device. Optional local models cannot create instructions, calculate routes, or activate SOS.",
+  "assistantSuggestedQuestions": "Suggested questions",
+  "assistantSuggestionEarthquake": "What should I do during an earthquake?",
+  "assistantSuggestionTrapped": "I am trapped after an earthquake",
+  "assistantSuggestionFirstAid": "What should I check before giving first aid?",
+  "assistantSuggestionFlood": "How do I avoid floodwater?",
+  "assistantSearching": "Searching approved offline content",
+  "assistantDisclaimer": "This academic prototype retrieves only fixed, reviewed content. It is not a diagnosis or a replacement for authorized emergency or medical services.",
+  "assistantInputLabel": "Emergency question",
+  "assistantInputHint": "Type in English or Burmese",
+  "assistantSend": "Send question",
+  "assistantVerifiedAnswer": "Retrieved approved content",
+  "assistantConfidence": "Intent confidence: {confidence}%\n{explanation}",
+  "@assistantConfidence": {"placeholders": {"confidence": {"type": "int"}, "explanation": {"type": "String"}}},
+  "assistantClassifierMatched": "Matched weighted offline terms: {terms}. No machine-learning model was used.",
+  "@assistantClassifierMatched": {"placeholders": {"terms": {"type": "String"}}},
+  "assistantClassifierLowConfidence": "The closest offline match was below the confidence threshold. No machine-learning model was used.",
+  "assistantClassifierNoMatch": "No approved offline intent terms matched. No machine-learning model was used.",
+  "assistantClassifierOnnx": "The deterministic classifier returned unknown, then the optional local ONNX classifier recognized this intent at or above the safety threshold.",
+  "assistantEngineDeterministic": "Response engine: deterministic offline classifier",
+  "assistantEngineOnnx": "Response engine: optional local ONNX intent classifier",
+  "assistantLocalRewordingTitle": "Optional local rewording",
+  "assistantLocalRewordingWarning": "Model-generated wording may be inaccurate. Verify it against the exact source-backed guidance shown above.",
+  "assistantLocalRewordingSemantics": "Optional model-generated local rewording. {text} Warning: verify against the exact source-backed guidance.",
+  "@assistantLocalRewordingSemantics": {"placeholders": {"text": {"type": "String"}}},
+  "assistantMapResponse": "SafeMyanmar does not calculate routes in the assistant. Open Map to view available shelters and request uncertain, timestamped route suggestions.",
+  "assistantSosResponse": "The assistant cannot activate or send an SOS. Open SOS to review recipients, information, and explicit confirmation controls.",
+  "assistantMissingResponse": "No approved missing-person procedure is available in this Tier 1 offline set. Contact authorized local services and share personal information only with trusted recipients.",
+  "assistantDamageResponse": "No approved damage-report procedure is available in this Tier 1 offline set. Do not enter a damaged building to collect information.",
+  "assistantUnknownResponse": "I could not confidently match that question to approved offline content. Try a suggested question or browse the Guide categories.",
+  "assistantUnavailableResponse": "Approved offline content for that request is unavailable.",
+  "assistantReviewSos": "Open SOS for user review",
+  "assistantOpenMap": "Open Map",
+  "assistantSosDraftTitle": "Draft details extracted for your review",
+  "assistantSosDraftWarning": "Draft only. Check every field. Nothing was sent and SOS was not activated.",
+  "assistantDraftIncident": "Incident: {value}",
+  "@assistantDraftIncident": {"placeholders": {"value": {"type": "String"}}},
+  "assistantDraftStatus": "Status: {value}",
+  "@assistantDraftStatus": {"placeholders": {"value": {"type": "String"}}},
+  "assistantDraftInjury": "Injury text: {value}",
+  "@assistantDraftInjury": {"placeholders": {"value": {"type": "String"}}},
+  "assistantDraftLocation": "Location phrase: {value}",
+  "@assistantDraftLocation": {"placeholders": {"value": {"type": "String"}}},
+  "assistantDraftBattery": "Battery: {value}%",
+  "@assistantDraftBattery": {"placeholders": {"value": {"type": "int"}}},
+  "moreTitle": "More",
+  "profileOverviewTitle": "Your local profile",
+  "profileNotSet": "Display name not set",
+  "profileLocalOnlyLabel": "Stored on this device",
+  "profileOverviewDescription": "Keep a display name and the people you may choose to include in a future SOS message.",
+  "editProfile": "Edit profile",
+  "emergencyContacts": "Emergency contacts",
+  "contactsSummary": "{count} contacts, {selected} selected for SOS",
+  "@contactsSummary": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "selected": {"type": "int"}
+    }
+  },
+  "manageContacts": "Manage contacts",
+  "profilePrivacyTitle": "Private by default",
+  "profilePrivacyDescription": "Your profile and contacts are encrypted in secure device storage. SafeMyanmar does not read your device contacts, and saving a contact does not send an SOS message.",
+  "editProfileTitle": "Edit profile",
+  "displayNameLabel": "Display name",
+  "displayNameRequired": "Enter a display name.",
+  "saveChanges": "Save changes",
+  "profileLoading": "Loading your local profile",
+  "profileSaving": "Saving securely",
+  "profileReadErrorTitle": "Profile temporarily unavailable",
+  "profileReadErrorDescription": "SafeMyanmar could not read secure local profile data. No profile details were exposed. Try again.",
+  "profileDataErrorTitle": "Stored profile cannot be opened",
+  "profileDataErrorDescription": "The encrypted local profile is damaged or uses an unsupported version. It has not been changed. Retry, or reset it to start again.",
+  "profileWriteErrorTitle": "Changes were not saved",
+  "profileWriteErrorDescription": "Your last securely saved profile remains available. Try saving the change again.",
+  "retry": "Retry",
+  "resetLocalProfile": "Reset local profile",
+  "resetLocalProfileTitle": "Reset unreadable profile?",
+  "resetLocalProfileDescription": "This permanently removes the unreadable local profile and emergency contacts from this device. This cannot be undone.",
+  "cancel": "Cancel",
+  "reset": "Reset",
+  "contactsTitle": "Emergency contacts",
+  "addContact": "Add contact",
+  "contactsEmptyTitle": "No emergency contacts yet",
+  "contactsEmptyDescription": "Add people you trust, then choose who may be included in a future SOS message.",
+  "contactsPrivacyDescription": "Contacts stay encrypted on this device. SafeMyanmar does not request access to your device contact list.",
+  "maximumContactsReached": "You can save up to {count} emergency contacts.",
+  "@maximumContactsReached": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "selectedForSos": "Selected for SOS",
+  "notSelectedForSos": "Not selected for SOS",
+  "sosSelectionDescription": "Choose whether this person may be included in a future SOS message. This does not send anything.",
+  "editContact": "Edit contact",
+  "addContactTitle": "Add emergency contact",
+  "editContactTitle": "Edit emergency contact",
+  "contactNameLabel": "Contact name",
+  "contactNameRequired": "Enter a contact name.",
+  "phoneNumberLabel": "Phone number",
+  "phoneNumberRequired": "Enter a phone number.",
+  "phoneNumberInvalidCharacters": "Use digits with an optional leading +. Spaces, hyphens, periods, and parentheses are allowed.",
+  "phoneNumberInvalidLength": "Enter a phone number containing 7 to 15 digits.",
+  "relationshipLabel": "Relationship or label",
+  "relationshipRequired": "Enter a relationship or label.",
+  "deleteContact": "Delete contact",
+  "deleteContactTitle": "Delete {name}?",
+  "@deleteContactTitle": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "deleteContactDescription": "This removes the contact from secure local storage. No message will be sent.",
+  "delete": "Delete",
+  "contactNotFound": "This emergency contact was not found.",
+  "backToContacts": "Back to emergency contacts",
+  "earthquakeInformation": "Earthquake information",
+  "refresh": "Refresh",
+  "liveInformation": "Live information",
+  "cachedInformation": "Cached information",
+  "staleInformation": "Stale information",
+  "lastSuccessfulUpdate": "Last successful update: {time}",
+  "@lastSuccessfulUpdate": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "dataStatusSemantics": "{status}. {lastUpdate}",
+  "@dataStatusSemantics": {
+    "placeholders": {
+      "status": {"type": "String"},
+      "lastUpdate": {"type": "String"}
+    }
+  },
+  "noRecentEarthquakes": "No recent earthquakes were found in the covered area. This does not guarantee there is no danger.",
+  "liveEarthquakeDataUnavailable": "Live earthquake data unavailable.",
+  "savedInformationRemains": "Previously saved information remains available below.",
+  "couldNotUpdateLiveInformation": "Could not update live information.",
+  "magnitudeValue": "Magnitude {magnitude}",
+  "@magnitudeValue": {
+    "placeholders": {
+      "magnitude": {"type": "String"}
+    }
+  },
+  "locationValue": "Location: {place}",
+  "@locationValue": {
+    "placeholders": {
+      "place": {"type": "String"}
+    }
+  },
+  "eventTimeValue": "Event time: {time}",
+  "@eventTimeValue": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "utcTimestamp": "{value} UTC",
+  "@utcTimestamp": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "depthValue": "Depth: {depth} km",
+  "@depthValue": {
+    "placeholders": {
+      "depth": {"type": "String"}
+    }
+  },
+  "providerUpdateValue": "Provider update: {time}",
+  "@providerUpdateValue": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "retrievedValue": "Retrieved: {time}",
+  "@retrievedValue": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "reviewStatusValue": "Review status: {status}",
+  "@reviewStatusValue": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "dataSourceUsGS": "Source: USGS",
+  "openUsGSsource": "Open USGS source",
+  "couldNotOpenUsGSsource": "Could not open USGS source.",
+  "earthquakeInformationNotFound": "Earthquake information was not found.",
+  "backToEarthquakeInformation": "Back to earthquake information",
+  "earthquakeCardSemantics": "{type}. {magnitude}. {location}. {eventTime}. {status}. {source}",
+  "@earthquakeCardSemantics": {
+    "placeholders": {
+      "type": {"type": "String"},
+      "magnitude": {"type": "String"},
+      "location": {"type": "String"},
+      "eventTime": {"type": "String"},
+      "status": {"type": "String"},
+      "source": {"type": "String"}
+    }
+  },
+  "earthquakeCardHint": "Open earthquake information details",
+  "preliminaryNotice": "Preliminary earthquake values may change.",
+  "loadingEarthquakes": "Updating earthquake information"
+}

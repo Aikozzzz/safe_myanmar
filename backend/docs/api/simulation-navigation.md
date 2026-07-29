@@ -1,0 +1,90 @@
+# Simulation Navigation API
+
+These endpoints expose only fixed, fictional demonstration records. They are
+available only when `ENABLE_SIMULATION_DATA=true`; startup rejects that setting
+when `ENVIRONMENT=production`. Every record is labeled `SIMULATION`, attributed
+to `SafeMyanmar Demo`, timestamped, and marked `simulation: true`.
+
+When simulation data is disabled, these routes are not registered or included
+in OpenAPI. Requests receive the ordinary `404 not_found` envelope without
+simulation request-body validation. Live alert routes remain registered.
+
+This API does not provide official hazard information or guarantee route safety.
+Clients should keep timestamps, attribution, rationale, and uncertainty notices
+visible. Shelter and hazard lists remain available if routing is unavailable.
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ENABLE_SIMULATION_DATA` | `false` | Enables all three simulation endpoints outside production |
+| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | unset | Secret Mapbox token required only for route suggestions |
+| `PROVIDER_TIMEOUT_SECONDS` | `10.0` | Timeout used for Mapbox and USGS requests |
+
+The Directions integration always uses the trusted HTTPS host
+`api.mapbox.com`, requests `alternatives=true`, full GeoJSON geometry, and
+returns no more than the routes Mapbox supplies (up to three). Request origins
+and destinations are neither persisted nor logged.
+
+An enabled simulation deployment must remain nonpublic unless an independent
+authentication or network-access control protects it. Restrict the backend
+Mapbox token to the Directions API and the smallest practical usage scope. The
+process permits at most four concurrent Mapbox calls and 30 route POSTs per
+client host in a rolling 60-second window. Rate-limit state uses only the client
+host's fixed-size, per-process keyed hash, expires in memory, and retains at most
+1,024 hashes; it does not retain raw hosts or use tokens or coordinates as keys.
+These per-process limits do not replace an authenticated edge rate limiter for
+any shared deployment.
+
+Mapbox responses are limited to 1 MiB, three routes, and 5,000 geometry points
+per route before geometry scoring. Malformed, non-finite, overflowing, or
+oversized provider values are rejected as provider failures.
+
+## `GET /api/v1/shelters`
+
+Returns the fixed fictional shelter collection and its data timestamp.
+
+## `GET /api/v1/hazards`
+
+Returns fixed fictional polygon hazards for the supported disaster types and
+their data timestamp.
+
+## `POST /api/v1/route-suggestions`
+
+Request body:
+
+```json
+{
+  "origin": {"latitude": 21.95, "longitude": 96.08},
+  "shelter_id": "simulation-shelter-1",
+  "disaster_type": "earthquake",
+  "profile": "walking"
+}
+```
+
+`profile` is optional and accepts `walking` or `driving`. If omitted, walking is
+selected for a straight-line distance of 5 km or less and driving otherwise.
+The response states this rule; callers can override it by sending `profile`.
+Supported disasters are `earthquake`, `flood`, `fire`, `cyclone`, `landslide`,
+and `severe_weather`.
+
+Simulation coverage is the inclusive rectangle from latitude `21.9300` to
+`21.9900` and longitude `96.0600` to `96.1200`. It contains all fixed Mandalay
+demo records and is stated in every uncertainty notice. Origins outside this
+rectangle are rejected before Mapbox is called. Provider route candidates that
+leave it are discarded and are never described as suggested safer routes.
+
+Returned Mapbox route geometries are scored against relevant simulation hazard
+polygons. Ranking is deterministic: fewest intersected polygons, then shortest
+duration, then shortest distance. No alternative is generated if Mapbox returns
+fewer than three. The recommended option says exactly: "Suggested safer route
+based on currently available SIMULATION information."
+
+Errors use the standard safe envelope. Missing or failed Mapbox access returns
+`503 routing_unavailable`; malformed requests return `422 invalid_request`; an
+unknown shelter returns `404 shelter_not_found`; an origin outside coverage
+returns `400 outside_simulation_area`; rate limits return `429
+route_rate_limit_exceeded`; and exhausted provider concurrency returns `503
+routing_busy`. The `429` and busy `503` responses include bounded `Retry-After`
+headers. Error responses do not include the origin, destination, provider URL,
+or token.
