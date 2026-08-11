@@ -16,11 +16,19 @@ final class CachedNavigationResponse<T> {
 abstract interface class NavigationLocalSource {
   Future<CachedNavigationResponse<ShelterCollectionDto>?> readShelters();
   Future<CachedNavigationResponse<HazardCollectionDto>?> readHazards();
+  Future<CachedNavigationResponse<ContextAreaCollectionDto>?> readContextAreas(
+    ContextAreaRequest request,
+  );
   Future<CachedNavigationResponse<RouteSuggestionsDto>?> readRoutes(
     RouteSuggestionRequest request,
   );
   Future<void> replaceShelters(ShelterCollectionDto value, DateTime cachedAt);
   Future<void> replaceHazards(HazardCollectionDto value, DateTime cachedAt);
+  Future<void> replaceContextAreas(
+    ContextAreaCollectionDto value,
+    ContextAreaRequest request,
+    DateTime cachedAt,
+  );
   Future<void> replaceRoutes(
     RouteSuggestionsDto value,
     RouteSuggestionRequest request,
@@ -53,6 +61,27 @@ final class DriftNavigationLocalSource implements NavigationLocalSource {
     if (row == null) return null;
     return CachedNavigationResponse(
       value: HazardCollectionDto.fromJson(_decode(row.payload)),
+      cachedAt: _utc(row.cachedAt),
+    );
+  }
+
+  @override
+  Future<CachedNavigationResponse<ContextAreaCollectionDto>?> readContextAreas(
+    ContextAreaRequest request,
+  ) async {
+    final row = await _database
+        .select(_database.cachedContextAreaResponses)
+        .getSingleOrNull();
+    if (row == null) return null;
+    if (row.originLatitudeE5 != request.originLatitudeE5 ||
+        row.originLongitudeE5 != request.originLongitudeE5 ||
+        row.disasterType != request.disasterType.wireValue ||
+        row.scenario != request.scenario.wireValue ||
+        row.searchRadiusM != request.searchRadiusM.round()) {
+      return null;
+    }
+    return CachedNavigationResponse(
+      value: ContextAreaCollectionDto.fromJson(_decode(row.payload)),
       cachedAt: _utc(row.cachedAt),
     );
   }
@@ -120,6 +149,30 @@ final class DriftNavigationLocalSource implements NavigationLocalSource {
             payload: jsonEncode(value.toJson()),
             dataAt: value.dataAt.microsecondsSinceEpoch,
             cachedAt: cachedAt.microsecondsSinceEpoch,
+          ),
+        );
+  }
+
+  @override
+  Future<void> replaceContextAreas(
+    ContextAreaCollectionDto value,
+    ContextAreaRequest request,
+    DateTime cachedAt,
+  ) async {
+    _requireUtc(cachedAt);
+    await _database
+        .into(_database.cachedContextAreaResponses)
+        .insertOnConflictUpdate(
+          CachedContextAreaResponsesCompanion.insert(
+            id: const Value(1),
+            payload: jsonEncode(value.toJson()),
+            dataAt: value.dataAt.microsecondsSinceEpoch,
+            cachedAt: cachedAt.microsecondsSinceEpoch,
+            originLatitudeE5: request.originLatitudeE5,
+            originLongitudeE5: request.originLongitudeE5,
+            disasterType: request.disasterType.wireValue,
+            scenario: request.scenario.wireValue,
+            searchRadiusM: request.searchRadiusM.round(),
           ),
         );
   }

@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, Request
 
 from app.core.errors import ApiError
 from app.schemas.navigation import (
+    ContextAreaListResponse,
+    ContextAreaRequest,
     HazardListResponse,
     RouteSuggestionRequest,
     RouteSuggestionsResponse,
@@ -125,6 +127,21 @@ def list_hazards(
     service: NavigationService = Depends(get_navigation_service),
 ) -> HazardListResponse:
     return service.list_hazards()
+
+
+@router.post("/context-areas", response_model=ContextAreaListResponse)
+def find_context_areas(
+    context_request: ContextAreaRequest,
+    service: NavigationService = Depends(get_navigation_service),
+) -> ContextAreaListResponse:
+    try:
+        return service.find_context_areas(context_request)
+    except OutsideSimulationArea as error:
+        raise ApiError(
+            400,
+            "outside_simulation_area",
+            "The origin is outside the SIMULATION coverage area.",
+        ) from error
 
 
 @router.post("/route-suggestions", response_model=RouteSuggestionsResponse)

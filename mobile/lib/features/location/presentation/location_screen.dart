@@ -95,8 +95,13 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
               mapboxToken: mapboxToken,
               onRetryMapData: () =>
                   navigationController.loadMapData(force: true),
-              onShelterChanged: navigationController.selectShelter,
+              onAnalyzeContext: state.location == null
+                  ? null
+                  : () => navigationController.analyzeContext(state.location!),
+              onContextAreaChanged: navigationController.selectContextArea,
               onDisasterChanged: navigationController.selectDisasterType,
+              onContextScenarioChanged:
+                  navigationController.selectContextScenario,
               onProfileChanged: navigationController.selectProfile,
               onRequestRoutes: state.location == null
                   ? null
@@ -134,8 +139,10 @@ class _NavigationContent extends StatelessWidget {
     required this.state,
     required this.mapboxToken,
     required this.onRetryMapData,
-    required this.onShelterChanged,
+    required this.onAnalyzeContext,
+    required this.onContextAreaChanged,
     required this.onDisasterChanged,
+    required this.onContextScenarioChanged,
     required this.onProfileChanged,
     required this.onRequestRoutes,
     required this.onRouteSelected,
@@ -145,8 +152,10 @@ class _NavigationContent extends StatelessWidget {
   final NavigationState state;
   final MapboxPublicAccessToken mapboxToken;
   final Future<void> Function() onRetryMapData;
-  final ValueChanged<String> onShelterChanged;
+  final Future<void> Function()? onAnalyzeContext;
+  final ValueChanged<String> onContextAreaChanged;
   final ValueChanged<DisasterType> onDisasterChanged;
+  final ValueChanged<ContextScenario> onContextScenarioChanged;
   final ValueChanged<RouteProfile> onProfileChanged;
   final Future<void> Function()? onRequestRoutes;
   final ValueChanged<String> onRouteSelected;
@@ -189,7 +198,7 @@ class _NavigationContent extends StatelessWidget {
             NavigationMap(
               accessToken: token,
               location: currentLocation,
-              shelters: shelters?.items ?? const [],
+              shelters: const [],
               hazards: state.relevantHazards,
               routes: routes,
               selectedRouteId: state.selectedRouteId,
@@ -206,12 +215,21 @@ class _NavigationContent extends StatelessWidget {
             ),
         ],
         const SizedBox(height: 16),
-        _ShelterList(shelters: shelters?.items ?? const []),
+        _ContextAreaList(
+          areas: state.contextAreas?.items ?? const [],
+          selectedId: state.selectedContextAreaId,
+          requested: state.contextAnalysisRequested,
+          loading: state.contextAnalysisLoading,
+          failed: state.contextAnalysisFailed,
+          uncertaintyNotice: state.contextAreas?.uncertaintyNotice,
+          onAnalyze: onAnalyzeContext,
+          onSelected: onContextAreaChanged,
+        ),
         const SizedBox(height: 16),
         _RouteControls(
           state: state,
-          onShelterChanged: onShelterChanged,
           onDisasterChanged: onDisasterChanged,
+          onContextScenarioChanged: onContextScenarioChanged,
           onProfileChanged: onProfileChanged,
           onRequestRoutes: onRequestRoutes,
         ),
@@ -344,45 +362,24 @@ class _SimulationStatus extends StatelessWidget {
 class _RouteControls extends StatelessWidget {
   const _RouteControls({
     required this.state,
-    required this.onShelterChanged,
     required this.onDisasterChanged,
+    required this.onContextScenarioChanged,
     required this.onProfileChanged,
     required this.onRequestRoutes,
   });
 
   final NavigationState state;
-  final ValueChanged<String> onShelterChanged;
   final ValueChanged<DisasterType> onDisasterChanged;
+  final ValueChanged<ContextScenario> onContextScenarioChanged;
   final ValueChanged<RouteProfile> onProfileChanged;
   final Future<void> Function()? onRequestRoutes;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
-    final shelters = state.shelters?.items ?? const <Shelter>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DropdownButtonFormField<String>(
-          initialValue:
-              shelters.any((item) => item.id == state.selectedShelterId)
-              ? state.selectedShelterId
-              : null,
-          isExpanded: true,
-          decoration: InputDecoration(labelText: strings.chooseShelter),
-          items: shelters
-              .map(
-                (item) => DropdownMenuItem(
-                  value: item.id,
-                  child: Text(item.name, overflow: TextOverflow.ellipsis),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value != null) onShelterChanged(value);
-          },
-        ),
-        const SizedBox(height: 12),
         DropdownButtonFormField<DisasterType>(
           initialValue: state.disasterType,
           isExpanded: true,
@@ -399,6 +396,29 @@ class _RouteControls extends StatelessWidget {
             if (value != null) onDisasterChanged(value);
           },
         ),
+        if (state.disasterType == DisasterType.earthquake) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<ContextScenario>(
+            initialValue: state.contextScenario,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: strings.chooseContextScenario,
+            ),
+            items: [
+              DropdownMenuItem(
+                value: ContextScenario.outdoorsAfterShaking,
+                child: Text(strings.outdoorsAfterShaking),
+              ),
+              DropdownMenuItem(
+                value: ContextScenario.general,
+                child: Text(strings.activeShaking),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) onContextScenarioChanged(value);
+            },
+          ),
+        ],
         const SizedBox(height: 12),
         DropdownButtonFormField<RouteProfile>(
           initialValue: state.profile,
@@ -419,7 +439,7 @@ class _RouteControls extends StatelessWidget {
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed:
-              state.selectedShelterId == null ||
+              state.selectedContextAreaId == null ||
                   state.loadingRoutes ||
                   onRequestRoutes == null
               ? null
@@ -436,10 +456,26 @@ class _RouteControls extends StatelessWidget {
   }
 }
 
-class _ShelterList extends StatelessWidget {
-  const _ShelterList({required this.shelters});
+class _ContextAreaList extends StatelessWidget {
+  const _ContextAreaList({
+    required this.areas,
+    required this.selectedId,
+    required this.requested,
+    required this.loading,
+    required this.failed,
+    required this.uncertaintyNotice,
+    required this.onAnalyze,
+    required this.onSelected,
+  });
 
-  final List<Shelter> shelters;
+  final List<ContextArea> areas;
+  final String? selectedId;
+  final bool requested;
+  final bool loading;
+  final bool failed;
+  final String? uncertaintyNotice;
+  final Future<void> Function()? onAnalyze;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -448,37 +484,85 @@ class _ShelterList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          strings.shelterListHeading,
+          strings.contextAreasHeading,
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
-        if (shelters.isEmpty)
-          Text(strings.shelterListEmpty)
-        else
-          for (final shelter in shelters)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      shelter.name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(shelter.description),
-                    const SizedBox(height: 6),
-                    Text(strings.navigationSource(shelter.source)),
-                    Text(
-                      strings.shelterDataTime(
-                        _formatUtc(context, strings, shelter.dataAt),
+        Text(strings.contextAreasDescription),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: loading ? null : onAnalyze,
+          icon: const Icon(Icons.analytics_outlined),
+          label: Text(
+            loading ? strings.analyzingContext : strings.analyzeContext,
+          ),
+        ),
+        if (failed) ...[
+          const SizedBox(height: 8),
+          Text(strings.navigationDataUnavailable),
+        ],
+        if (requested && !loading && areas.isEmpty) ...[
+          const SizedBox(height: 8),
+          Text(uncertaintyNotice ?? strings.noContextAreas),
+        ],
+        for (final area in areas) ...[
+          const SizedBox(height: 8),
+          Semantics(
+            button: true,
+            selected: area.id == selectedId,
+            label: area.id == selectedId ? '${area.name}. Selected' : area.name,
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => onSelected(area.id),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            area.id == selectedId
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              area.name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      Text(strings.contextDistance(area.distanceM.round())),
+                      if (area.disasterType == DisasterType.flood)
+                        Text(
+                          strings.contextElevation(
+                            area.metrics.relativeElevationM.toStringAsFixed(1),
+                          ),
+                        )
+                      else
+                        Text(
+                          strings.contextClearance(
+                            area.metrics.buildingClearanceM.round(),
+                            area.metrics.treeClearanceM.round(),
+                          ),
+                        ),
+                      for (final reason in area.rationale) Text('- $reason'),
+                      Text(
+                        strings.contextDataAt(
+                          _formatUtc(context, strings, area.dataAt),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+          ),
+        ],
       ],
     );
   }

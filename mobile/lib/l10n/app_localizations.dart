@@ -436,6 +436,78 @@ abstract class AppLocalizations {
   /// **'No cached simulation shelter details are available.'**
   String get shelterListEmpty;
 
+  /// No description provided for @contextAreasHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby lower-exposure areas'**
+  String get contextAreasHeading;
+
+  /// No description provided for @contextAreasDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions compare currently available simulation context. They are not official shelters or guarantees.'**
+  String get contextAreasDescription;
+
+  /// No description provided for @analyzeContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze nearby areas'**
+  String get analyzeContext;
+
+  /// No description provided for @analyzingContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing context'**
+  String get analyzingContext;
+
+  /// No description provided for @noContextAreas.
+  ///
+  /// In en, this message translates to:
+  /// **'No lower-exposure area was identified for this scenario. Follow authorized local instructions.'**
+  String get noContextAreas;
+
+  /// No description provided for @chooseContextScenario.
+  ///
+  /// In en, this message translates to:
+  /// **'Earthquake context'**
+  String get chooseContextScenario;
+
+  /// No description provided for @outdoorsAfterShaking.
+  ///
+  /// In en, this message translates to:
+  /// **'After shaking stops: analyze open areas'**
+  String get outdoorsAfterShaking;
+
+  /// No description provided for @activeShaking.
+  ///
+  /// In en, this message translates to:
+  /// **'During active shaking: show immediate guidance'**
+  String get activeShaking;
+
+  /// No description provided for @contextDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance: {distance} m'**
+  String contextDistance(int distance);
+
+  /// No description provided for @contextElevation.
+  ///
+  /// In en, this message translates to:
+  /// **'Relative elevation: {elevation} m'**
+  String contextElevation(String elevation);
+
+  /// No description provided for @contextClearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Building clearance: {building} m; tree clearance: {tree} m'**
+  String contextClearance(int building, int tree);
+
+  /// No description provided for @contextDataAt.
+  ///
+  /// In en, this message translates to:
+  /// **'SIMULATION data: {time}'**
+  String contextDataAt(String time);
+
   /// No description provided for @chooseDisasterType.
   ///
   /// In en, this message translates to:

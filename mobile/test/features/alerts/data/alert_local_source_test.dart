@@ -19,8 +19,8 @@ void main() {
 
   tearDown(() => database.close());
 
-  test('schema version four starts without alert rows or metadata', () async {
-    expect(database.schemaVersion, 4);
+  test('schema version five starts without alert rows or metadata', () async {
+    expect(database.schemaVersion, 5);
     expect(await source.readSnapshot(), isNull);
     expect(await source.getById('usgs:missing'), isNull);
     final count = await database

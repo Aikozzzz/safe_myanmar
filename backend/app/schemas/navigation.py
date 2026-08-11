@@ -17,6 +17,7 @@ DisasterType = Literal[
     "severe_weather",
 ]
 RouteProfile = Literal["walking", "driving"]
+ContextScenario = Literal["outdoors_after_shaking", "general"]
 
 
 class ExactModel(BaseModel):
@@ -56,6 +57,46 @@ class ShelterListResponse(ExactModel):
     uncertainty_notice: str
 
 
+class ContextAreaRequest(ExactModel):
+    origin: Coordinate
+    disaster_type: DisasterType
+    scenario: ContextScenario = "general"
+    search_radius_m: float = Field(default=1000.0, ge=250.0, le=1500.0)
+
+
+class ContextMetrics(ExactModel):
+    building_clearance_m: float = Field(ge=0, allow_inf_nan=False)
+    tree_clearance_m: float = Field(ge=0, allow_inf_nan=False)
+    relative_elevation_m: float = Field(allow_inf_nan=False)
+    building_density: float = Field(ge=0, le=1, allow_inf_nan=False)
+    tree_density: float = Field(ge=0, le=1, allow_inf_nan=False)
+    hazard_intersections: int = Field(ge=0)
+
+
+class ContextArea(ExactModel):
+    id: str = Field(min_length=1, max_length=150)
+    name: str
+    coordinate: Coordinate
+    disaster_type: DisasterType
+    scenario: ContextScenario
+    classification: Literal["lower_exposure"] = "lower_exposure"
+    distance_m: float = Field(ge=0, allow_inf_nan=False)
+    metrics: ContextMetrics
+    rationale: list[str] = Field(min_length=1, max_length=6)
+    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
+    data_at: datetime
+    simulation: Literal[True] = True
+    uncertainty_notice: str
+
+
+class ContextAreaListResponse(ExactModel):
+    items: list[ContextArea]
+    data_at: datetime
+    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
+    simulation: Literal[True] = True
+    uncertainty_notice: str
+
+
 class Hazard(ExactModel):
     id: str
     name: str
@@ -77,7 +118,10 @@ class HazardListResponse(ExactModel):
 class RouteSuggestionRequest(ExactModel):
     origin: Coordinate
     shelter_id: str = Field(min_length=1, max_length=100)
+    context_area_id: str | None = Field(default=None, min_length=1, max_length=150)
     disaster_type: DisasterType
+    scenario: ContextScenario = "general"
+    search_radius_m: float = Field(default=1000.0, ge=250.0, le=1500.0)
     profile: RouteProfile | None = None
 
 

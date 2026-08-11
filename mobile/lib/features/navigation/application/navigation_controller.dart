@@ -10,7 +10,9 @@ final class NavigationController extends Notifier<NavigationState> {
   NavigationRepository? _repository;
   Future<void>? _mapLoad;
   Future<void>? _routeLoad;
+  Future<void>? _contextLoad;
   var _routeGeneration = 0;
+  var _contextGeneration = 0;
 
   @override
   NavigationState build() {
@@ -42,8 +44,57 @@ final class NavigationController extends Notifier<NavigationState> {
 
   void selectDisasterType(DisasterType value) {
     if (state.disasterType == value) return;
-    state = state.copyWith(disasterType: value);
+    state = state.copyWith(
+      disasterType: value,
+      contextScenario: value == DisasterType.earthquake
+          ? ContextScenario.outdoorsAfterShaking
+          : ContextScenario.general,
+      contextAreas: null,
+      contextAnalysisRequested: false,
+      selectedContextAreaId: null,
+      contextRequest: null,
+    );
     _invalidateRoutes();
+  }
+
+  void selectContextScenario(ContextScenario value) {
+    if (state.contextScenario == value) return;
+    state = state.copyWith(
+      contextScenario: value,
+      contextAreas: null,
+      contextAnalysisRequested: false,
+      selectedContextAreaId: null,
+      contextRequest: null,
+    );
+    _invalidateRoutes();
+  }
+
+  void selectContextArea(String areaId) {
+    if (state.contextAreas?.items.any((item) => item.id == areaId) != true) {
+      return;
+    }
+    state = state.copyWith(selectedContextAreaId: areaId);
+    _invalidateRoutes();
+  }
+
+  Future<void> analyzeContext(ForegroundLocation location) {
+    final request = ContextAreaRequest(
+      origin: NavigationCoordinate(
+        latitude: location.latitude,
+        longitude: location.longitude,
+      ),
+      disasterType: state.disasterType,
+      scenario: state.disasterType == DisasterType.earthquake
+          ? state.contextScenario
+          : ContextScenario.general,
+    );
+    final generation = ++_contextGeneration;
+    late Future<void> pending;
+    pending = _analyzeContext(request, generation).whenComplete(() {
+      if (identical(_contextLoad, pending)) _contextLoad = null;
+    });
+    _contextLoad = pending;
+    return pending;
   }
 
   void selectProfile(RouteProfile value) {
@@ -53,6 +104,35 @@ final class NavigationController extends Notifier<NavigationState> {
   }
 
   void updateLocation(ForegroundLocation? location) {
+    if (location == null && state.contextRequest != null) {
+      _contextGeneration++;
+      state = state.copyWith(
+        contextAreas: null,
+        contextAnalysisRequested: false,
+        selectedContextAreaId: null,
+        contextRequest: null,
+      );
+    }
+    if (location != null && state.contextRequest != null) {
+      final nextContext = ContextAreaRequest(
+        origin: NavigationCoordinate(
+          latitude: location.latitude,
+          longitude: location.longitude,
+        ),
+        disasterType: state.contextRequest!.disasterType,
+        scenario: state.contextRequest!.scenario,
+        searchRadiusM: state.contextRequest!.searchRadiusM,
+      );
+      if (!state.contextRequest!.matches(nextContext)) {
+        _contextGeneration++;
+        state = state.copyWith(
+          contextAreas: null,
+          contextAnalysisRequested: false,
+          selectedContextAreaId: null,
+          contextRequest: null,
+        );
+      }
+    }
     final request = state.routeRequest;
     if (request == null || location == null) {
       if (location == null && request != null) _invalidateRoutes();
@@ -64,8 +144,11 @@ final class NavigationController extends Notifier<NavigationState> {
         longitude: location.longitude,
       ),
       shelterId: request.shelterId,
+      contextAreaId: request.contextAreaId,
       disasterType: request.disasterType,
       profile: request.profile,
+      scenario: request.scenario,
+      searchRadiusM: request.searchRadiusM,
     );
     if (!request.matches(next)) _invalidateRoutes();
   }
@@ -76,16 +159,23 @@ final class NavigationController extends Notifier<NavigationState> {
   }
 
   Future<void> requestRoutes(ForegroundLocation location) {
-    final shelterId = state.selectedShelterId;
-    if (shelterId == null) return Future.value();
+    final contextAreaId = state.selectedContextAreaId;
+    final destinationId = contextAreaId ?? state.selectedShelterId;
+    if (destinationId == null) return Future.value();
+    final scenario = state.disasterType == DisasterType.earthquake
+        ? state.contextScenario
+        : ContextScenario.general;
     final routeRequest = RouteSuggestionRequest(
       origin: NavigationCoordinate(
         latitude: location.latitude,
         longitude: location.longitude,
       ),
-      shelterId: shelterId,
+      shelterId: destinationId,
+      contextAreaId: contextAreaId,
       disasterType: state.disasterType,
       profile: state.profile,
+      scenario: scenario,
+      searchRadiusM: state.contextRequest?.searchRadiusM ?? 1000,
     );
     final generation = ++_routeGeneration;
     late Future<void> request;
@@ -117,6 +207,50 @@ final class NavigationController extends Notifier<NavigationState> {
       repository.loadHazards(),
     ]);
     _applyMapResults(remoteResults, loading: false);
+  }
+
+  Future<void> _analyzeContext(
+    ContextAreaRequest request,
+    int generation,
+  ) async {
+    state = state.copyWith(
+      contextAnalysisLoading: true,
+      contextAnalysisFailed: false,
+      contextAnalysisRequested: true,
+      contextAreas: null,
+      selectedContextAreaId: null,
+    );
+    late final NavigationRepository repository;
+    try {
+      _repository ??= ref.read(navigationRepositoryProvider);
+      repository = _repository!;
+    } catch (_) {
+      if (generation == _contextGeneration) {
+        state = state.copyWith(
+          contextAnalysisLoading: false,
+          contextAnalysisFailed: true,
+          contextRequest: request,
+        );
+      }
+      return;
+    }
+    final cached = await repository.loadCachedContextAreas(request);
+    if (generation != _contextGeneration) return;
+    state = state.copyWith(
+      contextAreas: cached.data,
+      contextRequest: request,
+      selectedContextAreaId: cached.data?.items.firstOrNull?.id,
+    );
+    final result = await repository.findContextAreas(request);
+    if (generation != _contextGeneration) return;
+    final areas = result.data;
+    state = state.copyWith(
+      contextAnalysisLoading: false,
+      contextAnalysisFailed: result.remoteFailed,
+      contextAreas: areas,
+      contextRequest: request,
+      selectedContextAreaId: areas?.items.firstOrNull?.id,
+    );
   }
 
   void _applyMapResults(

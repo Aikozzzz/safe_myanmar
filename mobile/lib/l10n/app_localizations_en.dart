@@ -215,6 +215,52 @@ class AppLocalizationsEn extends AppLocalizations {
       'No cached simulation shelter details are available.';
 
   @override
+  String get contextAreasHeading => 'Nearby lower-exposure areas';
+
+  @override
+  String get contextAreasDescription =>
+      'Suggestions compare currently available simulation context. They are not official shelters or guarantees.';
+
+  @override
+  String get analyzeContext => 'Analyze nearby areas';
+
+  @override
+  String get analyzingContext => 'Analyzing context';
+
+  @override
+  String get noContextAreas =>
+      'No lower-exposure area was identified for this scenario. Follow authorized local instructions.';
+
+  @override
+  String get chooseContextScenario => 'Earthquake context';
+
+  @override
+  String get outdoorsAfterShaking => 'After shaking stops: analyze open areas';
+
+  @override
+  String get activeShaking => 'During active shaking: show immediate guidance';
+
+  @override
+  String contextDistance(int distance) {
+    return 'Distance: $distance m';
+  }
+
+  @override
+  String contextElevation(String elevation) {
+    return 'Relative elevation: $elevation m';
+  }
+
+  @override
+  String contextClearance(int building, int tree) {
+    return 'Building clearance: $building m; tree clearance: $tree m';
+  }
+
+  @override
+  String contextDataAt(String time) {
+    return 'SIMULATION data: $time';
+  }
+
+  @override
   String get chooseDisasterType => 'Disaster type';
 
   @override

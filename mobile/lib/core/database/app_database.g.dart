@@ -2439,6 +2439,579 @@ class CachedRouteResponsesCompanion
   }
 }
 
+class $CachedContextAreaResponsesTable extends CachedContextAreaResponses
+    with
+        TableInfo<$CachedContextAreaResponsesTable, CachedContextAreaResponse> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedContextAreaResponsesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataAtMeta = const VerificationMeta('dataAt');
+  @override
+  late final GeneratedColumn<int> dataAt = GeneratedColumn<int>(
+    'data_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cachedAtMeta = const VerificationMeta(
+    'cachedAt',
+  );
+  @override
+  late final GeneratedColumn<int> cachedAt = GeneratedColumn<int>(
+    'cached_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originLatitudeE5Meta = const VerificationMeta(
+    'originLatitudeE5',
+  );
+  @override
+  late final GeneratedColumn<int> originLatitudeE5 = GeneratedColumn<int>(
+    'origin_latitude_e5',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originLongitudeE5Meta = const VerificationMeta(
+    'originLongitudeE5',
+  );
+  @override
+  late final GeneratedColumn<int> originLongitudeE5 = GeneratedColumn<int>(
+    'origin_longitude_e5',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _disasterTypeMeta = const VerificationMeta(
+    'disasterType',
+  );
+  @override
+  late final GeneratedColumn<String> disasterType = GeneratedColumn<String>(
+    'disaster_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scenarioMeta = const VerificationMeta(
+    'scenario',
+  );
+  @override
+  late final GeneratedColumn<String> scenario = GeneratedColumn<String>(
+    'scenario',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _searchRadiusMMeta = const VerificationMeta(
+    'searchRadiusM',
+  );
+  @override
+  late final GeneratedColumn<int> searchRadiusM = GeneratedColumn<int>(
+    'search_radius_m',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    payload,
+    dataAt,
+    cachedAt,
+    originLatitudeE5,
+    originLongitudeE5,
+    disasterType,
+    scenario,
+    searchRadiusM,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_context_area_responses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedContextAreaResponse> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('data_at')) {
+      context.handle(
+        _dataAtMeta,
+        dataAt.isAcceptableOrUnknown(data['data_at']!, _dataAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataAtMeta);
+    }
+    if (data.containsKey('cached_at')) {
+      context.handle(
+        _cachedAtMeta,
+        cachedAt.isAcceptableOrUnknown(data['cached_at']!, _cachedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cachedAtMeta);
+    }
+    if (data.containsKey('origin_latitude_e5')) {
+      context.handle(
+        _originLatitudeE5Meta,
+        originLatitudeE5.isAcceptableOrUnknown(
+          data['origin_latitude_e5']!,
+          _originLatitudeE5Meta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originLatitudeE5Meta);
+    }
+    if (data.containsKey('origin_longitude_e5')) {
+      context.handle(
+        _originLongitudeE5Meta,
+        originLongitudeE5.isAcceptableOrUnknown(
+          data['origin_longitude_e5']!,
+          _originLongitudeE5Meta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originLongitudeE5Meta);
+    }
+    if (data.containsKey('disaster_type')) {
+      context.handle(
+        _disasterTypeMeta,
+        disasterType.isAcceptableOrUnknown(
+          data['disaster_type']!,
+          _disasterTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_disasterTypeMeta);
+    }
+    if (data.containsKey('scenario')) {
+      context.handle(
+        _scenarioMeta,
+        scenario.isAcceptableOrUnknown(data['scenario']!, _scenarioMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scenarioMeta);
+    }
+    if (data.containsKey('search_radius_m')) {
+      context.handle(
+        _searchRadiusMMeta,
+        searchRadiusM.isAcceptableOrUnknown(
+          data['search_radius_m']!,
+          _searchRadiusMMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_searchRadiusMMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedContextAreaResponse map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedContextAreaResponse(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      dataAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}data_at'],
+      )!,
+      cachedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cached_at'],
+      )!,
+      originLatitudeE5: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}origin_latitude_e5'],
+      )!,
+      originLongitudeE5: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}origin_longitude_e5'],
+      )!,
+      disasterType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}disaster_type'],
+      )!,
+      scenario: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scenario'],
+      )!,
+      searchRadiusM: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}search_radius_m'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedContextAreaResponsesTable createAlias(String alias) {
+    return $CachedContextAreaResponsesTable(attachedDatabase, alias);
+  }
+}
+
+class CachedContextAreaResponse extends DataClass
+    implements Insertable<CachedContextAreaResponse> {
+  final int id;
+  final String payload;
+  final int dataAt;
+  final int cachedAt;
+  final int originLatitudeE5;
+  final int originLongitudeE5;
+  final String disasterType;
+  final String scenario;
+  final int searchRadiusM;
+  const CachedContextAreaResponse({
+    required this.id,
+    required this.payload,
+    required this.dataAt,
+    required this.cachedAt,
+    required this.originLatitudeE5,
+    required this.originLongitudeE5,
+    required this.disasterType,
+    required this.scenario,
+    required this.searchRadiusM,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['payload'] = Variable<String>(payload);
+    map['data_at'] = Variable<int>(dataAt);
+    map['cached_at'] = Variable<int>(cachedAt);
+    map['origin_latitude_e5'] = Variable<int>(originLatitudeE5);
+    map['origin_longitude_e5'] = Variable<int>(originLongitudeE5);
+    map['disaster_type'] = Variable<String>(disasterType);
+    map['scenario'] = Variable<String>(scenario);
+    map['search_radius_m'] = Variable<int>(searchRadiusM);
+    return map;
+  }
+
+  CachedContextAreaResponsesCompanion toCompanion(bool nullToAbsent) {
+    return CachedContextAreaResponsesCompanion(
+      id: Value(id),
+      payload: Value(payload),
+      dataAt: Value(dataAt),
+      cachedAt: Value(cachedAt),
+      originLatitudeE5: Value(originLatitudeE5),
+      originLongitudeE5: Value(originLongitudeE5),
+      disasterType: Value(disasterType),
+      scenario: Value(scenario),
+      searchRadiusM: Value(searchRadiusM),
+    );
+  }
+
+  factory CachedContextAreaResponse.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedContextAreaResponse(
+      id: serializer.fromJson<int>(json['id']),
+      payload: serializer.fromJson<String>(json['payload']),
+      dataAt: serializer.fromJson<int>(json['dataAt']),
+      cachedAt: serializer.fromJson<int>(json['cachedAt']),
+      originLatitudeE5: serializer.fromJson<int>(json['originLatitudeE5']),
+      originLongitudeE5: serializer.fromJson<int>(json['originLongitudeE5']),
+      disasterType: serializer.fromJson<String>(json['disasterType']),
+      scenario: serializer.fromJson<String>(json['scenario']),
+      searchRadiusM: serializer.fromJson<int>(json['searchRadiusM']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'payload': serializer.toJson<String>(payload),
+      'dataAt': serializer.toJson<int>(dataAt),
+      'cachedAt': serializer.toJson<int>(cachedAt),
+      'originLatitudeE5': serializer.toJson<int>(originLatitudeE5),
+      'originLongitudeE5': serializer.toJson<int>(originLongitudeE5),
+      'disasterType': serializer.toJson<String>(disasterType),
+      'scenario': serializer.toJson<String>(scenario),
+      'searchRadiusM': serializer.toJson<int>(searchRadiusM),
+    };
+  }
+
+  CachedContextAreaResponse copyWith({
+    int? id,
+    String? payload,
+    int? dataAt,
+    int? cachedAt,
+    int? originLatitudeE5,
+    int? originLongitudeE5,
+    String? disasterType,
+    String? scenario,
+    int? searchRadiusM,
+  }) => CachedContextAreaResponse(
+    id: id ?? this.id,
+    payload: payload ?? this.payload,
+    dataAt: dataAt ?? this.dataAt,
+    cachedAt: cachedAt ?? this.cachedAt,
+    originLatitudeE5: originLatitudeE5 ?? this.originLatitudeE5,
+    originLongitudeE5: originLongitudeE5 ?? this.originLongitudeE5,
+    disasterType: disasterType ?? this.disasterType,
+    scenario: scenario ?? this.scenario,
+    searchRadiusM: searchRadiusM ?? this.searchRadiusM,
+  );
+  CachedContextAreaResponse copyWithCompanion(
+    CachedContextAreaResponsesCompanion data,
+  ) {
+    return CachedContextAreaResponse(
+      id: data.id.present ? data.id.value : this.id,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      dataAt: data.dataAt.present ? data.dataAt.value : this.dataAt,
+      cachedAt: data.cachedAt.present ? data.cachedAt.value : this.cachedAt,
+      originLatitudeE5: data.originLatitudeE5.present
+          ? data.originLatitudeE5.value
+          : this.originLatitudeE5,
+      originLongitudeE5: data.originLongitudeE5.present
+          ? data.originLongitudeE5.value
+          : this.originLongitudeE5,
+      disasterType: data.disasterType.present
+          ? data.disasterType.value
+          : this.disasterType,
+      scenario: data.scenario.present ? data.scenario.value : this.scenario,
+      searchRadiusM: data.searchRadiusM.present
+          ? data.searchRadiusM.value
+          : this.searchRadiusM,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedContextAreaResponse(')
+          ..write('id: $id, ')
+          ..write('payload: $payload, ')
+          ..write('dataAt: $dataAt, ')
+          ..write('cachedAt: $cachedAt, ')
+          ..write('originLatitudeE5: $originLatitudeE5, ')
+          ..write('originLongitudeE5: $originLongitudeE5, ')
+          ..write('disasterType: $disasterType, ')
+          ..write('scenario: $scenario, ')
+          ..write('searchRadiusM: $searchRadiusM')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    payload,
+    dataAt,
+    cachedAt,
+    originLatitudeE5,
+    originLongitudeE5,
+    disasterType,
+    scenario,
+    searchRadiusM,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedContextAreaResponse &&
+          other.id == this.id &&
+          other.payload == this.payload &&
+          other.dataAt == this.dataAt &&
+          other.cachedAt == this.cachedAt &&
+          other.originLatitudeE5 == this.originLatitudeE5 &&
+          other.originLongitudeE5 == this.originLongitudeE5 &&
+          other.disasterType == this.disasterType &&
+          other.scenario == this.scenario &&
+          other.searchRadiusM == this.searchRadiusM);
+}
+
+class CachedContextAreaResponsesCompanion
+    extends UpdateCompanion<CachedContextAreaResponse> {
+  final Value<int> id;
+  final Value<String> payload;
+  final Value<int> dataAt;
+  final Value<int> cachedAt;
+  final Value<int> originLatitudeE5;
+  final Value<int> originLongitudeE5;
+  final Value<String> disasterType;
+  final Value<String> scenario;
+  final Value<int> searchRadiusM;
+  const CachedContextAreaResponsesCompanion({
+    this.id = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.dataAt = const Value.absent(),
+    this.cachedAt = const Value.absent(),
+    this.originLatitudeE5 = const Value.absent(),
+    this.originLongitudeE5 = const Value.absent(),
+    this.disasterType = const Value.absent(),
+    this.scenario = const Value.absent(),
+    this.searchRadiusM = const Value.absent(),
+  });
+  CachedContextAreaResponsesCompanion.insert({
+    this.id = const Value.absent(),
+    required String payload,
+    required int dataAt,
+    required int cachedAt,
+    required int originLatitudeE5,
+    required int originLongitudeE5,
+    required String disasterType,
+    required String scenario,
+    required int searchRadiusM,
+  }) : payload = Value(payload),
+       dataAt = Value(dataAt),
+       cachedAt = Value(cachedAt),
+       originLatitudeE5 = Value(originLatitudeE5),
+       originLongitudeE5 = Value(originLongitudeE5),
+       disasterType = Value(disasterType),
+       scenario = Value(scenario),
+       searchRadiusM = Value(searchRadiusM);
+  static Insertable<CachedContextAreaResponse> custom({
+    Expression<int>? id,
+    Expression<String>? payload,
+    Expression<int>? dataAt,
+    Expression<int>? cachedAt,
+    Expression<int>? originLatitudeE5,
+    Expression<int>? originLongitudeE5,
+    Expression<String>? disasterType,
+    Expression<String>? scenario,
+    Expression<int>? searchRadiusM,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (payload != null) 'payload': payload,
+      if (dataAt != null) 'data_at': dataAt,
+      if (cachedAt != null) 'cached_at': cachedAt,
+      if (originLatitudeE5 != null) 'origin_latitude_e5': originLatitudeE5,
+      if (originLongitudeE5 != null) 'origin_longitude_e5': originLongitudeE5,
+      if (disasterType != null) 'disaster_type': disasterType,
+      if (scenario != null) 'scenario': scenario,
+      if (searchRadiusM != null) 'search_radius_m': searchRadiusM,
+    });
+  }
+
+  CachedContextAreaResponsesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? payload,
+    Value<int>? dataAt,
+    Value<int>? cachedAt,
+    Value<int>? originLatitudeE5,
+    Value<int>? originLongitudeE5,
+    Value<String>? disasterType,
+    Value<String>? scenario,
+    Value<int>? searchRadiusM,
+  }) {
+    return CachedContextAreaResponsesCompanion(
+      id: id ?? this.id,
+      payload: payload ?? this.payload,
+      dataAt: dataAt ?? this.dataAt,
+      cachedAt: cachedAt ?? this.cachedAt,
+      originLatitudeE5: originLatitudeE5 ?? this.originLatitudeE5,
+      originLongitudeE5: originLongitudeE5 ?? this.originLongitudeE5,
+      disasterType: disasterType ?? this.disasterType,
+      scenario: scenario ?? this.scenario,
+      searchRadiusM: searchRadiusM ?? this.searchRadiusM,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (dataAt.present) {
+      map['data_at'] = Variable<int>(dataAt.value);
+    }
+    if (cachedAt.present) {
+      map['cached_at'] = Variable<int>(cachedAt.value);
+    }
+    if (originLatitudeE5.present) {
+      map['origin_latitude_e5'] = Variable<int>(originLatitudeE5.value);
+    }
+    if (originLongitudeE5.present) {
+      map['origin_longitude_e5'] = Variable<int>(originLongitudeE5.value);
+    }
+    if (disasterType.present) {
+      map['disaster_type'] = Variable<String>(disasterType.value);
+    }
+    if (scenario.present) {
+      map['scenario'] = Variable<String>(scenario.value);
+    }
+    if (searchRadiusM.present) {
+      map['search_radius_m'] = Variable<int>(searchRadiusM.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedContextAreaResponsesCompanion(')
+          ..write('id: $id, ')
+          ..write('payload: $payload, ')
+          ..write('dataAt: $dataAt, ')
+          ..write('cachedAt: $cachedAt, ')
+          ..write('originLatitudeE5: $originLatitudeE5, ')
+          ..write('originLongitudeE5: $originLongitudeE5, ')
+          ..write('disasterType: $disasterType, ')
+          ..write('scenario: $scenario, ')
+          ..write('searchRadiusM: $searchRadiusM')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $EmergencyArticlesTable extends EmergencyArticles
     with TableInfo<$EmergencyArticlesTable, EmergencyArticleRow> {
   @override
@@ -3274,6 +3847,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $CachedHazardResponsesTable(this);
   late final $CachedRouteResponsesTable cachedRouteResponses =
       $CachedRouteResponsesTable(this);
+  late final $CachedContextAreaResponsesTable cachedContextAreaResponses =
+      $CachedContextAreaResponsesTable(this);
   late final $EmergencyArticlesTable emergencyArticles =
       $EmergencyArticlesTable(this);
   @override
@@ -3286,6 +3861,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedShelterResponses,
     cachedHazardResponses,
     cachedRouteResponses,
+    cachedContextAreaResponses,
     emergencyArticles,
   ];
 }
@@ -4602,6 +5178,303 @@ typedef $$CachedRouteResponsesTableProcessedTableManager =
       CachedRouteResponse,
       PrefetchHooks Function()
     >;
+typedef $$CachedContextAreaResponsesTableCreateCompanionBuilder =
+    CachedContextAreaResponsesCompanion Function({
+      Value<int> id,
+      required String payload,
+      required int dataAt,
+      required int cachedAt,
+      required int originLatitudeE5,
+      required int originLongitudeE5,
+      required String disasterType,
+      required String scenario,
+      required int searchRadiusM,
+    });
+typedef $$CachedContextAreaResponsesTableUpdateCompanionBuilder =
+    CachedContextAreaResponsesCompanion Function({
+      Value<int> id,
+      Value<String> payload,
+      Value<int> dataAt,
+      Value<int> cachedAt,
+      Value<int> originLatitudeE5,
+      Value<int> originLongitudeE5,
+      Value<String> disasterType,
+      Value<String> scenario,
+      Value<int> searchRadiusM,
+    });
+
+class $$CachedContextAreaResponsesTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedContextAreaResponsesTable> {
+  $$CachedContextAreaResponsesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dataAt => $composableBuilder(
+    column: $table.dataAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get originLatitudeE5 => $composableBuilder(
+    column: $table.originLatitudeE5,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get originLongitudeE5 => $composableBuilder(
+    column: $table.originLongitudeE5,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get disasterType => $composableBuilder(
+    column: $table.disasterType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scenario => $composableBuilder(
+    column: $table.scenario,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get searchRadiusM => $composableBuilder(
+    column: $table.searchRadiusM,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedContextAreaResponsesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedContextAreaResponsesTable> {
+  $$CachedContextAreaResponsesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dataAt => $composableBuilder(
+    column: $table.dataAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get originLatitudeE5 => $composableBuilder(
+    column: $table.originLatitudeE5,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get originLongitudeE5 => $composableBuilder(
+    column: $table.originLongitudeE5,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get disasterType => $composableBuilder(
+    column: $table.disasterType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scenario => $composableBuilder(
+    column: $table.scenario,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get searchRadiusM => $composableBuilder(
+    column: $table.searchRadiusM,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedContextAreaResponsesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedContextAreaResponsesTable> {
+  $$CachedContextAreaResponsesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<int> get dataAt =>
+      $composableBuilder(column: $table.dataAt, builder: (column) => column);
+
+  GeneratedColumn<int> get cachedAt =>
+      $composableBuilder(column: $table.cachedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get originLatitudeE5 => $composableBuilder(
+    column: $table.originLatitudeE5,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get originLongitudeE5 => $composableBuilder(
+    column: $table.originLongitudeE5,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get disasterType => $composableBuilder(
+    column: $table.disasterType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get scenario =>
+      $composableBuilder(column: $table.scenario, builder: (column) => column);
+
+  GeneratedColumn<int> get searchRadiusM => $composableBuilder(
+    column: $table.searchRadiusM,
+    builder: (column) => column,
+  );
+}
+
+class $$CachedContextAreaResponsesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedContextAreaResponsesTable,
+          CachedContextAreaResponse,
+          $$CachedContextAreaResponsesTableFilterComposer,
+          $$CachedContextAreaResponsesTableOrderingComposer,
+          $$CachedContextAreaResponsesTableAnnotationComposer,
+          $$CachedContextAreaResponsesTableCreateCompanionBuilder,
+          $$CachedContextAreaResponsesTableUpdateCompanionBuilder,
+          (
+            CachedContextAreaResponse,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedContextAreaResponsesTable,
+              CachedContextAreaResponse
+            >,
+          ),
+          CachedContextAreaResponse,
+          PrefetchHooks Function()
+        > {
+  $$CachedContextAreaResponsesTableTableManager(
+    _$AppDatabase db,
+    $CachedContextAreaResponsesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedContextAreaResponsesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CachedContextAreaResponsesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CachedContextAreaResponsesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> dataAt = const Value.absent(),
+                Value<int> cachedAt = const Value.absent(),
+                Value<int> originLatitudeE5 = const Value.absent(),
+                Value<int> originLongitudeE5 = const Value.absent(),
+                Value<String> disasterType = const Value.absent(),
+                Value<String> scenario = const Value.absent(),
+                Value<int> searchRadiusM = const Value.absent(),
+              }) => CachedContextAreaResponsesCompanion(
+                id: id,
+                payload: payload,
+                dataAt: dataAt,
+                cachedAt: cachedAt,
+                originLatitudeE5: originLatitudeE5,
+                originLongitudeE5: originLongitudeE5,
+                disasterType: disasterType,
+                scenario: scenario,
+                searchRadiusM: searchRadiusM,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String payload,
+                required int dataAt,
+                required int cachedAt,
+                required int originLatitudeE5,
+                required int originLongitudeE5,
+                required String disasterType,
+                required String scenario,
+                required int searchRadiusM,
+              }) => CachedContextAreaResponsesCompanion.insert(
+                id: id,
+                payload: payload,
+                dataAt: dataAt,
+                cachedAt: cachedAt,
+                originLatitudeE5: originLatitudeE5,
+                originLongitudeE5: originLongitudeE5,
+                disasterType: disasterType,
+                scenario: scenario,
+                searchRadiusM: searchRadiusM,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedContextAreaResponsesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedContextAreaResponsesTable,
+      CachedContextAreaResponse,
+      $$CachedContextAreaResponsesTableFilterComposer,
+      $$CachedContextAreaResponsesTableOrderingComposer,
+      $$CachedContextAreaResponsesTableAnnotationComposer,
+      $$CachedContextAreaResponsesTableCreateCompanionBuilder,
+      $$CachedContextAreaResponsesTableUpdateCompanionBuilder,
+      (
+        CachedContextAreaResponse,
+        BaseReferences<
+          _$AppDatabase,
+          $CachedContextAreaResponsesTable,
+          CachedContextAreaResponse
+        >,
+      ),
+      CachedContextAreaResponse,
+      PrefetchHooks Function()
+    >;
 typedef $$EmergencyArticlesTableCreateCompanionBuilder =
     EmergencyArticlesCompanion Function({
       required String id,
@@ -5015,6 +5888,12 @@ class $AppDatabaseManager {
       $$CachedHazardResponsesTableTableManager(_db, _db.cachedHazardResponses);
   $$CachedRouteResponsesTableTableManager get cachedRouteResponses =>
       $$CachedRouteResponsesTableTableManager(_db, _db.cachedRouteResponses);
+  $$CachedContextAreaResponsesTableTableManager
+  get cachedContextAreaResponses =>
+      $$CachedContextAreaResponsesTableTableManager(
+        _db,
+        _db.cachedContextAreaResponses,
+      );
   $$EmergencyArticlesTableTableManager get emergencyArticles =>
       $$EmergencyArticlesTableTableManager(_db, _db.emergencyArticles);
 }

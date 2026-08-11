@@ -42,7 +42,7 @@ void main() {
       expect(await navigation.readShelters(), isNull);
       expect(await navigation.readHazards(), isNull);
       expect(await navigation.readRoutes(routeRequest), isNull);
-      expect(database.schemaVersion, 4);
+      expect(database.schemaVersion, 5);
     },
   );
 

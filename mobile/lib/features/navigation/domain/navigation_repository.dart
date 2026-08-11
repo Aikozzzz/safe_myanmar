@@ -19,6 +19,12 @@ abstract interface class NavigationRepository {
   Future<NavigationResource<HazardCollection>> loadCachedHazards();
   Future<NavigationResource<ShelterCollection>> loadShelters();
   Future<NavigationResource<HazardCollection>> loadHazards();
+  Future<NavigationResource<ContextAreaCollection>> findContextAreas(
+    ContextAreaRequest request,
+  );
+  Future<NavigationResource<ContextAreaCollection>> loadCachedContextAreas(
+    ContextAreaRequest request,
+  );
   Future<NavigationResource<RouteSuggestions>> suggestRoutes(
     RouteSuggestionRequest request,
   );

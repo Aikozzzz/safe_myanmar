@@ -95,6 +95,13 @@ Longitude: 96.0800
 Use Android Emulator **Extended controls > Location** to set these coordinates.
 Requests outside the demonstration area are rejected.
 
+The Map screen does not select a fixed shelter. After location permission is
+granted, choose a disaster type and tap **Analyze nearby areas**. The backend
+returns up to three fictional lower-exposure candidates. Earthquake analysis is
+for outdoors after shaking; during active shaking, follow Drop, Cover, and Hold
+On guidance. Flood candidates compare simulated elevation and flood exposure.
+These candidates are not official shelters or guarantees.
+
 ## 4. Start The Backend
 
 Keep PostgreSQL running:
@@ -149,10 +156,41 @@ flutter devices
 
 The Android emulator reaches the host backend through `10.0.2.2`.
 
+This app is Android-only. Do not select Chrome or Edge when Flutter asks for a
+target device.
+
+### Create An Emulator For The First Time
+
+1. Open Android Studio and select **Device Manager**.
+2. Select **Add Device** or **Create Virtual Device**.
+3. Choose a recent Pixel device profile with GLES 3 support.
+4. Select **API 36.1 "Baklava", Android 16.0** and **Google Play Store**.
+5. Select the first system-image row named **Google Play Intel x86_64 Atom
+   System Image**.
+6. Do not select **16 KB Page Size Google Play Intel x86_64 Atom System Image**.
+   The standard first row provides the best compatibility with the Flutter
+   plugins used by SafeMyanmar. The 16 KB image is intended for separate Android
+   page-size compatibility testing.
+7. Select **Finish**, allow the approximately 2 GB image to download, and start
+   the emulator from Device Manager.
+8. Wait for Android to finish booting, then identify its device ID:
+
+```powershell
+flutter devices
+```
+
+The ID is commonly `emulator-5554`, but use the exact Android emulator ID shown
+on your computer. Set it once for the commands below:
+
+```powershell
+$deviceId = "emulator-5554"
+```
+
 ### Without Map Tiles
 
 ```powershell
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+flutter run -d $deviceId `
+  --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
 
 Location, cached shelters, route controls, SOS, Guide, and More remain usable,
@@ -163,7 +201,7 @@ but the Map tab displays a map-configuration message instead of Mapbox tiles.
 Use a restricted public Mapbox `pk.*` token:
 
 ```powershell
-flutter run `
+flutter run -d $deviceId `
   --dart-define=API_BASE_URL=http://10.0.2.2:8000 `
   --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=pk.replace_with_restricted_public_token
 ```

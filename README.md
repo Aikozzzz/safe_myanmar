@@ -28,8 +28,8 @@ services when available.
   permanently denied, disabled-service, retry, and last-known-location states.
   The app requests no background location permission.
 - Mapbox map rendering when an optional public mobile token is supplied.
-  Shelters, hazards, and route suggestions are fictional runtime SIMULATION data
-  that remains disabled by default and is rejected in production.
+  Hazards and context-aware lower-exposure area suggestions are fictional runtime
+  SIMULATION data that remains disabled by default and is rejected in production.
 - Up to three Mapbox Directions alternatives ranked by simulated hazard
   intersections, duration, and distance. Users can select an alternative and
   can still view cached or current shelter/hazard information if routing fails.
@@ -130,6 +130,7 @@ GET  /api/v1/alerts
 GET  /api/v1/alerts/{id}
 GET  /api/v1/shelters
 GET  /api/v1/hazards
+POST /api/v1/context-areas
 POST /api/v1/route-suggestions
 ```
 
@@ -335,9 +336,11 @@ SafeMyanmar/
 - Live provider coverage remains USGS earthquakes only. There are no official
   Myanmar warnings, evacuation orders, impact/severity classification, push
   notifications, or additional live disaster providers.
-- Shelters and hazards are fixed fictional demonstrations. Simulation routes
-  rely on current Mapbox availability and simplistic polygon-intersection
-  ranking; they are not verified field conditions or guaranteed safe routes.
+- Context-aware navigation currently generates deterministic fictional
+  lower-exposure area candidates. Earthquake candidates compare simulated
+  building/tree exposure outdoors after shaking; flood candidates compare
+  simulated elevation and flood polygons. These are not verified field
+  conditions, official shelters, evacuation orders, or guaranteed safe routes.
 - The app has no authentication, cloud profile synchronization, rescue-team
   dashboard, damage reporting, official rescue-service integration, Rescue
   Beacon Mode, Bluetooth/peer-to-peer messaging, or background location.

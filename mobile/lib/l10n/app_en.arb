@@ -85,6 +85,33 @@
   "chooseShelter": "Shelter",
   "shelterListHeading": "Available simulation shelters",
   "shelterListEmpty": "No cached simulation shelter details are available.",
+  "contextAreasHeading": "Nearby lower-exposure areas",
+  "contextAreasDescription": "Suggestions compare currently available simulation context. They are not official shelters or guarantees.",
+  "analyzeContext": "Analyze nearby areas",
+  "analyzingContext": "Analyzing context",
+  "noContextAreas": "No lower-exposure area was identified for this scenario. Follow authorized local instructions.",
+  "chooseContextScenario": "Earthquake context",
+  "outdoorsAfterShaking": "After shaking stops: analyze open areas",
+  "activeShaking": "During active shaking: show immediate guidance",
+  "contextDistance": "Distance: {distance} m",
+  "@contextDistance": {
+    "placeholders": {"distance": {"type": "int"}}
+  },
+  "contextElevation": "Relative elevation: {elevation} m",
+  "@contextElevation": {
+    "placeholders": {"elevation": {"type": "String"}}
+  },
+  "contextClearance": "Building clearance: {building} m; tree clearance: {tree} m",
+  "@contextClearance": {
+    "placeholders": {
+      "building": {"type": "int"},
+      "tree": {"type": "int"}
+    }
+  },
+  "contextDataAt": "SIMULATION data: {time}",
+  "@contextDataAt": {
+    "placeholders": {"time": {"type": "String"}}
+  },
   "chooseDisasterType": "Disaster type",
   "chooseTravelProfile": "Travel profile",
   "earthquakeDisaster": "Earthquake",

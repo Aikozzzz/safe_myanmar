@@ -8,6 +8,10 @@ from app.providers.mapbox.directions import (
     MapboxDirectionsProvider,
 )
 from app.schemas.navigation import (
+    ContextArea,
+    ContextAreaListResponse,
+    ContextAreaRequest,
+    ContextMetrics,
     Coordinate,
     Hazard,
     HazardListResponse,
@@ -185,25 +189,154 @@ class NavigationService:
             uncertainty_notice=UNCERTAINTY_NOTICE,
         )
 
+    def find_context_areas(
+        self, request: ContextAreaRequest
+    ) -> ContextAreaListResponse:
+        self._require_simulation()
+        if not _coordinate_in_simulation_area(request.origin):
+            raise OutsideSimulationArea
+        if (
+            request.disaster_type == "earthquake"
+            and request.scenario != "outdoors_after_shaking"
+        ):
+            return ContextAreaListResponse(
+                items=[],
+                data_at=SIMULATION_DATA_AT,
+                uncertainty_notice=(
+                    "For an earthquake during active shaking, use Drop, Cover, "
+                    "and Hold On. "
+                    "Outdoor area analysis is available only after shaking stops."
+                ),
+            )
+
+        relevant_hazards = tuple(
+            hazard
+            for hazard in HAZARDS
+            if hazard.disaster_type == request.disaster_type
+        )
+        candidates = []
+        for index, (latitude_delta, longitude_delta, distance_m) in enumerate(
+            _candidate_offsets(request.search_radius_m)
+        ):
+            coordinate = Coordinate(
+                latitude=request.origin.latitude + latitude_delta,
+                longitude=request.origin.longitude + longitude_delta,
+            )
+            if not _coordinate_in_simulation_area(coordinate):
+                continue
+            hazard_count = sum(
+                _point_in_polygon(
+                    (coordinate.longitude, coordinate.latitude),
+                    hazard.geometry.coordinates[0],
+                )
+                for hazard in relevant_hazards
+            )
+            if hazard_count:
+                continue
+            building_density = _building_density(coordinate)
+            tree_density = _tree_density(coordinate)
+            relative_elevation = _relative_elevation(coordinate, request.origin)
+            building_clearance = round(30 + (1 - building_density) * 120, 1)
+            tree_clearance = round(20 + (1 - tree_density) * 100, 1)
+            if request.disaster_type == "earthquake":
+                ranking = (
+                    building_density,
+                    tree_density,
+                    -building_clearance,
+                    -tree_clearance,
+                    distance_m,
+                )
+                rationale = [
+                    "Lower simulated building density",
+                    "Greater simulated tree clearance",
+                    "Outside currently available simulated earthquake hazards",
+                ]
+            elif request.disaster_type == "flood":
+                ranking = (
+                    -relative_elevation,
+                    distance_m,
+                    hazard_count,
+                )
+                rationale = [
+                    "Higher simulated elevation than the requested origin",
+                    "Outside currently available simulated flood hazards",
+                    "Route conditions may differ from this simulation",
+                ]
+            else:
+                ranking = (hazard_count, distance_m, building_density, tree_density)
+                rationale = [
+                    "Outside currently available simulated hazards",
+                    "Candidate has lower simulated surrounding exposure",
+                ]
+            candidates.append(
+                (
+                    ranking,
+                    ContextArea(
+                        id=_context_area_id(coordinate, request.disaster_type),
+                        name=f"SIMULATION: Lower-exposure area {index + 1}",
+                        coordinate=coordinate,
+                        disaster_type=request.disaster_type,
+                        scenario=request.scenario,
+                        distance_m=round(distance_m, 1),
+                        metrics=ContextMetrics(
+                            building_clearance_m=building_clearance,
+                            tree_clearance_m=tree_clearance,
+                            relative_elevation_m=round(relative_elevation, 1),
+                            building_density=round(building_density, 3),
+                            tree_density=round(tree_density, 3),
+                            hazard_intersections=hazard_count,
+                        ),
+                        rationale=rationale,
+                        data_at=SIMULATION_DATA_AT,
+                        uncertainty_notice=UNCERTAINTY_NOTICE,
+                    ),
+                )
+            )
+        ranked = [item for _, item in sorted(candidates, key=lambda value: value[0])]
+        return ContextAreaListResponse(
+            items=ranked[:3],
+            data_at=SIMULATION_DATA_AT,
+            uncertainty_notice=UNCERTAINTY_NOTICE,
+        )
+
     def suggest_routes(
         self, request: RouteSuggestionRequest
     ) -> RouteSuggestionsResponse:
         self._require_simulation()
         if not _coordinate_in_simulation_area(request.origin):
             raise OutsideSimulationArea
-        shelter = next(
-            (item for item in SHELTERS if item.id == request.shelter_id), None
+        destination = next(
+            (item.coordinate for item in SHELTERS if item.id == request.shelter_id),
+            None,
         )
-        if shelter is None:
+        if request.context_area_id is not None:
+            context_response = self.find_context_areas(
+                ContextAreaRequest(
+                    origin=request.origin,
+                    disaster_type=request.disaster_type,
+                    scenario=request.scenario,
+                    search_radius_m=request.search_radius_m,
+                )
+            )
+            context = next(
+                (
+                    item
+                    for item in context_response.items
+                    if item.id == request.context_area_id
+                ),
+                None,
+            )
+            if context is None:
+                raise ShelterNotFound
+            destination = context.coordinate
+        if destination is None:
             raise ShelterNotFound
 
         profile, reason = self._select_profile(
-            request.origin, shelter.coordinate, request.profile
+            request.origin, destination, request.profile
         )
         try:
-            routes = self._directions.get_routes(
-                request.origin, shelter.coordinate, profile
-            )
+            routes = self._directions.get_routes(request.origin, destination, profile)
         except DirectionsProviderError:
             raise RoutingUnavailable from None
 
@@ -301,6 +434,47 @@ def _coordinate_in_simulation_area(coordinate: Coordinate) -> bool:
     return (
         SIMULATION_MIN_LATITUDE <= coordinate.latitude <= SIMULATION_MAX_LATITUDE
         and SIMULATION_MIN_LONGITUDE <= coordinate.longitude <= SIMULATION_MAX_LONGITUDE
+    )
+
+
+def _candidate_offsets(
+    search_radius_m: float,
+) -> tuple[tuple[float, float, float], ...]:
+    latitude_degrees = search_radius_m / 111_000
+    longitude_degrees = search_radius_m / 104_000
+    return (
+        (latitude_degrees * 0.55, 0.0, search_radius_m * 0.55),
+        (-latitude_degrees * 0.55, 0.0, search_radius_m * 0.55),
+        (0.0, longitude_degrees * 0.55, search_radius_m * 0.55),
+        (0.0, -longitude_degrees * 0.55, search_radius_m * 0.55),
+        (latitude_degrees * 0.7, longitude_degrees * 0.7, search_radius_m * 0.99),
+        (-latitude_degrees * 0.7, -longitude_degrees * 0.7, search_radius_m * 0.99),
+        (-latitude_degrees * 0.7, longitude_degrees * 0.7, search_radius_m * 0.99),
+        (latitude_degrees * 0.7, -longitude_degrees * 0.7, search_radius_m * 0.99),
+    )
+
+
+def _building_density(coordinate: Coordinate) -> float:
+    value = sin(coordinate.latitude * 37) * 0.5 + cos(coordinate.longitude * 29) * 0.5
+    return min(1.0, max(0.0, 0.5 + value * 0.35))
+
+
+def _tree_density(coordinate: Coordinate) -> float:
+    value = cos(coordinate.latitude * 23) * 0.5 + sin(coordinate.longitude * 31) * 0.5
+    return min(1.0, max(0.0, 0.45 + value * 0.3))
+
+
+def _relative_elevation(coordinate: Coordinate, origin: Coordinate) -> float:
+    return (coordinate.latitude - origin.latitude) * 100_000 + sin(
+        coordinate.longitude * 17
+    ) * 2
+
+
+def _context_area_id(coordinate: Coordinate, disaster_type: str) -> str:
+    return (
+        f"context-area-{disaster_type}-"
+        f"{round(coordinate.latitude * 100000)}-"
+        f"{round(coordinate.longitude * 100000)}"
     )
 
 

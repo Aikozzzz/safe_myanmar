@@ -1,6 +1,7 @@
 # Simulation Navigation API
 
-These endpoints expose only fixed, fictional demonstration records. They are
+These endpoints expose fictional demonstration records and deterministic
+context-analysis candidates. They are
 available only when `ENABLE_SIMULATION_DATA=true`; startup rejects that setting
 when `ENVIRONMENT=production`. Every record is labeled `SIMULATION`, attributed
 to `SafeMyanmar Demo`, timestamped, and marked `simulation: true`.
@@ -49,6 +50,26 @@ Returns the fixed fictional shelter collection and its data timestamp.
 Returns fixed fictional polygon hazards for the supported disaster types and
 their data timestamp.
 
+## `POST /api/v1/context-areas`
+
+Calculates up to three deterministic, fictional lower-exposure area candidates
+around an explicitly supplied origin. The request body is:
+
+```json
+{
+  "origin": {"latitude": 21.95, "longitude": 96.08},
+  "disaster_type": "earthquake",
+  "scenario": "outdoors_after_shaking",
+  "search_radius_m": 1000
+}
+```
+
+Earthquake candidates are available only for `outdoors_after_shaking`; active
+shaking returns Drop, Cover, and Hold On guidance instead of destinations. Flood
+candidates rank simulated higher elevation and reject simulated flood polygons.
+Earthquake candidates compare simulated building and tree exposure. These are
+comparative demonstration metrics, not surveyed conditions or official advice.
+
 ## `POST /api/v1/route-suggestions`
 
 Request body:
@@ -57,10 +78,18 @@ Request body:
 {
   "origin": {"latitude": 21.95, "longitude": 96.08},
   "shelter_id": "simulation-shelter-1",
+  "context_area_id": "context-area-earthquake-2195500-9608000",
   "disaster_type": "earthquake",
+  "scenario": "outdoors_after_shaking",
+  "search_radius_m": 1000,
   "profile": "walking"
 }
 ```
+
+`context_area_id` is optional for the legacy fixed-shelter demonstration
+contract, but new clients should send it after selecting a result from
+`/context-areas`. The backend recomputes the candidate from the origin and
+disaster and search radius before requesting directions.
 
 `profile` is optional and accepts `walking` or `driving`. If omitted, walking is
 selected for a straight-line distance of 5 km or less and driving otherwise.

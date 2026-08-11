@@ -106,6 +106,54 @@ final class HazardCollectionDto {
   };
 }
 
+final class ContextAreaCollectionDto {
+  ContextAreaCollectionDto._({
+    required this.items,
+    required this.dataAt,
+    required this.uncertaintyNotice,
+  });
+
+  factory ContextAreaCollectionDto.fromJson(Map<String, Object?> json) {
+    try {
+      _exact(json, _collectionKeys);
+      _simulationMetadata(json);
+      final dataAt = _timestamp(json['data_at']);
+      final items = _list(json['items']).map(_contextArea).toList();
+      if (items.any((item) => item.dataAt != dataAt)) {
+        throw const NavigationProtocolException();
+      }
+      return ContextAreaCollectionDto._(
+        items: List.unmodifiable(items),
+        dataAt: dataAt,
+        uncertaintyNotice: _string(json['uncertainty_notice']),
+      );
+    } on NavigationProtocolException {
+      rethrow;
+    } catch (_) {
+      throw const NavigationProtocolException();
+    }
+  }
+
+  final List<ContextArea> items;
+  final DateTime dataAt;
+  final String uncertaintyNotice;
+
+  ContextAreaCollection toDomain() => ContextAreaCollection(
+    items: items,
+    dataAt: dataAt,
+    source: _source,
+    uncertaintyNotice: uncertaintyNotice,
+  );
+
+  Map<String, Object?> toJson() => {
+    'items': items.map(_contextAreaToJson).toList(),
+    'data_at': _timeToJson(dataAt),
+    'source': _source,
+    'simulation': true,
+    'uncertainty_notice': uncertaintyNotice,
+  };
+}
+
 final class RouteSuggestionsDto {
   RouteSuggestionsDto._({
     required this.options,
@@ -199,6 +247,29 @@ const _shelterKeys = {
   'data_at',
   'simulation',
 };
+const _contextAreaKeys = {
+  'id',
+  'name',
+  'coordinate',
+  'disaster_type',
+  'scenario',
+  'classification',
+  'distance_m',
+  'metrics',
+  'rationale',
+  'source',
+  'data_at',
+  'simulation',
+  'uncertainty_notice',
+};
+const _metricsKeys = {
+  'building_clearance_m',
+  'tree_clearance_m',
+  'relative_elevation_m',
+  'building_density',
+  'tree_density',
+  'hazard_intersections',
+};
 const _hazardKeys = {
   'id',
   'name',
@@ -276,6 +347,53 @@ Hazard _hazard(Object? value) {
     rings: rings,
     source: _source,
     dataAt: _timestamp(json['data_at']),
+  );
+}
+
+ContextArea _contextArea(Object? value) {
+  final json = _map(value);
+  _exact(json, _contextAreaKeys);
+  _simulationMetadata(json);
+  if (json['classification'] != 'lower_exposure') {
+    throw const NavigationProtocolException();
+  }
+  final disasterType = DisasterType.fromWireValue(
+    _string(json['disaster_type']),
+  );
+  final scenario = switch (_string(json['scenario'])) {
+    'outdoors_after_shaking' => ContextScenario.outdoorsAfterShaking,
+    'general' => ContextScenario.general,
+    _ => throw const NavigationProtocolException(),
+  };
+  final metrics = _map(json['metrics']);
+  _exact(metrics, _metricsKeys);
+  final rationale = _list(json['rationale']);
+  if (disasterType == null || rationale.isEmpty) {
+    throw const NavigationProtocolException();
+  }
+  final intersections = metrics['hazard_intersections'];
+  if (intersections is! int || intersections < 0) {
+    throw const NavigationProtocolException();
+  }
+  return ContextArea(
+    id: _string(json['id']),
+    name: _string(json['name']),
+    coordinate: _coordinate(json['coordinate']),
+    disasterType: disasterType,
+    scenario: scenario,
+    distanceM: _nonNegativeDouble(json['distance_m']),
+    metrics: ContextMetrics(
+      buildingClearanceM: _nonNegativeDouble(metrics['building_clearance_m']),
+      treeClearanceM: _nonNegativeDouble(metrics['tree_clearance_m']),
+      relativeElevationM: _strictDouble(metrics['relative_elevation_m']),
+      buildingDensity: _boundedDouble(metrics['building_density']),
+      treeDensity: _boundedDouble(metrics['tree_density']),
+      hazardIntersections: intersections,
+    ),
+    rationale: rationale.map(_string).toList(),
+    source: _source,
+    dataAt: _timestamp(json['data_at']),
+    uncertaintyNotice: _string(json['uncertainty_notice']),
   );
 }
 
@@ -371,6 +489,12 @@ Map<String, Object?> _map(Object? value) {
   }
 }
 
+double _boundedDouble(Object? value) {
+  final result = _strictDouble(value);
+  if (result < 0 || result > 1) throw const NavigationProtocolException();
+  return result;
+}
+
 List<Object?> _list(Object? value) {
   if (value is! List) throw const NavigationProtocolException();
   return value.cast<Object?>();
@@ -431,6 +555,29 @@ Map<String, Object?> _shelterToJson(Shelter value) => {
   'source': _source,
   'data_at': _timeToJson(value.dataAt),
   'simulation': true,
+};
+
+Map<String, Object?> _contextAreaToJson(ContextArea value) => {
+  'id': value.id,
+  'name': value.name,
+  'coordinate': _coordinateToJson(value.coordinate),
+  'disaster_type': value.disasterType.wireValue,
+  'scenario': value.scenario.wireValue,
+  'classification': 'lower_exposure',
+  'distance_m': value.distanceM,
+  'metrics': {
+    'building_clearance_m': value.metrics.buildingClearanceM,
+    'tree_clearance_m': value.metrics.treeClearanceM,
+    'relative_elevation_m': value.metrics.relativeElevationM,
+    'building_density': value.metrics.buildingDensity,
+    'tree_density': value.metrics.treeDensity,
+    'hazard_intersections': value.metrics.hazardIntersections,
+  },
+  'rationale': value.rationale,
+  'source': _source,
+  'data_at': _timeToJson(value.dataAt),
+  'simulation': true,
+  'uncertainty_notice': value.uncertaintyNotice,
 };
 
 Map<String, Object?> _hazardToJson(Hazard value) => {

@@ -98,6 +98,40 @@ void main() {
   });
 
   test(
+    'active earthquake scenario preserves immediate safety guidance',
+    () async {
+      final repository = FakeNavigationRepository()
+        ..contextAreas = NavigationResource(
+          data: ContextAreaCollection(
+            items: const [],
+            dataAt: DateTime.utc(2026, 7, 23, 12),
+            source: 'SafeMyanmar Demo',
+            uncertaintyNotice:
+                'During active shaking, use Drop, Cover, and Hold On.',
+          ),
+          isCached: false,
+          remoteFailed: false,
+        );
+      final container = ProviderContainer(
+        overrides: [navigationRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(navigationControllerProvider.notifier);
+
+      controller.selectContextScenario(ContextScenario.general);
+      await controller.analyzeContext(location);
+
+      final state = container.read(navigationControllerProvider);
+      expect(state.contextRequest?.scenario, ContextScenario.general);
+      expect(state.contextAreas?.items, isEmpty);
+      expect(
+        state.contextAreas?.uncertaintyNotice,
+        'During active shaking, use Drop, Cover, and Hold On.',
+      );
+    },
+  );
+
+  test(
     'changing route inputs immediately clears prior route context',
     () async {
       final repository = FakeNavigationRepository();

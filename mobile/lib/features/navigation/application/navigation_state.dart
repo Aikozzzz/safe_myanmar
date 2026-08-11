@@ -11,7 +11,14 @@ final class NavigationState {
     this.mapDataCached = false,
     this.mapDataCachedAt,
     this.selectedShelterId,
+    this.contextAreas,
+    this.contextAnalysisLoading = false,
+    this.contextAnalysisFailed = false,
+    this.contextAnalysisRequested = false,
+    this.selectedContextAreaId,
+    this.contextRequest,
     this.disasterType = DisasterType.earthquake,
+    this.contextScenario = ContextScenario.outdoorsAfterShaking,
     this.profile = RouteProfile.walking,
     this.loadingRoutes = false,
     this.routes,
@@ -29,7 +36,14 @@ final class NavigationState {
   final bool mapDataCached;
   final DateTime? mapDataCachedAt;
   final String? selectedShelterId;
+  final ContextAreaCollection? contextAreas;
+  final bool contextAnalysisLoading;
+  final bool contextAnalysisFailed;
+  final bool contextAnalysisRequested;
+  final String? selectedContextAreaId;
+  final ContextAreaRequest? contextRequest;
   final DisasterType disasterType;
+  final ContextScenario contextScenario;
   final RouteProfile profile;
   final bool loadingRoutes;
   final RouteSuggestions? routes;
@@ -52,7 +66,14 @@ final class NavigationState {
     bool? mapDataCached,
     Object? mapDataCachedAt = _notProvided,
     Object? selectedShelterId = _notProvided,
+    Object? contextAreas = _notProvided,
+    bool? contextAnalysisLoading,
+    bool? contextAnalysisFailed,
+    bool? contextAnalysisRequested,
+    Object? selectedContextAreaId = _notProvided,
+    Object? contextRequest = _notProvided,
     DisasterType? disasterType,
+    ContextScenario? contextScenario,
     RouteProfile? profile,
     bool? loadingRoutes,
     Object? routes = _notProvided,
@@ -77,7 +98,22 @@ final class NavigationState {
     selectedShelterId: identical(selectedShelterId, _notProvided)
         ? this.selectedShelterId
         : selectedShelterId as String?,
+    contextAreas: identical(contextAreas, _notProvided)
+        ? this.contextAreas
+        : contextAreas as ContextAreaCollection?,
+    contextAnalysisLoading:
+        contextAnalysisLoading ?? this.contextAnalysisLoading,
+    contextAnalysisFailed: contextAnalysisFailed ?? this.contextAnalysisFailed,
+    contextAnalysisRequested:
+        contextAnalysisRequested ?? this.contextAnalysisRequested,
+    selectedContextAreaId: identical(selectedContextAreaId, _notProvided)
+        ? this.selectedContextAreaId
+        : selectedContextAreaId as String?,
+    contextRequest: identical(contextRequest, _notProvided)
+        ? this.contextRequest
+        : contextRequest as ContextAreaRequest?,
     disasterType: disasterType ?? this.disasterType,
+    contextScenario: contextScenario ?? this.contextScenario,
     profile: profile ?? this.profile,
     loadingRoutes: loadingRoutes ?? this.loadingRoutes,
     routes: identical(routes, _notProvided)

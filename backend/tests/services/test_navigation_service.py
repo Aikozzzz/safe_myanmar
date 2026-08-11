@@ -7,6 +7,7 @@ from app.providers.mapbox.directions import (
     DirectionsRoute,
 )
 from app.schemas.navigation import (
+    ContextAreaRequest,
     Coordinate,
     LineStringGeometry,
     RouteSuggestionRequest,
@@ -91,6 +92,55 @@ def test_fixed_lists_are_visibly_simulated_timestamped_and_fictional():
         <= SIMULATION_MAX_LONGITUDE
         for item in SHELTERS
     )
+
+
+def test_context_analysis_prioritizes_open_space_for_outdoor_earthquake():
+    service = NavigationService(True, StubProvider(()), clock=lambda: NOW)
+
+    response = service.find_context_areas(
+        ContextAreaRequest(
+            origin=Coordinate(latitude=21.95, longitude=96.08),
+            disaster_type="earthquake",
+            scenario="outdoors_after_shaking",
+        )
+    )
+
+    assert 0 < len(response.items) <= 3
+    assert all(item.disaster_type == "earthquake" for item in response.items)
+    assert all(item.metrics.hazard_intersections == 0 for item in response.items)
+    assert any("building" in reason.lower() for reason in response.items[0].rationale)
+    assert all(item.simulation for item in response.items)
+
+
+def test_context_analysis_prioritizes_higher_ground_for_flood():
+    service = NavigationService(True, StubProvider(()), clock=lambda: NOW)
+
+    response = service.find_context_areas(
+        ContextAreaRequest(
+            origin=Coordinate(latitude=21.95, longitude=96.08),
+            disaster_type="flood",
+        )
+    )
+
+    assert 0 < len(response.items) <= 3
+    elevations = [item.metrics.relative_elevation_m for item in response.items]
+    assert elevations == sorted(elevations, reverse=True)
+    assert all(item.metrics.hazard_intersections == 0 for item in response.items)
+
+
+def test_context_analysis_does_not_route_outside_during_active_earthquake_shaking():
+    service = NavigationService(True, StubProvider(()), clock=lambda: NOW)
+
+    response = service.find_context_areas(
+        ContextAreaRequest(
+            origin=Coordinate(latitude=21.95, longitude=96.08),
+            disaster_type="earthquake",
+            scenario="general",
+        )
+    )
+
+    assert response.items == []
+    assert "Drop, Cover, and Hold On" in response.uncertainty_notice
     assert all(
         SIMULATION_MIN_LONGITUDE <= longitude <= SIMULATION_MAX_LONGITUDE
         and SIMULATION_MIN_LATITUDE <= latitude <= SIMULATION_MAX_LATITUDE

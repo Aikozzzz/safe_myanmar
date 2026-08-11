@@ -77,8 +77,9 @@ with `--dart-define`.
 
 ## Offline Behavior
 
-- Drift schema v4 caches the latest successful earthquake snapshot and
-  SIMULATION shelter, hazard, and route responses. Route cache entries are bound
+- Drift schema v5 caches the latest successful earthquake snapshot and
+  SIMULATION context-area, hazard, and route responses. Context and route cache
+  entries are bound
   to a practical-precision origin, shelter, disaster, and travel profile; v3
   route payloads are preserved during migration, then ignored and cleared on
   first access because they have no safe request context. Remote failures retain
@@ -103,10 +104,12 @@ with `--dart-define`.
 
 - Home links to live USGS earthquake observations and details. These are
   informational, preliminary, and not a complete all-disaster warning feed.
-- Map uses an explicit foreground or last-known location. The backend's
-  shelters and hazards exist only when `ENABLE_SIMULATION_DATA=true`; all are
-  fictional and labeled SIMULATION. Route selection displays up to three ranked
-  alternatives but does not claim any route is safe.
+- Map uses an explicit foreground or last-known location. The backend's hazards
+  and context-area analysis exist only when `ENABLE_SIMULATION_DATA=true`; all
+  are fictional and labeled SIMULATION. Earthquake analysis applies outdoors
+  after shaking and compares simulated building/tree exposure. Flood analysis
+  compares simulated elevation and flood polygons. Route selection displays up
+  to three ranked alternatives but does not claim any area or route is safe.
 - SOS persists at most five drafts, suppresses equivalent active drafts within
   five minutes, previews shared data, and requires hold/accessibility
   confirmation. Status means prepared, composer opened, failed to open, or

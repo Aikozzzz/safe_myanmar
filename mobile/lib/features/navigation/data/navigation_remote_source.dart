@@ -35,6 +35,29 @@ final class NavigationRemoteSource {
   Future<HazardCollectionDto> fetchHazards() async =>
       HazardCollectionDto.fromJson(await _get(config.hazardsUri));
 
+  Future<ContextAreaCollectionDto> findContextAreas(
+    ContextAreaRequest request,
+  ) async {
+    final body = jsonEncode({
+      'origin': {
+        'latitude': request.origin.latitude,
+        'longitude': request.origin.longitude,
+      },
+      'disaster_type': request.disasterType.wireValue,
+      'scenario': request.scenario.wireValue,
+      'search_radius_m': request.searchRadiusM,
+    });
+    return ContextAreaCollectionDto.fromJson(
+      await _request(
+        () => client.post(
+          config.contextAreasUri,
+          headers: const {'content-type': 'application/json'},
+          body: body,
+        ),
+      ),
+    );
+  }
+
   Future<RouteSuggestionsDto> fetchRouteSuggestions(
     RouteSuggestionRequest request,
   ) async {
@@ -44,7 +67,10 @@ final class NavigationRemoteSource {
         'longitude': request.origin.longitude,
       },
       'shelter_id': request.shelterId,
+      'context_area_id': request.contextAreaId,
       'disaster_type': request.disasterType.wireValue,
+      'scenario': request.scenario.wireValue,
+      'search_radius_m': request.searchRadiusM,
       'profile': request.profile.name,
     });
     final json = await _request(

@@ -47,6 +47,40 @@ Map<String, Object?> hazardResponseJson() => {
   'uncertainty_notice': 'SIMULATION information is incomplete.',
 };
 
+Map<String, Object?> contextAreaResponseJson() => {
+  'items': [
+    {
+      'id': 'context-area-earthquake-2195500-9608000',
+      'name': 'SIMULATION: Lower-exposure area 1',
+      'coordinate': {'latitude': 21.955, 'longitude': 96.08},
+      'disaster_type': 'earthquake',
+      'scenario': 'outdoors_after_shaking',
+      'classification': 'lower_exposure',
+      'distance_m': 550.0,
+      'metrics': {
+        'building_clearance_m': 120.0,
+        'tree_clearance_m': 90.0,
+        'relative_elevation_m': 2.0,
+        'building_density': 0.1,
+        'tree_density': 0.2,
+        'hazard_intersections': 0,
+      },
+      'rationale': [
+        'Lower simulated building density',
+        'Greater simulated tree clearance',
+      ],
+      'source': 'SafeMyanmar Demo',
+      'data_at': '2026-07-23T00:00:00Z',
+      'simulation': true,
+      'uncertainty_notice': 'SIMULATION information is incomplete.',
+    },
+  ],
+  'data_at': '2026-07-23T00:00:00Z',
+  'source': 'SafeMyanmar Demo',
+  'simulation': true,
+  'uncertainty_notice': 'SIMULATION information is incomplete.',
+};
+
 Map<String, Object?> routeResponseJson({
   int optionCount = 1,
   String profile = 'walking',

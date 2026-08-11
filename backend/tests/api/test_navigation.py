@@ -76,6 +76,55 @@ def test_lists_remain_available_when_route_provider_has_no_token(
     assert shelters.status_code == hazards.status_code == 200
 
 
+def test_context_area_analysis_is_explicit_and_disaster_aware(enabled_navigation_app):
+    enable_simulation(enabled_navigation_app)
+
+    with TestClient(enabled_navigation_app) as client:
+        earthquake = client.post(
+            "/api/v1/context-areas",
+            json={
+                "origin": {"latitude": 21.95, "longitude": 96.08},
+                "disaster_type": "earthquake",
+                "scenario": "outdoors_after_shaking",
+            },
+        )
+        flood = client.post(
+            "/api/v1/context-areas",
+            json={
+                "origin": {"latitude": 21.95, "longitude": 96.08},
+                "disaster_type": "flood",
+            },
+        )
+
+    assert earthquake.status_code == flood.status_code == 200
+    assert earthquake.json()["items"]
+    assert flood.json()["items"]
+    assert earthquake.json()["items"][0]["disaster_type"] == "earthquake"
+    assert flood.json()["items"][0]["disaster_type"] == "flood"
+    assert earthquake.json()["simulation"] is True
+    assert flood.json()["items"][0]["metrics"]["relative_elevation_m"]
+
+
+def test_context_area_analysis_returns_guidance_during_active_earthquake(
+    enabled_navigation_app,
+):
+    enable_simulation(enabled_navigation_app)
+
+    with TestClient(enabled_navigation_app) as client:
+        response = client.post(
+            "/api/v1/context-areas",
+            json={
+                "origin": {"latitude": 21.95, "longitude": 96.08},
+                "disaster_type": "earthquake",
+                "scenario": "general",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+    assert "Drop, Cover, and Hold On" in response.json()["uncertainty_notice"]
+
+
 @pytest.mark.parametrize(
     "origin",
     [

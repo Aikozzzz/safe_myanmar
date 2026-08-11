@@ -14,7 +14,7 @@ flowchart TD
     A --> G[Guide]
     A --> P[More]
     M --> L[Explicit foreground location request]
-    L --> N[SIMULATION shelters and hazards]
+    L --> N[Explicit context-area analysis]
     N --> R[Up to three ranked route alternatives]
     S --> C[Selected secure local contacts]
     C --> D[Persisted reviewed draft]
@@ -36,13 +36,17 @@ cache, secure-storage, and optional-model outcomes into visible states.
    permission only when currently denied.
 3. The controller reports precise, approximate, denied, permanently denied,
    service disabled, recoverable error, or a timestamped last-known fallback.
-4. Once a location exists, shelters and hazards load from the backend. A remote
-   failure falls back to Drift when a valid cached response exists.
+4. Once a location exists, hazards load from the backend. A user action is
+   required before the exact origin is sent for context-area analysis. Remote
+   failure falls back to matching cached data when available.
 5. A valid `MAPBOX_PUBLIC_ACCESS_TOKEN` enables map rendering. Missing/invalid
    configuration does not hide the location or route controls.
-6. The user chooses a fictional shelter, disaster type, and travel profile,
-   then explicitly requests route alternatives.
-7. The backend requests up to three Mapbox alternatives and ranks them by
+6. The user chooses a disaster type and explicitly analyzes nearby areas.
+   Earthquake analysis is limited to outdoors after shaking; flood analysis
+   compares simulated elevation and flood exposure.
+7. The user selects a generated lower-exposure area and explicitly requests
+   route alternatives.
+8. The backend requests up to three Mapbox alternatives and ranks them by
    relevant simulated hazard intersections, duration, then distance. The user
    can select any returned option.
 

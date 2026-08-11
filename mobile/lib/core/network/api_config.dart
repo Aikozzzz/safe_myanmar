@@ -35,6 +35,8 @@ final class ApiConfig {
 
   Uri get hazardsUri => _apiV1Uri('hazards');
 
+  Uri get contextAreasUri => _apiV1Uri('context-areas');
+
   Uri get routeSuggestionsUri => _apiV1Uri('route-suggestions');
 
   Uri _apiV1Uri(String resource) {

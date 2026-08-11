@@ -114,6 +114,60 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   }
 
   @override
+  Future<NavigationResource<ContextAreaCollection>> findContextAreas(
+    ContextAreaRequest request,
+  ) async {
+    try {
+      final value = await _remote.findContextAreas(request);
+      await _tryCache(
+        () => _local.replaceContextAreas(value, request, _now().toUtc()),
+      );
+      return NavigationResource(
+        data: value.toDomain(),
+        isCached: false,
+        remoteFailed: false,
+      );
+    } catch (_) {
+      try {
+        final cached = await _local.readContextAreas(request);
+        return NavigationResource(
+          data: cached?.value.toDomain(),
+          isCached: cached != null,
+          remoteFailed: true,
+          cachedAt: cached?.cachedAt,
+        );
+      } catch (_) {
+        return const NavigationResource(
+          data: null,
+          isCached: false,
+          remoteFailed: true,
+        );
+      }
+    }
+  }
+
+  @override
+  Future<NavigationResource<ContextAreaCollection>> loadCachedContextAreas(
+    ContextAreaRequest request,
+  ) async {
+    try {
+      final cached = await _local.readContextAreas(request);
+      return NavigationResource(
+        data: cached?.value.toDomain(),
+        isCached: cached != null,
+        remoteFailed: false,
+        cachedAt: cached?.cachedAt,
+      );
+    } catch (_) {
+      return const NavigationResource(
+        data: null,
+        isCached: false,
+        remoteFailed: false,
+      );
+    }
+  }
+
+  @override
   Future<NavigationResource<RouteSuggestions>> suggestRoutes(
     RouteSuggestionRequest request,
   ) async {

@@ -24,6 +24,16 @@ enum DisasterType {
 
 enum RouteProfile { walking, driving }
 
+enum ContextScenario {
+  outdoorsAfterShaking,
+  general;
+
+  String get wireValue => switch (this) {
+    ContextScenario.outdoorsAfterShaking => 'outdoors_after_shaking',
+    ContextScenario.general => 'general',
+  };
+}
+
 final class NavigationCoordinate {
   const NavigationCoordinate({required this.latitude, required this.longitude});
 
@@ -61,6 +71,90 @@ final class ShelterCollection {
   final DateTime dataAt;
   final String source;
   final String uncertaintyNotice;
+}
+
+final class ContextMetrics {
+  const ContextMetrics({
+    required this.buildingClearanceM,
+    required this.treeClearanceM,
+    required this.relativeElevationM,
+    required this.buildingDensity,
+    required this.treeDensity,
+    required this.hazardIntersections,
+  });
+
+  final double buildingClearanceM;
+  final double treeClearanceM;
+  final double relativeElevationM;
+  final double buildingDensity;
+  final double treeDensity;
+  final int hazardIntersections;
+}
+
+final class ContextArea {
+  ContextArea({
+    required this.id,
+    required this.name,
+    required this.coordinate,
+    required this.disasterType,
+    required this.scenario,
+    required this.distanceM,
+    required this.metrics,
+    required List<String> rationale,
+    required this.source,
+    required this.dataAt,
+    required this.uncertaintyNotice,
+  }) : rationale = List.unmodifiable(rationale);
+
+  final String id;
+  final String name;
+  final NavigationCoordinate coordinate;
+  final DisasterType disasterType;
+  final ContextScenario scenario;
+  final double distanceM;
+  final ContextMetrics metrics;
+  final List<String> rationale;
+  final String source;
+  final DateTime dataAt;
+  final String uncertaintyNotice;
+}
+
+final class ContextAreaCollection {
+  ContextAreaCollection({
+    required List<ContextArea> items,
+    required this.dataAt,
+    required this.source,
+    required this.uncertaintyNotice,
+  }) : items = List.unmodifiable(items);
+
+  final List<ContextArea> items;
+  final DateTime dataAt;
+  final String source;
+  final String uncertaintyNotice;
+}
+
+final class ContextAreaRequest {
+  const ContextAreaRequest({
+    required this.origin,
+    required this.disasterType,
+    required this.scenario,
+    this.searchRadiusM = 1000,
+  });
+
+  final NavigationCoordinate origin;
+  final DisasterType disasterType;
+  final ContextScenario scenario;
+  final double searchRadiusM;
+
+  int get originLatitudeE5 => (origin.latitude * 100000).round();
+  int get originLongitudeE5 => (origin.longitude * 100000).round();
+
+  bool matches(ContextAreaRequest other) =>
+      originLatitudeE5 == other.originLatitudeE5 &&
+      originLongitudeE5 == other.originLongitudeE5 &&
+      disasterType == other.disasterType &&
+      scenario == other.scenario &&
+      searchRadiusM == other.searchRadiusM;
 }
 
 final class Hazard {
@@ -154,15 +248,23 @@ final class RouteSuggestions {
 final class RouteSuggestionRequest {
   const RouteSuggestionRequest({
     required this.origin,
-    required this.shelterId,
+    this.shelterId,
+    this.contextAreaId,
     required this.disasterType,
     required this.profile,
+    this.scenario = ContextScenario.general,
+    this.searchRadiusM = 1000,
   });
 
   final NavigationCoordinate origin;
-  final String shelterId;
+  final String? shelterId;
+  final String? contextAreaId;
   final DisasterType disasterType;
   final RouteProfile profile;
+  final ContextScenario scenario;
+  final double searchRadiusM;
+
+  String get destinationId => contextAreaId ?? shelterId ?? '';
 
   int get originLatitudeE5 => (origin.latitude * 100000).round();
   int get originLongitudeE5 => (origin.longitude * 100000).round();
@@ -170,7 +272,10 @@ final class RouteSuggestionRequest {
   bool matches(RouteSuggestionRequest other) =>
       originLatitudeE5 == other.originLatitudeE5 &&
       originLongitudeE5 == other.originLongitudeE5 &&
+      contextAreaId == other.contextAreaId &&
       shelterId == other.shelterId &&
       disasterType == other.disasterType &&
-      profile == other.profile;
+      profile == other.profile &&
+      scenario == other.scenario &&
+      searchRadiusM == other.searchRadiusM;
 }

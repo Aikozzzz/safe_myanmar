@@ -8,6 +8,9 @@ void main() {
   test('strictly parses all navigation response types', () {
     final shelters = ShelterCollectionDto.fromJson(shelterResponseJson());
     final hazards = HazardCollectionDto.fromJson(hazardResponseJson());
+    final contextAreas = ContextAreaCollectionDto.fromJson(
+      contextAreaResponseJson(),
+    );
     final routes = RouteSuggestionsDto.fromJson(
       routeResponseJson(optionCount: 3),
     );
@@ -19,6 +22,10 @@ void main() {
     );
     expect(routes.toDomain().options, hasLength(3));
     expect(routes.toDomain().options.first.recommended, isTrue);
+    expect(
+      contextAreas.toDomain().items.single.scenario,
+      ContextScenario.outdoorsAfterShaking,
+    );
   });
 
   test('rejects extra fields and false simulation markers', () {
