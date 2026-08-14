@@ -34,7 +34,7 @@ docker compose version
 Run these commands from the repository root:
 
 ```powershell
-py -3.13 -m venv backend/.venv
+python -m venv backend/.venv
 backend/.venv/Scripts/python -m pip install -r backend/requirements.txt
 Copy-Item backend/.env.example backend/.env
 docker compose up -d db
@@ -189,7 +189,7 @@ $deviceId = "emulator-5554"
 ### Without Map Tiles
 
 ```powershell
-flutter run -d $deviceId `
+flutter run -d emulator-5554 `
   --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
 
@@ -203,7 +203,7 @@ Use a restricted public Mapbox `pk.*` token:
 ```powershell
 flutter run -d $deviceId `
   --dart-define=API_BASE_URL=http://10.0.2.2:8000 `
-  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=pk.replace_with_restricted_public_token
+  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=pk.eyJ1IjoiYWlrb21hcGJveCIsImEiOiJjbXNuZWVxN2kwaWxsMzJxd3h4anoxMG9iIn0.MQxZ27bJrgB_HV7TW2jcxA
 ```
 
 The public token is embedded in the APK and is not a secret. Restrict it by
@@ -234,7 +234,7 @@ Run the app with:
 Set-Location mobile
 flutter run `
   --dart-define=API_BASE_URL=http://127.0.0.1:8000 `
-  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=pk.replace_with_restricted_public_token
+  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=
 ```
 
 Omit `MAPBOX_PUBLIC_ACCESS_TOKEN` when map tiles are not needed.
