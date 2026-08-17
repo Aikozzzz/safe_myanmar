@@ -152,6 +152,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Simulation shelter and route information';
 
   @override
+  String get navigationDataHeading => 'Shelter and hazard information';
+
+  @override
   String navigationSource(String source) {
     return 'Source: $source';
   }
@@ -172,15 +175,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get navigationDataLoading => 'Loading simulation shelters and hazards';
+  String get navigationDataLoading => 'Loading shelter and hazard data';
 
   @override
   String get navigationDataUnavailable =>
-      'Simulation shelter or hazard information could not be updated.';
+      'Shelter or hazard information could not be updated.';
+
+  @override
+  String get contextAnalysisUnavailable =>
+      'Nearby analysis is unavailable. Check the backend connection or choose earthquake or flood analysis.';
 
   @override
   String get navigationCachedWarning =>
-      'Previously loaded simulation information remains visible and is stale.';
+      'Previously loaded information remains visible and may be stale.';
 
   @override
   String get retryNavigationData => 'Retry shelter and hazard data';
@@ -202,24 +209,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapContentSemantics =>
-      'Interactive map showing current or last-known location, simulation shelters, relevant hazards, and route options. The selected route uses a wider line.';
+      'Interactive map showing current or last-known location, mapped shelters, relevant hazards, and route options. The selected route uses a wider line.';
 
   @override
-  String get chooseShelter => 'Shelter';
+  String get chooseShelter => 'Shelter or suggested place';
 
   @override
-  String get shelterListHeading => 'Available simulation shelters';
+  String get shelterListHeading => 'Available mapped shelters';
 
   @override
-  String get shelterListEmpty =>
-      'No cached simulation shelter details are available.';
+  String get shelterListEmpty => 'No cached shelter details are available.';
 
   @override
   String get contextAreasHeading => 'Nearby lower-exposure areas';
 
   @override
   String get contextAreasDescription =>
-      'Suggestions compare currently available simulation context. They are not official shelters or guarantees.';
+      'Suggestions compare currently available mapped environment data. They are not official shelters or guarantees.';
 
   @override
   String get analyzeContext => 'Analyze nearby areas';
@@ -257,8 +263,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String contextDataAt(String time) {
-    return 'SIMULATION data: $time';
+    return 'Analysis data: $time';
   }
+
+  @override
+  String get sosBluetoothShareTitle => 'Share limited SOS data nearby';
+
+  @override
+  String get sosBluetoothShareDescription =>
+      'Broadcast a temporary ID, timestamp, approximate grid, location status, and battery level to nearby SafeMyanmar users for 10 minutes.';
+
+  @override
+  String get sosBluetoothFields =>
+      'Shared: temporary event ID, UTC timestamp, approximately 1 km grid, location status, and battery level.';
+
+  @override
+  String get sosBluetoothTenMinuteLimit =>
+      'The broadcast stops automatically after 10 minutes. Exact coordinates, name, contacts, and message are not broadcast.';
+
+  @override
+  String get sosBluetoothUnavailable =>
+      'Bluetooth SOS is unavailable on this device or Bluetooth is disabled.';
+
+  @override
+  String get sosBluetoothPermissionRequired =>
+      'Nearby-device and notification permissions are required before Bluetooth SOS can be used.';
+
+  @override
+  String get sosBluetoothReceiveTitle => 'Receive nearby SOS alerts';
+
+  @override
+  String get sosBluetoothReceiveDescription =>
+      'Listen while this screen is open. Received events are unverified and do not confirm rescue response.';
+
+  @override
+  String get sosBluetoothSoundTitle => 'Sound an alert';
+
+  @override
+  String get sosBluetoothSoundDescription =>
+      'Allow an optional sound when a nearby unverified SOS is detected.';
+
+  @override
+  String get sosBluetoothBroadcasting =>
+      'Bluetooth SOS is broadcasting limited data.';
+
+  @override
+  String get sosBluetoothStop => 'Stop';
+
+  @override
+  String get sosBluetoothNearbyAlert => 'Nearby unverified SOS';
+
+  @override
+  String get sosBluetoothDismiss => 'Dismiss nearby SOS';
+
+  @override
+  String get sosBluetoothUnverified =>
+      'Peer-received; delivery to rescue services is not confirmed.';
+
+  @override
+  String sosBluetoothGridLocation(String latitude, String longitude) {
+    return 'Approximate grid: $latitude, $longitude';
+  }
+
+  @override
+  String get sosBluetoothCurrentLocation =>
+      'Reported as current when the SOS was prepared.';
+
+  @override
+  String get sosBluetoothLastKnownLocation =>
+      'Reported as last known when the SOS was prepared.';
+
+  @override
+  String get sosBluetoothLocationUnavailable => 'Location was unavailable.';
+
+  @override
+  String get sosBluetoothBroadcastStarted =>
+      'Bluetooth SOS sharing is active for up to 10 minutes.';
+
+  @override
+  String get sosBluetoothBroadcastFailed =>
+      'Bluetooth SOS sharing could not be started. No nearby data was broadcast.';
+
+  @override
+  String get sosBluetoothOperationFailed =>
+      'Bluetooth is disabled or the nearby-device operation could not be started.';
 
   @override
   String get chooseDisasterType => 'Disaster type';
@@ -475,8 +563,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'SafeMyanmar only opens your phone\'s messaging app. That app controls SMS transmission and delivery, and SafeMyanmar cannot verify either.';
 
   @override
-  String get sosHoldToOpen =>
-      'Hold for 3 seconds to prepare and open messaging';
+  String get sosDirectSmsDisclosure =>
+      'After confirmation, SafeMyanmar requests SMS permission and sends the reviewed message directly through Android. The carrier may still delay delivery; SafeMyanmar can confirm only whether the device accepted the SMS.';
+
+  @override
+  String get sosHoldToOpen => 'Hold for 3 seconds to send SMS';
 
   @override
   String sosHoldProgress(int percent) {
@@ -484,7 +575,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get sosHoldCancelled => 'Hold cancelled. Nothing was opened.';
+  String get sosHoldCancelled => 'Hold cancelled. Nothing was sent.';
 
   @override
   String get sosHoldSemanticsHint =>
@@ -514,6 +605,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosOpenMessaging => 'Prepare and open messaging';
 
   @override
+  String get sosConfirmSmsTitle => 'Send SOS SMS directly?';
+
+  @override
+  String get sosConfirmSmsDescription =>
+      'This second confirmation prepares the secure draft and sends the reviewed SMS directly to the selected contacts after Android SMS permission is granted. Device acceptance does not guarantee carrier delivery.';
+
+  @override
+  String get sosSendSms => 'Send SMS now';
+
+  @override
+  String get sosRetrySmsTitle => 'Send this SOS draft again?';
+
+  @override
+  String get sosRetrySmsDescription =>
+      'SafeMyanmar will send this saved message directly through Android SMS. Device acceptance does not guarantee carrier delivery.';
+
+  @override
   String get sosNotNow => 'Not now';
 
   @override
@@ -526,7 +634,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosDraftSaveFailed =>
-      'The SOS draft could not be saved securely. No messaging app was opened.';
+      'The SOS draft could not be saved securely. No SMS was sent.';
+
+  @override
+  String get sosSmsPermissionDenied =>
+      'SMS permission was not granted. No SMS was sent; the draft was retained for retry.';
+
+  @override
+  String get sosSmsSentNotice =>
+      'The device accepted the SMS for sending. Carrier delivery is not confirmed; the draft was retained.';
+
+  @override
+  String get sosSmsFailedNotice =>
+      'The device could not accept the SMS. Check SIM/service and SMS permission, then retry the draft.';
+
+  @override
+  String get sosSimUnavailable =>
+      'No active SIM could be selected. Check your SIM service and try again. No SMS was sent.';
+
+  @override
+  String get sosChooseSimTitle => 'Choose SIM';
+
+  @override
+  String get sosChooseSimDescription =>
+      'Select which active SIM should send this SOS message.';
+
+  @override
+  String get sosRememberSim => 'Remember my preferred SIM';
+
+  @override
+  String get sosSendUsingSim => 'Send using SIM';
 
   @override
   String get sosMaximumDrafts =>
@@ -548,6 +685,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosStatusPrepared => 'Prepared';
 
   @override
+  String get sosStatusSmsSending => 'Sending SMS';
+
+  @override
+  String get sosStatusSmsSent => 'SMS accepted by device; delivery unconfirmed';
+
+  @override
+  String get sosStatusSmsFailed => 'SMS failed; retry available';
+
+  @override
   String get sosStatusComposerOpened => 'Messaging app opened; outcome unknown';
 
   @override
@@ -557,7 +703,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosStatusCancelled => 'Cancelled';
 
   @override
-  String get sosOpenAgain => 'Open again';
+  String get sosOpenAgain => 'Send again';
 
   @override
   String get sosCancelDraft => 'Cancel draft';
@@ -716,7 +862,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guideTranslationWarning =>
-      'Academic prototype: Burmese translations require review by qualified local language and emergency experts before deployment.';
+      'Burmese translations require review by qualified local language and emergency experts before deployment.';
 
   @override
   String get guideArticleTitle => 'Emergency guide';
@@ -785,19 +931,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantGemmaChecking =>
-      'Checking optional Gemma local rewording availability.';
+      'Checking optional Gemma 3 local assistant availability.';
 
   @override
   String get assistantGemmaAvailable =>
-      'Optional Gemma local rewording is available for eligible noncritical articles.';
+      'Optional local Gemma 3 can answer general questions, with extra focus on disaster and preparedness topics.';
 
   @override
   String get assistantGemmaUnavailable =>
-      'Optional Gemma local rewording is unavailable. Missing optional models are normal; exact verified articles remain available.';
+      'Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.';
 
   @override
   String get assistantIntroduction =>
-      'This tool always matches questions with a deterministic classifier and retrieves approved articles on this device. Optional local models cannot create instructions, calculate routes, or activate SOS.';
+      'This tool matches disaster questions with approved offline content. When the optional Gemma 3 model is installed, it can also answer general non-critical questions with disaster guidance prioritized.';
 
   @override
   String get assistantSuggestedQuestions => 'Suggested questions';
@@ -817,11 +963,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantSuggestionFlood => 'How do I avoid floodwater?';
 
   @override
-  String get assistantSearching => 'Searching approved offline content';
+  String get assistantSearching => 'Preparing an offline answer';
 
   @override
   String get assistantDisclaimer =>
-      'This academic prototype retrieves only fixed, reviewed content. It is not a diagnosis or a replacement for authorized emergency or medical services.';
+      'Gemma answers are generated on-device and may be inaccurate. Disaster guidance is grounded in approved offline content when available. This is not a diagnosis or a replacement for authorized emergency or medical services.';
 
   @override
   String get assistantInputLabel => 'Emergency question';
@@ -858,12 +1004,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'The deterministic classifier returned unknown, then the optional local ONNX classifier recognized this intent at or above the safety threshold.';
 
   @override
+  String get assistantClassifierGemma =>
+      'Answered by the optional local Gemma 3 model. Relevant disaster guidance is grounded in approved offline content when available.';
+
+  @override
   String get assistantEngineDeterministic =>
       'Response engine: deterministic offline classifier';
 
   @override
   String get assistantEngineOnnx =>
       'Response engine: optional local ONNX intent classifier';
+
+  @override
+  String get assistantEngineGemma => 'Response engine: local Gemma 3 assistant';
+
+  @override
+  String get assistantGemmaAnswerTitle => 'Gemma 3 answer';
 
   @override
   String get assistantLocalRewordingTitle => 'Optional local rewording';

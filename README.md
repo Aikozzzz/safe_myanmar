@@ -2,16 +2,16 @@
 
 SafeMyanmar is an academic Android disaster-information application for the
 Mobile and Ubiquitous Computing subject. The implemented app combines live USGS
-earthquake observations, explicit foreground location use, opt-in fictional
-navigation data, offline emergency guidance, local SOS preparation, and
+earthquake observations, explicit foreground location use, a validated Yangon
+navigation snapshot, offline emergency guidance, local SOS preparation, and
 constrained on-device assistance.
 
 SafeMyanmar is not an official warning, earthquake-prediction, emergency
 dispatch, medical, or guaranteed-safety service. USGS observations are
-informational and preliminary values may change. Shelters, hazards, and route
-suggestions are clearly labeled **SIMULATION** and are not real emergency data.
-Follow authorized local instructions and contact official emergency or medical
-services when available.
+informational and preliminary values may change. Navigation records include
+their source, timestamp, and uncertainty notice; empty data is not replaced by
+fictional recommendations. Follow authorized local instructions and contact
+official emergency or medical services when available.
 
 ## Implemented Scope
 
@@ -28,24 +28,27 @@ services when available.
   permanently denied, disabled-service, retry, and last-known-location states.
   The app requests no background location permission.
 - Mapbox map rendering when an optional public mobile token is supplied.
-  Hazards and context-aware lower-exposure area suggestions are fictional runtime
-  SIMULATION data that remains disabled by default and is rejected in production.
-- Up to three Mapbox Directions alternatives ranked by simulated hazard
-  intersections, duration, and distance. Users can select an alternative and
-  can still view cached or current shelter/hazard information if routing fails.
+  The default navigation data is the validated Yangon snapshot configured by
+  `NAVIGATION_DATA_PATH`; it exposes only records present in that snapshot and
+  does not invent shelters. Explicit nearby analysis can score offset points
+  using separately retrieved mapped environment data.
+- Current hazard records include source and retrieval timestamps. Route
+  suggestions remain unavailable unless verified destinations and a directions
+  provider are configured; no route is presented as guaranteed safe.
 - Drift schema v3 for earthquake, shelter, hazard, and route caches plus
   versioned, source-backed emergency Guide content.
 - Device-local profile and up to ten emergency contacts in Android secure
   storage. Contacts must be explicitly selected for SOS use.
 - Persisted SOS drafts with recipient and optional location snapshots,
   five-minute duplicate suppression, hold-to-confirm, and an accessible
-  confirmation path. SafeMyanmar opens the external native SMS composer; it
-  does not send SMS itself and cannot verify sent or delivered status.
+  confirmation path. Android direct SMS sending is available after explicit
+  confirmation and runtime SMS permission; device acceptance is recorded, but
+  carrier delivery is not guaranteed or verified.
 - Bilingual English/Myanmar offline Guide articles with source, review date,
   content version, translation warning, category filtering, and search.
 - A deterministic offline intent classifier and structured SOS text extraction.
-  Optional checksum-gated ONNX intent refinement and LiteRT-LM rewording can be
-  provisioned separately; no model artifacts are bundled.
+   Optional checksum-gated ONNX intent refinement and LiteRT-LM Gemma 3 answers
+   can be provisioned separately; no model artifacts are bundled.
 - Riverpod state management, `go_router` navigation, localization-ready UI,
   light/dark themes, semantic status announcements, and 48dp touch targets.
 
@@ -55,7 +58,7 @@ See [the context-aware mobile flow](docs/architecture/context-aware-mobile-flow.
 [the step-by-step run instructions](Instruction.md),
 [the implemented mobile design](DESIGN.md),
 [the alert API](docs/api/alerts.md), and
-[the simulation navigation API](backend/docs/api/simulation-navigation.md).
+[the navigation API](backend/docs/api/simulation-navigation.md).
 
 The archived Figma zip is a design reference only. It is not included as app
 assets and is not loaded by the shipped runtime.
@@ -82,14 +85,14 @@ the last successful server and mobile snapshots; failure before any success is
 not shown as an empty result. There are no simulated earthquake alerts in the
 runtime path; controlled alert fixtures remain test-only.
 
-### Simulation navigation
+### Navigation data
 
-Runtime simulation exists only for the separately gated shelter, hazard, and
-route endpoints. `ENABLE_SIMULATION_DATA=false` is the default, production
-startup rejects `true`, and every simulation response carries data or generation
-timestamps, `SafeMyanmar Demo` attribution, and an uncertainty notice. Route
-ranking uses fictional polygons and Mapbox geometry; it must not be interpreted
-as an official evacuation route or a guarantee that conditions are safe.
+The default runtime loads the validated snapshot named by `NAVIGATION_DATA_PATH`.
+The current Yangon snapshot contains no verified shelters. Nearby analysis can
+use OpenStreetMap/Overpass building and tree features for earthquake criteria
+and OpenTopoData terrain elevation for flood criteria. Stale or geometry-less
+records are excluded. `ENABLE_SIMULATION_DATA=true` remains an explicitly
+separate development mode and is rejected in production.
 
 ## Prerequisites
 
@@ -189,7 +192,10 @@ Backend values are read from `backend/.env` when the API starts in `backend/`.
 | `REFRESH_MINIMUM_SECONDS` | FastAPI | Defaults to `60` |
 | `CURRENT_MAX_AGE_SECONDS` | FastAPI | Defaults to `300` |
 | `ENABLE_SIMULATION_DATA` | FastAPI | Defaults to `false`; must remain false in production |
-| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | FastAPI | Optional secret; required only for simulation route suggestions |
+| `NAVIGATION_DATA_PATH` | FastAPI | Defaults to the validated Yangon snapshot directory |
+| `OVERPASS_API_URL` | FastAPI | OpenStreetMap building/tree lookup used by earthquake analysis |
+| `ELEVATION_API_URL` | FastAPI | OpenTopoData elevation lookup used by flood analysis |
+| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | FastAPI | Optional secret; required only when route suggestions are enabled |
 
 Never commit a real `.env` file or Mapbox secret. Restrict the public mobile
 token by application/package and allowed APIs. The mobile public token is
@@ -343,10 +349,15 @@ SafeMyanmar/
   conditions, official shelters, evacuation orders, or guaranteed safe routes.
 - The app has no authentication, cloud profile synchronization, rescue-team
   dashboard, damage reporting, official rescue-service integration, Rescue
-  Beacon Mode, Bluetooth/peer-to-peer messaging, or background location.
-- SOS is a local draft and handoff workflow only. The user reviews and sends in
-  an external SMS app; SafeMyanmar has no sent, delivered, dispatch, retry, or
-  rescue acknowledgement signal.
+  Beacon Mode, iOS Bluetooth support, or background location tracking.
+- Android BLE SOS sharing is limited to nearby SafeMyanmar users who have opted
+  into receiving peer alerts. It broadcasts a temporary event ID, UTC timestamp,
+  approximately 1 km grid, location status, and battery value for up to ten
+  minutes. Peer events are unverified and do not confirm delivery or rescue.
+- SOS remains a local draft and transport handoff workflow. SMS is reviewed and
+  sent in an external app; optional Android BLE sharing broadcasts limited,
+  unverified peer data for ten minutes. SafeMyanmar has no sent, delivered,
+  dispatch, retry, or rescue acknowledgement signal.
 - Guide content is a small reviewed offline set, not diagnosis or comprehensive
   medical care. Myanmar translations carry a review warning.
 - Deterministic guidance remains available without models. Optional ONNX and

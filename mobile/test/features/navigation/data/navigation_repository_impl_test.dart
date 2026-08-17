@@ -34,6 +34,7 @@ void main() {
       localSource: local,
       remoteSource: firstRemote,
       now: () => now,
+      allowSimulationData: true,
     );
 
     final fresh = await online.loadShelters();
@@ -48,6 +49,7 @@ void main() {
           isProduction: true,
         ),
       ),
+      allowSimulationData: true,
     );
     final fallback = await offline.loadShelters();
 
@@ -55,6 +57,47 @@ void main() {
     expect(fallback.isCached, isTrue);
     expect(fallback.remoteFailed, isTrue);
     expect(fallback.cachedAt, now);
+  });
+
+  test('does not show cached simulation data in real mode', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final local = DriftNavigationLocalSource(database);
+    final online = NavigationRepositoryImpl(
+      localSource: local,
+      remoteSource: NavigationRemoteSource(
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode(shelterResponseJson()),
+            200,
+            headers: const {'content-type': 'application/json'},
+          ),
+        ),
+        config: ApiConfig.fromRaw(
+          'https://api.example.test',
+          isProduction: true,
+        ),
+      ),
+      allowSimulationData: true,
+    );
+    await online.loadShelters();
+
+    final offline = NavigationRepositoryImpl(
+      localSource: local,
+      remoteSource: NavigationRemoteSource(
+        client: MockClient((_) async => throw http.ClientException('offline')),
+        config: ApiConfig.fromRaw(
+          'https://api.example.test',
+          isProduction: true,
+        ),
+      ),
+    );
+
+    final result = await offline.loadShelters();
+
+    expect(result.data, isNull);
+    expect(result.isCached, isFalse);
+    expect(result.remoteFailed, isTrue);
   });
 
   test(
@@ -79,6 +122,7 @@ void main() {
           ),
         ),
         now: () => DateTime.utc(2026, 7, 23, 13),
+        allowSimulationData: true,
       );
       const original = RouteSuggestionRequest(
         origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
@@ -135,6 +179,7 @@ void main() {
         ),
       ),
       now: () => DateTime.utc(2026, 7, 23, 13),
+      allowSimulationData: true,
     );
     const olderRequest = RouteSuggestionRequest(
       origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),

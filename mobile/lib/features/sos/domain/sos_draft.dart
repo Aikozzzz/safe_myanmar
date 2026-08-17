@@ -6,7 +6,15 @@ const maxSosBodyLength = 4000;
 const maxSosProfileNameLength = 500;
 const sosDuplicateWindow = Duration(minutes: 5);
 
-enum SosDraftStatus { prepared, composerOpened, failedToOpen, cancelled }
+enum SosDraftStatus {
+  prepared,
+  smsSending,
+  smsSent,
+  smsFailed,
+  composerOpened,
+  failedToOpen,
+  cancelled,
+}
 
 final class SosRecipientSnapshot {
   const SosRecipientSnapshot({

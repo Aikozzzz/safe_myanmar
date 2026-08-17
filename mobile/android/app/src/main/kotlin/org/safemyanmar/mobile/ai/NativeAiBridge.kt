@@ -43,6 +43,9 @@ class NativeAiBridge(context: Context) : MethodChannel.MethodCallHandler, AutoCl
             "rewriteVerifiedContent" -> launchOperation(result) {
                 runtimeLock.withLock { gemma.rewrite(call.arguments as? Map<*, *>) }
             }
+            "answerQuestion" -> launchOperation(result) {
+                runtimeLock.withLock { gemma.answer(call.arguments as? Map<*, *>) }
+            }
             "cancel" -> launchUntracked(result) {
                 val nativeCancelled = onnx.cancel() or gemma.cancel()
                 success(mapOf("cancelled" to nativeCancelled))
@@ -83,7 +86,7 @@ class NativeAiBridge(context: Context) : MethodChannel.MethodCallHandler, AutoCl
         val job = scope.launch(start = CoroutineStart.LAZY) {
             val response = try {
                 block()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 error(RUNTIME_ERROR)
             }
             reply(result, response)
@@ -104,7 +107,7 @@ class NativeAiBridge(context: Context) : MethodChannel.MethodCallHandler, AutoCl
         scope.launch {
             val response = try {
                 block()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 error(RUNTIME_ERROR)
             }
             reply(result, response)

@@ -198,7 +198,9 @@ class _NavigationContent extends StatelessWidget {
             NavigationMap(
               accessToken: token,
               location: currentLocation,
-              shelters: const [],
+              shelters: state.shelters?.items ?? const [],
+              contextAreas: state.contextAreas?.items ?? const [],
+              selectedContextAreaId: state.selectedContextAreaId,
               hazards: state.relevantHazards,
               routes: routes,
               selectedRouteId: state.selectedRouteId,
@@ -225,14 +227,16 @@ class _NavigationContent extends StatelessWidget {
           onAnalyze: onAnalyzeContext,
           onSelected: onContextAreaChanged,
         ),
-        const SizedBox(height: 16),
-        _RouteControls(
-          state: state,
-          onDisasterChanged: onDisasterChanged,
-          onContextScenarioChanged: onContextScenarioChanged,
-          onProfileChanged: onProfileChanged,
-          onRequestRoutes: onRequestRoutes,
-        ),
+        if (state.contextAnalysisRequested) ...[
+          const SizedBox(height: 16),
+          _RouteControls(
+            state: state,
+            onDisasterChanged: onDisasterChanged,
+            onContextScenarioChanged: onContextScenarioChanged,
+            onProfileChanged: onProfileChanged,
+            onRequestRoutes: onRequestRoutes,
+          ),
+        ],
         if (state.routeFailed) ...[
           const SizedBox(height: 12),
           _StatusMessage(
@@ -296,6 +300,7 @@ class _SimulationStatus extends StatelessWidget {
     final hazards = state.hazards;
     final source = shelters?.source ?? hazards?.source;
     final notice = shelters?.uncertaintyNotice ?? hazards?.uncertaintyNotice;
+    final isSimulation = source == 'SafeMyanmar Demo';
     return Semantics(
       container: true,
       child: Card(
@@ -304,25 +309,28 @@ class _SimulationStatus extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+              if (isSimulation)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(
-                    strings.simulationLabel,
-                    style: Theme.of(context).textTheme.labelLarge,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      strings.simulationLabel,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
+              if (isSimulation) const SizedBox(height: 8),
               Text(
-                strings.simulationNavigationHeading,
+                isSimulation
+                    ? strings.simulationNavigationHeading
+                    : strings.navigationDataHeading,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               if (source != null) ...[
@@ -499,7 +507,7 @@ class _ContextAreaList extends StatelessWidget {
         ),
         if (failed) ...[
           const SizedBox(height: 8),
-          Text(strings.navigationDataUnavailable),
+          Text(strings.contextAnalysisUnavailable),
         ],
         if (requested && !loading && areas.isEmpty) ...[
           const SizedBox(height: 8),

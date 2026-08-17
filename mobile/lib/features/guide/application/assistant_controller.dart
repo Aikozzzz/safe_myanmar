@@ -21,7 +21,7 @@ enum AssistantReplyKind {
 
 enum AssistantCapabilityStatus { checking, available, unavailable }
 
-enum AssistantResponseEngine { deterministic, onnx }
+enum AssistantResponseEngine { deterministic, onnx, gemma }
 
 final class AssistantMessage {
   const AssistantMessage.user(this.text)
@@ -31,7 +31,8 @@ final class AssistantMessage {
       replyKind = null,
       sosDraft = null,
       responseEngine = null,
-      localRewording = null;
+      localRewording = null,
+      gemmaAnswer = null;
 
   const AssistantMessage.assistant({
     required this.result,
@@ -40,6 +41,7 @@ final class AssistantMessage {
     required this.sosDraft,
     required this.responseEngine,
     required this.localRewording,
+    required this.gemmaAnswer,
   }) : isUser = false,
        text = null;
 
@@ -51,6 +53,7 @@ final class AssistantMessage {
   final SosTextDraft? sosDraft;
   final AssistantResponseEngine? responseEngine;
   final String? localRewording;
+  final String? gemmaAnswer;
 }
 
 final class AssistantState {
@@ -175,6 +178,7 @@ final class AssistantController extends Notifier<AssistantState> {
           };
 
     String? localRewording;
+    String? gemmaAnswer;
     if (article != null &&
         criticalMatch == null &&
         _canUseGemma(result.intent, replyKind) &&
@@ -184,6 +188,16 @@ final class AssistantController extends Notifier<AssistantState> {
         question: text,
         intent: result.intent,
       );
+      if (localRewording != null) {
+        responseEngine = AssistantResponseEngine.gemma;
+      }
+    } else if (criticalMatch == null &&
+        replyKind == AssistantReplyKind.unknown &&
+        _capabilities?.tier3.available == true) {
+      gemmaAnswer = await _tryAnswerQuestion(text);
+      if (gemmaAnswer != null) {
+        responseEngine = AssistantResponseEngine.gemma;
+      }
     }
     if (_disposed) return;
     state = state.copyWith(
@@ -193,9 +207,12 @@ final class AssistantController extends Notifier<AssistantState> {
           result: result,
           article: article,
           replyKind: replyKind,
-          sosDraft: extraction.hasValues ? extraction : null,
+          sosDraft: _shouldShowSosDraft(result.intent, extraction)
+              ? extraction
+              : null,
           responseEngine: responseEngine,
           localRewording: localRewording,
+          gemmaAnswer: gemmaAnswer,
         ),
       ],
       isLoading: false,
@@ -263,6 +280,35 @@ final class AssistantController extends Notifier<AssistantState> {
     }
   }
 
+  Future<String?> _tryAnswerQuestion(String question) async {
+    try {
+      final articles = await _repository.search(query: '');
+      final approvedContext = articles
+          .take(_maximumContextArticles)
+          .map(
+            (article) =>
+                '[${article.category}] ${article.titleEn}\n${article.answerEn}\nSource: ${article.sourceName}',
+          )
+          .join('\n\n');
+      final initialized = await (_gemmaInitialization ??= _initializeGemma());
+      if (!initialized || _disposed) return null;
+      final answer = await _nativeAi.answerQuestion(
+        question: question,
+        approvedContext: approvedContext,
+      );
+      final text = answer.value?.text.trim();
+      if (answer.status != NativeAiStatus.success ||
+          text == null ||
+          text.isEmpty ||
+          text.length > _maximumRewriteCharacters) {
+        return null;
+      }
+      return text;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _cancelNativeOperation() async {
     try {
       await _nativeAi.cancel();
@@ -285,6 +331,7 @@ const _maximumQuestionCharacters = 500;
 const _maximumVerifiedContentCharacters = 3500;
 const _maximumSourceCharacters = 200;
 const _maximumRewriteCharacters = 2000;
+const _maximumContextArticles = 8;
 
 const _unavailableCapabilities = NativeAiCapabilities(
   tier2: NativeAiCapability(
@@ -309,6 +356,16 @@ bool _canUseGemma(EmergencyIntent intent, AssistantReplyKind replyKind) =>
     intent != EmergencyIntent.firstAid &&
     intent != EmergencyIntent.sendSos &&
     intent != EmergencyIntent.safeRoute;
+
+bool _shouldShowSosDraft(EmergencyIntent intent, SosTextDraft draft) {
+  if (!draft.hasValues) return false;
+  if (intent == EmergencyIntent.sendSos ||
+      intent == EmergencyIntent.trappedPerson) {
+    return true;
+  }
+  return draft.injury != null &&
+      (draft.status != null || draft.locationPhrase != null);
+}
 
 EmergencyIntent? _intentFromNativeLabel(String label) => switch (label
     .trim()

@@ -23,13 +23,21 @@ class StubProvider:
 
 
 @pytest.fixture
-def navigation_app():
+def navigation_app_without_data(monkeypatch):
+    monkeypatch.setenv("NAVIGATION_DATA_PATH", "__missing_navigation_snapshot__")
+    return create_app()
+
+
+@pytest.fixture
+def real_navigation_app(monkeypatch):
+    monkeypatch.setenv("NAVIGATION_DATA_PATH", "SafeMyanmar_Yangon_2026-08-17")
     return create_app()
 
 
 @pytest.fixture
 def enabled_navigation_app(monkeypatch):
     monkeypatch.setenv("ENABLE_SIMULATION_DATA", "true")
+    monkeypatch.setenv("MAPBOX_DIRECTIONS_ACCESS_TOKEN", "")
     return create_app()
 
 
@@ -48,8 +56,10 @@ def valid_request():
     }
 
 
-def test_endpoints_are_disabled_by_default(navigation_app):
-    with TestClient(navigation_app) as client:
+def test_endpoints_are_disabled_without_a_navigation_snapshot(
+    navigation_app_without_data,
+):
+    with TestClient(navigation_app_without_data) as client:
         shelters = client.get("/api/v1/shelters")
         hazards = client.get("/api/v1/hazards")
         routes = client.post("/api/v1/route-suggestions", content=b"not-json")
@@ -58,8 +68,43 @@ def test_endpoints_are_disabled_by_default(navigation_app):
     assert shelters.json()["error"]["code"] == "not_found"
     assert hazards.json()["error"]["code"] == "not_found"
     assert routes.json()["error"]["code"] == "not_found"
-    assert "/api/v1/alerts" in navigation_app.openapi()["paths"]
-    assert "/api/v1/route-suggestions" not in navigation_app.openapi()["paths"]
+    assert "/api/v1/alerts" in navigation_app_without_data.openapi()["paths"]
+    assert (
+        "/api/v1/route-suggestions"
+        not in navigation_app_without_data.openapi()["paths"]
+    )
+
+
+def test_real_navigation_snapshot_is_exposed_without_simulation(real_navigation_app):
+    with TestClient(real_navigation_app) as client:
+        shelters = client.get("/api/v1/shelters")
+        hazards = client.get("/api/v1/hazards")
+
+    assert shelters.status_code == hazards.status_code == 200
+    assert shelters.json()["items"] == []
+    assert hazards.json()["items"]
+    assert hazards.json()["simulation"] is False
+    assert "SafeMyanmar Yangon snapshot" in hazards.json()["source"]
+
+
+def test_real_context_analysis_uses_current_snapshot_hazard_types(
+    real_navigation_app,
+):
+    with TestClient(real_navigation_app) as client:
+        response = client.post(
+            "/api/v1/context-areas",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "disaster_type": "severe_weather",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["simulation"] is False
+    assert payload["items"] == []
+    assert "No candidate met" in payload["uncertainty_notice"]
+    assert "SafeMyanmar Yangon snapshot" in payload["source"]
 
 
 def test_lists_remain_available_when_route_provider_has_no_token(
@@ -103,6 +148,26 @@ def test_context_area_analysis_is_explicit_and_disaster_aware(enabled_navigation
     assert flood.json()["items"][0]["disaster_type"] == "flood"
     assert earthquake.json()["simulation"] is True
     assert flood.json()["items"][0]["metrics"]["relative_elevation_m"]
+
+
+def test_context_area_analysis_supports_yangon_device_locations(
+    enabled_navigation_app,
+):
+    enable_simulation(enabled_navigation_app)
+
+    with TestClient(enabled_navigation_app) as client:
+        response = client.post(
+            "/api/v1/context-areas",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "disaster_type": "earthquake",
+                "scenario": "outdoors_after_shaking",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["items"]
+    assert response.json()["items"][0]["simulation"] is True
 
 
 def test_context_area_analysis_returns_guidance_during_active_earthquake(
@@ -149,7 +214,7 @@ def test_malformed_coordinates_return_safe_validation_error(
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "invalid_request"
     assert "96.08" not in response.text
-    assert "181" not in response.text
+    assert '"longitude"' not in response.text
     assert "21.95" not in response.text
 
 

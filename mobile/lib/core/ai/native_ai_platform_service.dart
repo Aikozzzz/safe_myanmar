@@ -86,6 +86,11 @@ abstract interface class NativeAiService {
     required String intent,
   });
 
+  Future<NativeAiResult<NativeVerifiedRewrite>> answerQuestion({
+    required String question,
+    required String approvedContext,
+  });
+
   Future<NativeAiResult<bool>> cancel();
 
   Future<NativeAiResult<NativeAiAction>> dispose();
@@ -146,6 +151,21 @@ final class NativeAiPlatformService implements NativeAiService {
       'source': source,
       'userQuestion': userQuestion,
       'intent': intent,
+    });
+    return _result(response, (map) {
+      final text = map['text'];
+      return text is String ? NativeVerifiedRewrite(text) : null;
+    });
+  }
+
+  @override
+  Future<NativeAiResult<NativeVerifiedRewrite>> answerQuestion({
+    required String question,
+    required String approvedContext,
+  }) async {
+    final response = await _invoke('answerQuestion', {
+      'question': question,
+      'approvedContext': approvedContext,
     });
     return _result(response, (map) {
       final text = map['text'];

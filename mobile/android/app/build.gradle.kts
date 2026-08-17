@@ -46,7 +46,7 @@ flutter {
 
 dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.27.0")
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.14.0")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.0")
 }
 
 val verifyDebugMergedManifest by tasks.registering {
@@ -59,7 +59,11 @@ val verifyDebugMergedManifest by tasks.registering {
             .get()
             .asFile
             .walkTopDown()
-            .firstOrNull { it.isFile && it.name == "AndroidManifest.xml" }
+            .firstOrNull {
+                it.isFile &&
+                    it.name == "AndroidManifest.xml" &&
+                    it.path.contains("processDebugMainManifest")
+            }
             ?: error("Merged debug AndroidManifest.xml was not generated")
         val manifest = mergedManifest.readText()
         listOf(
@@ -68,12 +72,20 @@ val verifyDebugMergedManifest by tasks.registering {
             "android.permission.ACCESS_FINE_LOCATION",
             "android.permission.ACCESS_NETWORK_STATE",
             "android.permission.ACCESS_WIFI_STATE",
+            "android.permission.BLUETOOTH",
+            "android.permission.BLUETOOTH_ADMIN",
+            "android.permission.BLUETOOTH_SCAN",
+            "android.permission.BLUETOOTH_ADVERTISE",
+            "android.permission.BLUETOOTH_CONNECT",
+            "android.permission.POST_NOTIFICATIONS",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
+            "android.permission.SEND_SMS",
         ).forEach { permission ->
             check(permission in manifest) { "Expected merged permission missing: $permission" }
         }
         listOf(
             "android.permission.ACCESS_BACKGROUND_LOCATION",
-            "android.permission.SEND_SMS",
             "android.permission.READ_SMS",
             "android.permission.RECEIVE_SMS",
             "android.permission.READ_CONTACTS",

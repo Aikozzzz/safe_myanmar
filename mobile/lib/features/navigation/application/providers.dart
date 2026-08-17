@@ -24,12 +24,14 @@ final navigationRemoteSourceProvider = Provider<NavigationRemoteSource>(
   ),
 );
 
-final navigationRepositoryProvider = Provider<NavigationRepository>(
-  (ref) => NavigationRepositoryImpl(
+final navigationRepositoryProvider = Provider<NavigationRepository>((ref) {
+  final config = ref.watch(apiConfigProvider);
+  return NavigationRepositoryImpl(
     localSource: ref.watch(navigationLocalSourceProvider),
     remoteSource: ref.watch(navigationRemoteSourceProvider),
-  ),
-);
+    allowSimulationData: config.allowSimulationData,
+  );
+});
 
 final navigationControllerProvider =
     NotifierProvider<NavigationController, NavigationState>(

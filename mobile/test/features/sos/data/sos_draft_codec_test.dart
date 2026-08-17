@@ -78,7 +78,7 @@ void main() {
     expect((jsonDecode(SosDraftCodec.encode([migrated])) as Map)['version'], 2);
   });
 
-  test('accepts only the four non-delivery statuses', () {
+  test('rejects unknown statuses and preserves the SMS lifecycle statuses', () {
     final json =
         jsonDecode(SosDraftCodec.encode([draft])) as Map<String, dynamic>;
     final values = json['drafts'] as List<dynamic>;
@@ -91,6 +91,9 @@ void main() {
     );
     expect(SosDraftStatus.values.map((value) => value.name), [
       'prepared',
+      'smsSending',
+      'smsSent',
+      'smsFailed',
       'composerOpened',
       'failedToOpen',
       'cancelled',

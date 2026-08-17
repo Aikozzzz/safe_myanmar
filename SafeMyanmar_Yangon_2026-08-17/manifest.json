@@ -1,0 +1,18 @@
+{
+  "title": "SafeMyanmar Yangon disaster-response data snapshot",
+  "retrieved_at": "2026-08-17T13:42:17+00:00",
+  "target_region": "Yangon Region",
+  "files": [
+    "hazards.geojson",
+    "hazards.json",
+    "manifest.json",
+    "report.md",
+    "road_closures.csv",
+    "road_closures.json",
+    "shelters.csv",
+    "shelters.json",
+    "sources.csv",
+    "validation.json"
+  ],
+  "validation_status": "passed"
+}

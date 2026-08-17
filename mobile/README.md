@@ -2,14 +2,15 @@
 
 Android-only Flutter client for SafeMyanmar. It provides a five-tab Material 3
 shell, live USGS earthquake list/detail screens, explicit foreground location,
-an optional Mapbox map with opt-in SIMULATION navigation data, local SOS draft
-preparation, bilingual offline Guide content, constrained assistance, and a
-secure local profile/contact store.
+an optional Mapbox map with validated navigation data, local SOS draft
+preparation, bilingual offline Guide content, constrained assistance, secure
+local profile/contact store, and Android-first Bluetooth SOS sharing.
 
 This app is not an official warning, prediction, dispatch, medical, or
-guaranteed-safety service. SIMULATION shelters, hazards, and routes are fictional
-demonstration data. Follow authorized local instructions and contact official
-emergency or medical services when available.
+guaranteed-safety service. Navigation records are source-backed and may be
+empty or stale; they do not guarantee safe places or routes. Follow authorized
+local instructions and contact official emergency or medical services when
+available.
 
 ## Run
 
@@ -48,7 +49,10 @@ with `--dart-define`.
 
 ## Permissions And Privacy
 
-- The app manifest declares Internet plus coarse and fine location permissions.
+- The app manifest declares Internet, coarse/fine location, Android BLE
+  scan/advertise/connect, notification, and connected-device foreground-service
+  permissions. BLE permissions are requested only when the user enables nearby
+  SOS sharing or receiving.
   The merged Android manifest also includes transitive
   `ACCESS_NETWORK_STATE` and `ACCESS_WIFI_STATE` permissions used by Mapbox and
   supporting SDKs to detect connectivity and Wi-Fi state. These do not grant
@@ -67,8 +71,18 @@ with `--dart-define`.
   location constructs and centers the remote map, disclosing the viewed map area
   to Mapbox. Exact origin coordinates are sent to the SafeMyanmar backend and
   then Mapbox Directions only after the user explicitly requests a route.
-- The app does not request Android SMS or contacts permission. It opens an
-  external `sms:` composer with user-selected recipients and a reviewed body.
+- The app requests Android `READ_PHONE_STATE` to identify active SIMs and
+  `SEND_SMS` after explicit SOS confirmation. It does not request contacts or
+  SMS read permissions. It sends the reviewed body through the selected SIM;
+  carrier delivery is not verified.
+- Optional Bluetooth SOS sharing is separately confirmed. It broadcasts only a
+  temporary event ID, UTC timestamp, approximately 1 km grid, current/last-known
+  location status, and battery value. Exact coordinates, names, contacts, and
+  message text are never broadcast. Advertising stops after ten minutes and is
+  controlled by a foreground service notification.
+- Nearby SOS receiving is opt-in and currently foreground-only. Received events
+  are peer-received and unverified; SafeMyanmar does not acknowledge, relay, or
+  dispatch them. Optional sound is controlled by the receiver.
 - Profile, emergency contacts, and SOS drafts are stored locally with
   `flutter_secure_storage`. They are not uploaded by the implemented app.
 - Alert/navigation caches and Guide articles use app-private Drift/SQLite
@@ -96,7 +110,7 @@ with `--dart-define`.
   approved article content or explicit navigation/SOS actions.
 - Secure profile, contacts, and SOS drafts remain local and available without a
   network, subject to platform secure-storage availability.
-- Map tiles, fresh simulation data, live earthquake refresh, and Mapbox route
+- Map tiles, fresh navigation data, live earthquake refresh, and Mapbox route
   generation need network access. Previously cached map data can still be shown
   with a warning; there is no bundled offline basemap.
 
@@ -104,16 +118,21 @@ with `--dart-define`.
 
 - Home links to live USGS earthquake observations and details. These are
   informational, preliminary, and not a complete all-disaster warning feed.
-- Map uses an explicit foreground or last-known location. The backend's hazards
-  and context-area analysis exist only when `ENABLE_SIMULATION_DATA=true`; all
-  are fictional and labeled SIMULATION. Earthquake analysis applies outdoors
-  after shaking and compares simulated building/tree exposure. Flood analysis
-  compares simulated elevation and flood polygons. Route selection displays up
-  to three ranked alternatives but does not claim any area or route is safe.
+- Map uses an explicit foreground or last-known location. The backend exposes
+  the configured real snapshot with source and timestamp metadata. The current
+  Yangon snapshot has no verified shelters. Nearby analysis requires a current
+  hazard geometry for the selected disaster type, can use mapped building/tree
+  data for earthquakes and terrain elevation for floods, and otherwise only
+  excludes points intersecting current hazard geometry. It does not claim any
+  area or route is safe. Fictional analysis remains separately gated behind
+  `ENABLE_SIMULATION_DATA=true`.
 - SOS persists at most five drafts, suppresses equivalent active drafts within
   five minutes, previews shared data, and requires hold/accessibility
-  confirmation. Status means prepared, composer opened, failed to open, or
-  cancelled. The app cannot verify SMS sent or delivered status.
+  confirmation. Status means prepared, SMS sending, SMS accepted by the device,
+  SMS failed, composer opened, failed to open, or cancelled. Bluetooth sharing
+  has independent broadcast status. Dual-SIM devices can select the sending SIM
+  after confirmation and optionally remember the preferred subscription. Device
+  acceptance does not verify carrier delivery.
 - Guide contains a limited reviewed set, not diagnosis or comprehensive medical
   instructions. Source, content version, review date, and translation warning
   remain visible.
@@ -130,15 +149,19 @@ with `--dart-define`.
 No ONNX or LiteRT-LM model is bundled and the app contains no model downloader,
 model credentials, or remote AI API. Android checks only fixed app-private paths
 under `filesDir/ai`, validates schema-v1 manifests and exact SHA-256 checksums,
-and falls back to the deterministic Dart classifier whenever an artifact is
-missing, invalid, unsupported, below threshold, or fails at runtime.
+checks ABI/resources, and initializes LiteRT-LM with CPU only. It falls back to
+the deterministic Dart classifier whenever an artifact is missing, invalid,
+unsupported, below threshold, or fails at runtime. Provisioning commands are
+documented in the optional AI model provisioning guide.
 
 Optional tiers are:
 
 - Tier 1: always-available deterministic classifier and approved Drift content.
 - Tier 2: optional ONNX refinement only when Tier 1 returns unknown.
-- Tier 3: optional LiteRT-LM rewording of supplied verified English content;
-  critical first-aid, trapped-person, SOS, and safer-route intents are excluded.
+- Tier 3: optional LiteRT-LM Gemma 3 answers for general questions and
+  rewording of supplied verified English content; disaster context is supplied
+  when available, while critical first-aid, trapped-person, SOS, and safer-route
+  intents remain deterministic.
 
 Provisioning details and manifest contracts are documented in
 [`docs/architecture/optional-ai-model-provisioning.md`](../docs/architecture/optional-ai-model-provisioning.md).

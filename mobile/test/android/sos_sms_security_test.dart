@@ -11,17 +11,21 @@ void main() {
     ).readAsStringSync().replaceAll('\r\n', '\n');
   });
 
-  test('SOS composer requests no SMS or contacts permission', () {
-    for (final permission in [
-      'android.permission.SEND_SMS',
-      'android.permission.READ_SMS',
-      'android.permission.RECEIVE_SMS',
-      'android.permission.READ_CONTACTS',
-      'android.permission.WRITE_CONTACTS',
-    ]) {
-      expect(manifest, isNot(contains(permission)));
-    }
-  });
+  test(
+    'SOS requests send-SMS permission but no SMS or contacts read access',
+    () {
+      expect(manifest, contains('android.permission.SEND_SMS'));
+      expect(manifest, contains('android.permission.READ_PHONE_STATE'));
+      for (final permission in [
+        'android.permission.READ_SMS',
+        'android.permission.RECEIVE_SMS',
+        'android.permission.READ_CONTACTS',
+        'android.permission.WRITE_CONTACTS',
+      ]) {
+        expect(manifest, isNot(contains(permission)));
+      }
+    },
+  );
 
   test('adds only the sms VIEW package-visibility query', () {
     expect(

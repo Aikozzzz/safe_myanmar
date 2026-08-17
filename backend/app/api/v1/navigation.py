@@ -23,8 +23,9 @@ from app.services.navigation import (
     RoutingUnavailable,
     ShelterNotFound,
 )
+from app.services.real_context_analysis import ContextAnalysisUnavailable
 
-router = APIRouter(tags=["simulation navigation"])
+router = APIRouter(tags=["navigation"])
 RATE_LIMIT_REQUESTS = 30
 RATE_LIMIT_WINDOW_SECONDS = 60.0
 MAX_RATE_LIMIT_CLIENTS = 1024
@@ -136,11 +137,18 @@ def find_context_areas(
 ) -> ContextAreaListResponse:
     try:
         return service.find_context_areas(context_request)
+    except ContextAnalysisUnavailable as error:
+        raise ApiError(
+            503,
+            "context_analysis_unavailable",
+            "Nearby disaster-specific analysis is currently unavailable. "
+            "Current hazard information remains available.",
+        ) from error
     except OutsideSimulationArea as error:
         raise ApiError(
             400,
             "outside_simulation_area",
-            "The origin is outside the SIMULATION coverage area.",
+            "The origin is outside the available navigation coverage area.",
         ) from error
 
 
@@ -164,18 +172,18 @@ def suggest_routes(
         raise ApiError(
             400,
             "outside_simulation_area",
-            "The origin is outside the SIMULATION coverage area.",
+            "The origin is outside the available navigation coverage area.",
         ) from error
     except ShelterNotFound as error:
         raise ApiError(
             404,
             "shelter_not_found",
-            "The requested SIMULATION shelter was not found.",
+            "The requested shelter or analyzed destination was not found.",
         ) from error
     except RoutingUnavailable as error:
         raise ApiError(
             503,
             "routing_unavailable",
-            "Route suggestions are currently unavailable. SIMULATION shelter and "
+            "Route suggestions are currently unavailable. Current shelter and "
             "hazard information remains available.",
         ) from error

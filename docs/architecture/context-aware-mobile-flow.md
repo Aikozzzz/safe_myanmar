@@ -40,8 +40,13 @@ cache, secure-storage, and optional-model outcomes into visible states.
    required before the exact origin is sent for context-area analysis. Remote
    failure falls back to matching cached data when available.
 5. A valid `MAPBOX_PUBLIC_ACCESS_TOKEN` enables map rendering. Missing/invalid
-   configuration does not hide the location or route controls.
-6. The user chooses a disaster type and explicitly analyzes nearby areas.
+   configuration does not hide the location or analysis flow. The map claims
+   gestures from the surrounding scroll view so it can be panned, zoomed, and
+   rotated directly.
+6. The user taps **Analyze nearby areas**. Once the nearby-area analysis is
+   requested, disaster type, earthquake scenario, travel profile, and route
+   controls become available. Changing an analysis input clears the previous
+   result but keeps these controls visible for the next explicit analysis.
    Earthquake analysis is limited to outdoors after shaking; flood analysis
    compares simulated elevation and flood exposure.
 7. The user selects a generated lower-exposure area and explicitly requests
@@ -74,10 +79,10 @@ uploaded. Contacts become SOS recipients only after explicit selection. The SOS
 screen previews recipients, body, profile name, and current/last-known location
 before confirmation.
 
-Confirmation first persists a secure local draft, then hands a prefilled `sms:`
-URI to an external messaging app. The only observable handoff states are
-prepared, composer opened, failed to open, and cancelled. SafeMyanmar does not
-send the SMS and has no sent, delivered, dispatch, or rescue acknowledgement.
+Confirmation first persists a secure local draft, then requests `SEND_SMS` and
+invokes Android `SmsManager`. Observable states include prepared, sending,
+device-accepted, failed, and cancelled. Device acceptance is not carrier
+delivery, and SafeMyanmar has no dispatch or rescue acknowledgement.
 
 ## Guide And Assistant
 
@@ -87,15 +92,17 @@ matching work offline. The deterministic tier always controls approved article
 retrieval and explicit map/SOS navigation actions.
 
 Optional ONNX refinement runs only for an unknown deterministic result. Optional
-LiteRT-LM can only reword supplied verified content and is excluded from
-critical intents. Missing, invalid, unsupported, resource-constrained, or failed
-models fall back without blocking deterministic guidance. See
+LiteRT-LM can answer general non-critical questions and reword supplied verified
+content, with approved disaster context supplied when relevant. It is excluded
+from critical intents. Missing, invalid, unsupported, resource-constrained, or
+failed models fall back without blocking deterministic guidance. See
 [optional AI model provisioning](optional-ai-model-provisioning.md).
 
 ## Privacy And Permission Boundaries
 
-- Android requests Internet and foreground coarse/fine location only.
-- There is no background location, contacts, SMS-send, call, camera, microphone,
+- Android requests Internet, foreground coarse/fine location, and SMS-send only
+  after explicit SOS confirmation.
+- There is no background location, contacts, call, camera, microphone,
   notification, storage, or model-download permission in the implemented flow.
 - Exact route origin is sent to the configured backend only when the user
   requests a route. The backend does not persist or log route coordinates.

@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from math import asin, cos, radians, sin, sqrt
 
@@ -23,16 +24,54 @@ from app.schemas.navigation import (
     Shelter,
     ShelterListResponse,
 )
+from app.services.real_context_analysis import RealContextAnalyzer
+from app.services.real_navigation_data import YangonNavigationData
 
 SIMULATION_DATA_AT = datetime(2026, 7, 23, tzinfo=UTC)
-SIMULATION_MIN_LATITUDE = 21.93
-SIMULATION_MAX_LATITUDE = 21.99
-SIMULATION_MIN_LONGITUDE = 96.06
-SIMULATION_MAX_LONGITUDE = 96.12
+
+
+@dataclass(frozen=True)
+class SimulationRegion:
+    name: str
+    min_latitude: float
+    max_latitude: float
+    min_longitude: float
+    max_longitude: float
+
+    def contains(self, coordinate: Coordinate) -> bool:
+        return (
+            self.min_latitude <= coordinate.latitude <= self.max_latitude
+            and self.min_longitude <= coordinate.longitude <= self.max_longitude
+        )
+
+
+MANDALAY_REGION = SimulationRegion(
+    name="Mandalay",
+    min_latitude=21.93,
+    max_latitude=21.99,
+    min_longitude=96.06,
+    max_longitude=96.12,
+)
+YANGON_REGION = SimulationRegion(
+    name="Yangon",
+    min_latitude=16.80,
+    max_latitude=16.92,
+    min_longitude=96.08,
+    max_longitude=96.20,
+)
+SIMULATION_REGIONS = (MANDALAY_REGION, YANGON_REGION)
+
+# Retained as named Mandalay bounds for existing callers and tests.
+SIMULATION_MIN_LATITUDE = MANDALAY_REGION.min_latitude
+SIMULATION_MAX_LATITUDE = MANDALAY_REGION.max_latitude
+SIMULATION_MIN_LONGITUDE = MANDALAY_REGION.min_longitude
+SIMULATION_MAX_LONGITUDE = MANDALAY_REGION.max_longitude
 UNCERTAINTY_NOTICE = (
     "SIMULATION information is fictional and incomplete. Conditions may differ; "
     "follow authorized local instructions when available. Coverage is limited to "
-    "latitude 21.9300 through 21.9900 and longitude 96.0600 through 96.1200."
+    "the fictional Mandalay region (latitude 21.9300 through 21.9900 and "
+    "longitude 96.0600 through 96.1200) and fictional Yangon region (latitude "
+    "16.8000 through 16.9200 and longitude 96.0800 through 96.2000)."
 )
 
 SHELTERS = (
@@ -55,6 +94,27 @@ SHELTERS = (
         name="SIMULATION: Irrawaddy Training Centre Shelter",
         coordinate=Coordinate(latitude=21.942, longitude=96.078),
         description="Fictional shelter for SafeMyanmar demonstration only.",
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Shelter(
+        id="simulation-yangon-shelter-1",
+        name="SIMULATION: Yangon Riverfront Community Hall",
+        coordinate=Coordinate(latitude=16.838, longitude=96.132),
+        description="Fictional Yangon shelter for SafeMyanmar demonstration only.",
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Shelter(
+        id="simulation-yangon-shelter-2",
+        name="SIMULATION: Hlaing Learning Centre Shelter",
+        coordinate=Coordinate(latitude=16.866, longitude=96.116),
+        description="Fictional Yangon shelter for SafeMyanmar demonstration only.",
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Shelter(
+        id="simulation-yangon-shelter-3",
+        name="SIMULATION: Tamwe Open Grounds Shelter",
+        coordinate=Coordinate(latitude=16.816, longitude=96.174),
+        description="Fictional Yangon shelter for SafeMyanmar demonstration only.",
         data_at=SIMULATION_DATA_AT,
     ),
 )
@@ -143,6 +203,84 @@ HAZARDS = (
         ),
         data_at=SIMULATION_DATA_AT,
     ),
+    Hazard(
+        id="simulation-yangon-hazard-earthquake-1",
+        name="SIMULATION: Yangon earthquake debris exercise zone",
+        disaster_type="earthquake",
+        geometry=_polygon(
+            (96.124, 16.846),
+            (96.132, 16.846),
+            (96.132, 16.853),
+            (96.124, 16.853),
+            (96.124, 16.846),
+        ),
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Hazard(
+        id="simulation-yangon-hazard-flood-1",
+        name="SIMULATION: Yangon flood exercise zone",
+        disaster_type="flood",
+        geometry=_polygon(
+            (96.145, 16.858),
+            (96.158, 16.858),
+            (96.158, 16.870),
+            (96.145, 16.870),
+            (96.145, 16.858),
+        ),
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Hazard(
+        id="simulation-yangon-hazard-fire-1",
+        name="SIMULATION: Yangon fire exercise zone",
+        disaster_type="fire",
+        geometry=_polygon(
+            (96.106, 16.812),
+            (96.116, 16.812),
+            (96.116, 16.822),
+            (96.106, 16.822),
+            (96.106, 16.812),
+        ),
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Hazard(
+        id="simulation-yangon-hazard-cyclone-1",
+        name="SIMULATION: Yangon cyclone debris exercise zone",
+        disaster_type="cyclone",
+        geometry=_polygon(
+            (96.166, 16.878),
+            (96.178, 16.878),
+            (96.178, 16.889),
+            (96.166, 16.889),
+            (96.166, 16.878),
+        ),
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Hazard(
+        id="simulation-yangon-hazard-landslide-1",
+        name="SIMULATION: Yangon landslide exercise zone",
+        disaster_type="landslide",
+        geometry=_polygon(
+            (96.096, 16.892),
+            (96.108, 16.892),
+            (96.108, 16.904),
+            (96.096, 16.904),
+            (96.096, 16.892),
+        ),
+        data_at=SIMULATION_DATA_AT,
+    ),
+    Hazard(
+        id="simulation-yangon-hazard-weather-1",
+        name="SIMULATION: Yangon severe weather exercise zone",
+        disaster_type="severe_weather",
+        geometry=_polygon(
+            (96.114, 16.831),
+            (96.127, 16.831),
+            (96.127, 16.842),
+            (96.114, 16.842),
+            (96.114, 16.831),
+        ),
+        data_at=SIMULATION_DATA_AT,
+    ),
 )
 
 
@@ -168,12 +306,18 @@ class NavigationService:
         simulation_enabled: bool,
         directions_provider: MapboxDirectionsProvider,
         clock: Callable[[], datetime] | None = None,
+        real_data: YangonNavigationData | None = None,
+        context_analyzer: RealContextAnalyzer | None = None,
     ) -> None:
         self._simulation_enabled = simulation_enabled
         self._directions = directions_provider
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._real_data = real_data
+        self._context_analyzer = context_analyzer
 
     def list_shelters(self) -> ShelterListResponse:
+        if self._real_data is not None:
+            return self._real_data.shelter_response()
         self._require_simulation()
         return ShelterListResponse(
             items=list(SHELTERS),
@@ -182,6 +326,8 @@ class NavigationService:
         )
 
     def list_hazards(self) -> HazardListResponse:
+        if self._real_data is not None:
+            return self._real_data.hazard_response()
         self._require_simulation()
         return HazardListResponse(
             items=list(HAZARDS),
@@ -192,6 +338,21 @@ class NavigationService:
     def find_context_areas(
         self, request: ContextAreaRequest
     ) -> ContextAreaListResponse:
+        if self._real_data is not None:
+            if self._context_analyzer is not None:
+                return self._context_analyzer.find_context_areas(
+                    request,
+                    self._real_data.hazards,
+                    source=self._real_data.source,
+                    uncertainty_notice=self._real_data.uncertainty_notice,
+                )
+            return ContextAreaListResponse(
+                items=[],
+                data_at=self._real_data.retrieved_at,
+                source=self._real_data.source,
+                simulation=False,
+                uncertainty_notice=self._real_data.uncertainty_notice,
+            )
         self._require_simulation()
         if not _coordinate_in_simulation_area(request.origin):
             raise OutsideSimulationArea
@@ -302,8 +463,11 @@ class NavigationService:
     def suggest_routes(
         self, request: RouteSuggestionRequest
     ) -> RouteSuggestionsResponse:
+        if self._real_data is not None:
+            raise RoutingUnavailable
         self._require_simulation()
-        if not _coordinate_in_simulation_area(request.origin):
+        origin_region = _simulation_region_for_coordinate(request.origin)
+        if origin_region is None:
             raise OutsideSimulationArea
         destination = next(
             (item.coordinate for item in SHELTERS if item.id == request.shelter_id),
@@ -340,7 +504,9 @@ class NavigationService:
         except DirectionsProviderError:
             raise RoutingUnavailable from None
 
-        routes = tuple(route for route in routes if _route_in_simulation_area(route))
+        routes = tuple(
+            route for route in routes if _route_in_simulation_area(route, origin_region)
+        )
         if not routes:
             raise RoutingUnavailable
 
@@ -431,9 +597,15 @@ def _straight_line_distance_m(origin: Coordinate, destination: Coordinate) -> fl
 
 
 def _coordinate_in_simulation_area(coordinate: Coordinate) -> bool:
-    return (
-        SIMULATION_MIN_LATITUDE <= coordinate.latitude <= SIMULATION_MAX_LATITUDE
-        and SIMULATION_MIN_LONGITUDE <= coordinate.longitude <= SIMULATION_MAX_LONGITUDE
+    return _simulation_region_for_coordinate(coordinate) is not None
+
+
+def _simulation_region_for_coordinate(
+    coordinate: Coordinate,
+) -> SimulationRegion | None:
+    return next(
+        (region for region in SIMULATION_REGIONS if region.contains(coordinate)),
+        None,
     )
 
 
@@ -478,10 +650,13 @@ def _context_area_id(coordinate: Coordinate, disaster_type: str) -> str:
     )
 
 
-def _route_in_simulation_area(route: DirectionsRoute) -> bool:
+def _route_in_simulation_area(
+    route: DirectionsRoute,
+    region: SimulationRegion,
+) -> bool:
     return all(
-        SIMULATION_MIN_LONGITUDE <= longitude <= SIMULATION_MAX_LONGITUDE
-        and SIMULATION_MIN_LATITUDE <= latitude <= SIMULATION_MAX_LATITUDE
+        region.min_longitude <= longitude <= region.max_longitude
+        and region.min_latitude <= latitude <= region.max_latitude
         for longitude, latitude in route.geometry.coordinates
     )
 

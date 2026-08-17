@@ -1,4 +1,17 @@
-# Simulation Navigation API
+# Navigation API
+
+The default development configuration loads the validated snapshot configured
+by `NAVIGATION_DATA_PATH`. The current Yangon snapshot exposes current hazard
+records but no verified shelters or lower-exposure destination dataset, so
+those lists and context-area recommendations may be empty. Stale or
+geometry-less records are excluded. Real context analysis only runs for a
+disaster type with a current snapshot hazard geometry; it never turns the
+absence of a hazard record into a safety claim. Responses include source,
+timestamp, `simulation: false`, and an uncertainty notice.
+
+The fictional API described below remains available only when
+`ENABLE_SIMULATION_DATA=true`. It is for development demonstrations only and
+must not be used as official hazard or evacuation data.
 
 These endpoints expose fictional demonstration records and deterministic
 context-analysis candidates. They are
@@ -6,9 +19,11 @@ available only when `ENABLE_SIMULATION_DATA=true`; startup rejects that setting
 when `ENVIRONMENT=production`. Every record is labeled `SIMULATION`, attributed
 to `SafeMyanmar Demo`, timestamped, and marked `simulation: true`.
 
-When simulation data is disabled, these routes are not registered or included
-in OpenAPI. Requests receive the ordinary `404 not_found` envelope without
-simulation request-body validation. Live alert routes remain registered.
+When simulation data is disabled and no navigation snapshot is configured,
+these routes are not registered or included in OpenAPI. With the default
+validated snapshot, shelter, hazard, and context-area routes remain registered
+with `simulation: false`; route suggestions return `503 routing_unavailable`
+when no verified destination or directions provider is available.
 
 This API does not provide official hazard information or guarantee route safety.
 Clients should keep timestamps, attribution, rationale, and uncertainty notices
@@ -19,6 +34,9 @@ visible. Shelter and hazard lists remain available if routing is unavailable.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ENABLE_SIMULATION_DATA` | `false` | Enables all three simulation endpoints outside production |
+| `NAVIGATION_DATA_PATH` | `SafeMyanmar_Yangon_2026-08-17` | Validated real navigation snapshot directory |
+| `OVERPASS_API_URL` | `https://overpass-api.de/api/interpreter` | Mapped building/tree lookup for earthquake analysis |
+| `ELEVATION_API_URL` | `https://api.opentopodata.org/v1/aster30m` | Terrain elevation lookup for flood analysis |
 | `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | unset | Secret Mapbox token required only for route suggestions |
 | `PROVIDER_TIMEOUT_SECONDS` | `10.0` | Timeout used for Mapbox and USGS requests |
 
@@ -43,17 +61,24 @@ oversized provider values are rejected as provider failures.
 
 ## `GET /api/v1/shelters`
 
-Returns the fixed fictional shelter collection and its data timestamp.
+Returns the configured shelter collection and its data timestamp. The current
+Yangon snapshot returns an empty collection because no verified shelter records
+were supplied.
 
 ## `GET /api/v1/hazards`
 
-Returns fixed fictional polygon hazards for the supported disaster types and
-their data timestamp.
+Returns current snapshot polygon hazards and their data timestamp. Stale or
+geometry-less records are omitted.
 
 ## `POST /api/v1/context-areas`
 
-Calculates up to three deterministic, fictional lower-exposure area candidates
-around an explicitly supplied origin. The request body is:
+Calculates up to three comparative lower-exposure area candidates around an
+explicitly supplied origin. In real mode, the requested disaster type must
+have a current snapshot hazard geometry. Earthquake candidates additionally
+use mapped building/tree features, and flood candidates additionally use
+terrain elevation. Fire, cyclone, landslide, and severe-weather analysis uses
+hazard geometry only and does not assess spread, wind, slope stability,
+structures, roads, or shelter availability. The request body is:
 
 ```json
 {
@@ -66,9 +91,12 @@ around an explicitly supplied origin. The request body is:
 
 Earthquake candidates are available only for `outdoors_after_shaking`; active
 shaking returns Drop, Cover, and Hold On guidance instead of destinations. Flood
-candidates rank simulated higher elevation and reject simulated flood polygons.
-Earthquake candidates compare simulated building and tree exposure. These are
-comparative demonstration metrics, not surveyed conditions or official advice.
+candidates rank higher terrain elevation and reject current mapped flood
+polygons. Earthquake candidates compare mapped building and tree clearance.
+Other disaster types reject candidates that intersect their current mapped
+hazard polygons. These are comparative metrics from snapshot and external
+geodata, not surveyed conditions or official advice. Mapped data may be
+incomplete, and the result is never a guaranteed safe place.
 
 ## `POST /api/v1/route-suggestions`
 
@@ -97,11 +125,18 @@ The response states this rule; callers can override it by sending `profile`.
 Supported disasters are `earthquake`, `flood`, `fire`, `cyclone`, `landslide`,
 and `severe_weather`.
 
-Simulation coverage is the inclusive rectangle from latitude `21.9300` to
-`21.9900` and longitude `96.0600` to `96.1200`. It contains all fixed Mandalay
-demo records and is stated in every uncertainty notice. Origins outside this
-rectangle are rejected before Mapbox is called. Provider route candidates that
-leave it are discarded and are never described as suggested safer routes.
+Simulation coverage is provided by two separate fictional city regions:
+
+| Region | Latitude | Longitude |
+|---|---|---|
+| Mandalay | `21.9300` to `21.9900` | `96.0600` to `96.1200` |
+| Yangon | `16.8000` to `16.9200` | `96.0800` to `96.2000` |
+
+The Yangon region supports testing with real Yangon device GPS readings while
+remaining fictional demonstration data. Origins outside both regions are
+rejected before Mapbox is called. Provider route candidates must remain inside
+the same region as the origin; candidates that leave it are discarded and are
+never described as suggested safer routes.
 
 Returned Mapbox route geometries are scored against relevant simulation hazard
 polygons. Ranking is deterministic: fewest intersected polygons, then shortest

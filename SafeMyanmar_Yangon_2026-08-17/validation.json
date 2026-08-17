@@ -1,0 +1,27 @@
+{
+  "validated_at": "2026-08-17T13:42:17+00:00",
+  "status": "passed",
+  "record_counts": {
+    "shelters": 0,
+    "hazards": 3,
+    "road_closures_or_obstructions": 1
+  },
+  "checks": {
+    "latitude_range": "passed",
+    "longitude_range": "passed",
+    "geojson_geometry": "passed",
+    "timezone_aware_timestamps": "passed",
+    "duplicate_ids": "passed",
+    "expired_records_marked_stale": "passed",
+    "traceable_source_urls": "passed"
+  },
+  "geometry_counts": {
+    "valid_non_null": 2,
+    "intentional_null": 1
+  },
+  "duplicates": [],
+  "errors": [],
+  "warnings": [
+    "1 GeoJSON feature(s) intentionally have null geometry because the source did not publish verified coordinates. RFC 7946 permits null Feature geometry."
+  ]
+}

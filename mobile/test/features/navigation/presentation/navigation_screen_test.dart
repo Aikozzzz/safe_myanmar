@@ -92,21 +92,28 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('no token never constructs MapWidget and retains controls', (
-    tester,
-  ) async {
+  testWidgets('analysis reveals controls and route action', (tester) async {
     await pumpScreen(tester);
     await enableLocation(tester);
 
     expect(find.byType(MapWidget), findsNothing);
     expect(find.text('Map configuration unavailable'), findsOneWidget);
     expect(find.text('SIMULATION'), findsOneWidget);
+    expect(find.text('Disaster type'), findsNothing);
+    expect(find.text('Earthquake context'), findsNothing);
+    expect(find.text('Travel profile'), findsNothing);
+    expect(find.text('Request route suggestions'), findsNothing);
+
     await analyzeContext(tester);
+
     expect(find.text('Nearby lower-exposure areas'), findsOneWidget);
     expect(
       find.text('Building clearance: 120 m; tree clearance: 90 m'),
       findsOneWidget,
     );
+    expect(find.text('Disaster type'), findsOneWidget);
+    expect(find.text('Earthquake context'), findsOneWidget);
+    expect(find.text('Travel profile'), findsOneWidget);
     expect(find.text('Request route suggestions'), findsOneWidget);
   });
 

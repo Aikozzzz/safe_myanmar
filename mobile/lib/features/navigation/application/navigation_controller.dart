@@ -50,7 +50,6 @@ final class NavigationController extends Notifier<NavigationState> {
           ? ContextScenario.outdoorsAfterShaking
           : ContextScenario.general,
       contextAreas: null,
-      contextAnalysisRequested: false,
       selectedContextAreaId: null,
       contextRequest: null,
     );
@@ -62,7 +61,6 @@ final class NavigationController extends Notifier<NavigationState> {
     state = state.copyWith(
       contextScenario: value,
       contextAreas: null,
-      contextAnalysisRequested: false,
       selectedContextAreaId: null,
       contextRequest: null,
     );

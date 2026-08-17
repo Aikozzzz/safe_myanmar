@@ -69,6 +69,7 @@ void main() {
       expect(reply.result!.intent, EmergencyIntent.unknown);
       expect(reply.replyKind, AssistantReplyKind.unknown);
       expect(reply.article, isNull);
+      expect(reply.sosDraft, isNull);
     },
   );
 
@@ -97,6 +98,18 @@ void main() {
       expect(state.gemmaStatus, AssistantCapabilityStatus.unavailable);
     },
   );
+
+  test('general disaster comparisons do not create an SOS draft', () async {
+    final container = _container(FakeNativeAiService());
+    addTearDown(container.dispose);
+
+    await container
+        .read(assistantControllerProvider.notifier)
+        .send('flood vs earthquake');
+    final reply = container.read(assistantControllerProvider).messages.last;
+
+    expect(reply.sosDraft, isNull);
+  });
 
   test('ONNX below 0.75 retains deterministic unknown', () async {
     final nativeAi = FakeNativeAiService(
@@ -258,6 +271,37 @@ void main() {
     },
   );
 
+  test(
+    'Gemma answers a general question when the model is available',
+    () async {
+      final nativeAi = FakeNativeAiService(
+        capabilitiesResult: availableNativeAiCapabilities,
+        answerResult: const NativeAiResult.success(
+          NativeVerifiedRewrite('GENERAL GEMMA ANSWER'),
+        ),
+      );
+      final container = _container(nativeAi);
+      addTearDown(container.dispose);
+      await _loadCapabilities(container);
+
+      await container
+          .read(assistantControllerProvider.notifier)
+          .send('tell me a joke');
+      final reply = container.read(assistantControllerProvider).messages.last;
+
+      expect(reply.result!.intent, EmergencyIntent.unknown);
+      expect(reply.gemmaAnswer, 'GENERAL GEMMA ANSWER');
+      expect(reply.responseEngine, AssistantResponseEngine.gemma);
+      expect(nativeAi.initializationCalls, 1);
+      expect(nativeAi.answerCalls, 1);
+      expect(nativeAi.lastQuestion, 'tell me a joke');
+      expect(
+        nativeAi.lastApprovedContext,
+        contains('APPROVED EARTHQUAKE ANSWER'),
+      );
+    },
+  );
+
   test('Gemma failure silently falls back to exact article only', () async {
     final nativeAi = FakeNativeAiService(
       capabilitiesResult: availableNativeAiCapabilities,
@@ -305,7 +349,6 @@ void main() {
       'find a nearby shelter',
       'report a missing person',
       'report damage to a building',
-      'tell me a joke',
     ];
 
     for (final input in prohibitedInputs) {

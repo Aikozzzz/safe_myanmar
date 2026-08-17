@@ -35,7 +35,7 @@ void main() {
     );
     expect(
       gradle,
-      contains('com.google.ai.edge.litertlm:litertlm-android:0.14.0'),
+      contains('com.google.ai.edge.litertlm:litertlm-android:0.16.0'),
     );
     expect(gradle, isNot(contains('latest.')));
     expect(gradle, isNot(contains(':+')));
@@ -68,6 +68,7 @@ void main() {
       'classifyIntent',
       'initializeGemma',
       'rewriteVerifiedContent',
+      'answerQuestion',
       'cancel',
       'dispose',
     ]) {
@@ -111,6 +112,8 @@ void main() {
       ).hasMatch(nativeSources),
       isFalse,
     );
+    expect(nativeSources, contains('conversation.sendMessage(prompt)'));
+    expect(nativeSources, contains('Backend.CPU()'));
   });
 
   test(
@@ -143,6 +146,8 @@ void main() {
     expect(nativeSources, contains('"probabilities_v1"'));
     expect(nativeSources, contains('MessageDigest.getInstance("SHA-256")'));
     expect(nativeSources, contains('json.getInt("schemaVersion") != 1'));
+    expect(nativeSources, contains('json.getString("modelId")'));
+    expect(nativeSources, contains('appContext.filesDir.usableSpace'));
   });
 
   test('does not bundle model artifacts or add download permissions', () {

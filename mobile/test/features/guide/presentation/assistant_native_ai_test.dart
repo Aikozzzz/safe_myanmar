@@ -30,7 +30,7 @@ void main() {
     );
     expect(
       find.textContaining(
-        'Optional Gemma local rewording is unavailable. Missing optional models are normal',
+        'Optional local Gemma 3 is unavailable. Missing model files are normal',
       ),
       findsOneWidget,
     );
@@ -51,7 +51,9 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.textContaining('Optional Gemma local rewording is available'),
+      find.textContaining(
+        'Optional local Gemma 3 can answer general questions',
+      ),
       findsOneWidget,
     );
   });

@@ -88,7 +88,6 @@ abstract final class SosDraftCodec {
         !ids.add(id) ||
         contactIdsJson is! List ||
         recipientsJson is! List ||
-        recipientsJson.isEmpty ||
         recipientsJson.length > 10 ||
         contactIdsJson.length != recipientsJson.length ||
         message is! String? ||

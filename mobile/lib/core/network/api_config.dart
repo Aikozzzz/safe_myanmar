@@ -27,6 +27,9 @@ final class ApiConfig {
 
   final Uri baseUri;
 
+  bool get allowSimulationData =>
+      const bool.fromEnvironment('ENABLE_SIMULATION_DATA');
+
   Uri get alertsUri {
     return _apiV1Uri('alerts');
   }

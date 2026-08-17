@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     refresh_minimum_seconds: int = 60
     current_max_age_seconds: int = 300
     enable_simulation_data: bool = False
+    navigation_data_path: str = "SafeMyanmar_Yangon_2026-08-17"
+    overpass_api_url: str = "https://overpass-api.de/api/interpreter"
+    elevation_api_url: str = "https://api.opentopodata.org/v1/aster30m"
     mapbox_directions_access_token: SecretStr | None = None
 
     @model_validator(mode="after")

@@ -24,6 +24,7 @@ final class SosDraftPreparation {
     required this.location,
     required this.profileName,
     required this.body,
+    this.allowNoRecipients = false,
   }) : recipients = List.unmodifiable(recipients);
 
   final List<SosRecipientSnapshot> recipients;
@@ -31,6 +32,7 @@ final class SosDraftPreparation {
   final SosLocationSnapshot? location;
   final String profileName;
   final String body;
+  final bool allowNoRecipients;
 }
 
 final class SosPrepareResult {
@@ -70,7 +72,10 @@ final class SosDraftQueueController extends Notifier<SosDraftQueueState> {
     }
     final recipients = preparation.recipients;
     final normalizedMessage = preparation.message?.trim();
-    if (!_validRecipients(recipients) ||
+    if ((!preparation.allowNoRecipients && !_validRecipients(recipients)) ||
+        (preparation.allowNoRecipients &&
+            recipients.isNotEmpty &&
+            !_validRecipients(recipients)) ||
         preparation.profileName.length > maxSosProfileNameLength ||
         preparation.body.trim().isEmpty ||
         preparation.body.length > maxSosBodyLength ||

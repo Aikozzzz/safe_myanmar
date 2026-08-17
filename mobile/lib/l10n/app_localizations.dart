@@ -340,6 +340,12 @@ abstract class AppLocalizations {
   /// **'Simulation shelter and route information'**
   String get simulationNavigationHeading;
 
+  /// No description provided for @navigationDataHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Shelter and hazard information'**
+  String get navigationDataHeading;
+
   /// No description provided for @navigationSource.
   ///
   /// In en, this message translates to:
@@ -367,19 +373,25 @@ abstract class AppLocalizations {
   /// No description provided for @navigationDataLoading.
   ///
   /// In en, this message translates to:
-  /// **'Loading simulation shelters and hazards'**
+  /// **'Loading shelter and hazard data'**
   String get navigationDataLoading;
 
   /// No description provided for @navigationDataUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Simulation shelter or hazard information could not be updated.'**
+  /// **'Shelter or hazard information could not be updated.'**
   String get navigationDataUnavailable;
+
+  /// No description provided for @contextAnalysisUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby analysis is unavailable. Check the backend connection or choose earthquake or flood analysis.'**
+  String get contextAnalysisUnavailable;
 
   /// No description provided for @navigationCachedWarning.
   ///
   /// In en, this message translates to:
-  /// **'Previously loaded simulation information remains visible and is stale.'**
+  /// **'Previously loaded information remains visible and may be stale.'**
   String get navigationCachedWarning;
 
   /// No description provided for @retryNavigationData.
@@ -415,25 +427,25 @@ abstract class AppLocalizations {
   /// No description provided for @mapContentSemantics.
   ///
   /// In en, this message translates to:
-  /// **'Interactive map showing current or last-known location, simulation shelters, relevant hazards, and route options. The selected route uses a wider line.'**
+  /// **'Interactive map showing current or last-known location, mapped shelters, relevant hazards, and route options. The selected route uses a wider line.'**
   String get mapContentSemantics;
 
   /// No description provided for @chooseShelter.
   ///
   /// In en, this message translates to:
-  /// **'Shelter'**
+  /// **'Shelter or suggested place'**
   String get chooseShelter;
 
   /// No description provided for @shelterListHeading.
   ///
   /// In en, this message translates to:
-  /// **'Available simulation shelters'**
+  /// **'Available mapped shelters'**
   String get shelterListHeading;
 
   /// No description provided for @shelterListEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No cached simulation shelter details are available.'**
+  /// **'No cached shelter details are available.'**
   String get shelterListEmpty;
 
   /// No description provided for @contextAreasHeading.
@@ -445,7 +457,7 @@ abstract class AppLocalizations {
   /// No description provided for @contextAreasDescription.
   ///
   /// In en, this message translates to:
-  /// **'Suggestions compare currently available simulation context. They are not official shelters or guarantees.'**
+  /// **'Suggestions compare currently available mapped environment data. They are not official shelters or guarantees.'**
   String get contextAreasDescription;
 
   /// No description provided for @analyzeContext.
@@ -505,8 +517,140 @@ abstract class AppLocalizations {
   /// No description provided for @contextDataAt.
   ///
   /// In en, this message translates to:
-  /// **'SIMULATION data: {time}'**
+  /// **'Analysis data: {time}'**
   String contextDataAt(String time);
+
+  /// No description provided for @sosBluetoothShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share limited SOS data nearby'**
+  String get sosBluetoothShareTitle;
+
+  /// No description provided for @sosBluetoothShareDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast a temporary ID, timestamp, approximate grid, location status, and battery level to nearby SafeMyanmar users for 10 minutes.'**
+  String get sosBluetoothShareDescription;
+
+  /// No description provided for @sosBluetoothFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared: temporary event ID, UTC timestamp, approximately 1 km grid, location status, and battery level.'**
+  String get sosBluetoothFields;
+
+  /// No description provided for @sosBluetoothTenMinuteLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'The broadcast stops automatically after 10 minutes. Exact coordinates, name, contacts, and message are not broadcast.'**
+  String get sosBluetoothTenMinuteLimit;
+
+  /// No description provided for @sosBluetoothUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth SOS is unavailable on this device or Bluetooth is disabled.'**
+  String get sosBluetoothUnavailable;
+
+  /// No description provided for @sosBluetoothPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby-device and notification permissions are required before Bluetooth SOS can be used.'**
+  String get sosBluetoothPermissionRequired;
+
+  /// No description provided for @sosBluetoothReceiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive nearby SOS alerts'**
+  String get sosBluetoothReceiveTitle;
+
+  /// No description provided for @sosBluetoothReceiveDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen while this screen is open. Received events are unverified and do not confirm rescue response.'**
+  String get sosBluetoothReceiveDescription;
+
+  /// No description provided for @sosBluetoothSoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound an alert'**
+  String get sosBluetoothSoundTitle;
+
+  /// No description provided for @sosBluetoothSoundDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow an optional sound when a nearby unverified SOS is detected.'**
+  String get sosBluetoothSoundDescription;
+
+  /// No description provided for @sosBluetoothBroadcasting.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth SOS is broadcasting limited data.'**
+  String get sosBluetoothBroadcasting;
+
+  /// No description provided for @sosBluetoothStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get sosBluetoothStop;
+
+  /// No description provided for @sosBluetoothNearbyAlert.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby unverified SOS'**
+  String get sosBluetoothNearbyAlert;
+
+  /// No description provided for @sosBluetoothDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss nearby SOS'**
+  String get sosBluetoothDismiss;
+
+  /// No description provided for @sosBluetoothUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Peer-received; delivery to rescue services is not confirmed.'**
+  String get sosBluetoothUnverified;
+
+  /// No description provided for @sosBluetoothGridLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Approximate grid: {latitude}, {longitude}'**
+  String sosBluetoothGridLocation(String latitude, String longitude);
+
+  /// No description provided for @sosBluetoothCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported as current when the SOS was prepared.'**
+  String get sosBluetoothCurrentLocation;
+
+  /// No description provided for @sosBluetoothLastKnownLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported as last known when the SOS was prepared.'**
+  String get sosBluetoothLastKnownLocation;
+
+  /// No description provided for @sosBluetoothLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location was unavailable.'**
+  String get sosBluetoothLocationUnavailable;
+
+  /// No description provided for @sosBluetoothBroadcastStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth SOS sharing is active for up to 10 minutes.'**
+  String get sosBluetoothBroadcastStarted;
+
+  /// No description provided for @sosBluetoothBroadcastFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth SOS sharing could not be started. No nearby data was broadcast.'**
+  String get sosBluetoothBroadcastFailed;
+
+  /// No description provided for @sosBluetoothOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth is disabled or the nearby-device operation could not be started.'**
+  String get sosBluetoothOperationFailed;
 
   /// No description provided for @chooseDisasterType.
   ///
@@ -836,10 +980,16 @@ abstract class AppLocalizations {
   /// **'SafeMyanmar only opens your phone\'s messaging app. That app controls SMS transmission and delivery, and SafeMyanmar cannot verify either.'**
   String get sosComposerDisclosure;
 
+  /// No description provided for @sosDirectSmsDisclosure.
+  ///
+  /// In en, this message translates to:
+  /// **'After confirmation, SafeMyanmar requests SMS permission and sends the reviewed message directly through Android. The carrier may still delay delivery; SafeMyanmar can confirm only whether the device accepted the SMS.'**
+  String get sosDirectSmsDisclosure;
+
   /// No description provided for @sosHoldToOpen.
   ///
   /// In en, this message translates to:
-  /// **'Hold for 3 seconds to prepare and open messaging'**
+  /// **'Hold for 3 seconds to send SMS'**
   String get sosHoldToOpen;
 
   /// No description provided for @sosHoldProgress.
@@ -851,7 +1001,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosHoldCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Hold cancelled. Nothing was opened.'**
+  /// **'Hold cancelled. Nothing was sent.'**
   String get sosHoldCancelled;
 
   /// No description provided for @sosHoldSemanticsHint.
@@ -902,6 +1052,36 @@ abstract class AppLocalizations {
   /// **'Prepare and open messaging'**
   String get sosOpenMessaging;
 
+  /// No description provided for @sosConfirmSmsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send SOS SMS directly?'**
+  String get sosConfirmSmsTitle;
+
+  /// No description provided for @sosConfirmSmsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This second confirmation prepares the secure draft and sends the reviewed SMS directly to the selected contacts after Android SMS permission is granted. Device acceptance does not guarantee carrier delivery.'**
+  String get sosConfirmSmsDescription;
+
+  /// No description provided for @sosSendSms.
+  ///
+  /// In en, this message translates to:
+  /// **'Send SMS now'**
+  String get sosSendSms;
+
+  /// No description provided for @sosRetrySmsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send this SOS draft again?'**
+  String get sosRetrySmsTitle;
+
+  /// No description provided for @sosRetrySmsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'SafeMyanmar will send this saved message directly through Android SMS. Device acceptance does not guarantee carrier delivery.'**
+  String get sosRetrySmsDescription;
+
   /// No description provided for @sosNotNow.
   ///
   /// In en, this message translates to:
@@ -923,8 +1103,56 @@ abstract class AppLocalizations {
   /// No description provided for @sosDraftSaveFailed.
   ///
   /// In en, this message translates to:
-  /// **'The SOS draft could not be saved securely. No messaging app was opened.'**
+  /// **'The SOS draft could not be saved securely. No SMS was sent.'**
   String get sosDraftSaveFailed;
+
+  /// No description provided for @sosSmsPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS permission was not granted. No SMS was sent; the draft was retained for retry.'**
+  String get sosSmsPermissionDenied;
+
+  /// No description provided for @sosSmsSentNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'The device accepted the SMS for sending. Carrier delivery is not confirmed; the draft was retained.'**
+  String get sosSmsSentNotice;
+
+  /// No description provided for @sosSmsFailedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'The device could not accept the SMS. Check SIM/service and SMS permission, then retry the draft.'**
+  String get sosSmsFailedNotice;
+
+  /// No description provided for @sosSimUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No active SIM could be selected. Check your SIM service and try again. No SMS was sent.'**
+  String get sosSimUnavailable;
+
+  /// No description provided for @sosChooseSimTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose SIM'**
+  String get sosChooseSimTitle;
+
+  /// No description provided for @sosChooseSimDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select which active SIM should send this SOS message.'**
+  String get sosChooseSimDescription;
+
+  /// No description provided for @sosRememberSim.
+  ///
+  /// In en, this message translates to:
+  /// **'Remember my preferred SIM'**
+  String get sosRememberSim;
+
+  /// No description provided for @sosSendUsingSim.
+  ///
+  /// In en, this message translates to:
+  /// **'Send using SIM'**
+  String get sosSendUsingSim;
 
   /// No description provided for @sosMaximumDrafts.
   ///
@@ -956,6 +1184,24 @@ abstract class AppLocalizations {
   /// **'Prepared'**
   String get sosStatusPrepared;
 
+  /// No description provided for @sosStatusSmsSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending SMS'**
+  String get sosStatusSmsSending;
+
+  /// No description provided for @sosStatusSmsSent.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS accepted by device; delivery unconfirmed'**
+  String get sosStatusSmsSent;
+
+  /// No description provided for @sosStatusSmsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS failed; retry available'**
+  String get sosStatusSmsFailed;
+
   /// No description provided for @sosStatusComposerOpened.
   ///
   /// In en, this message translates to:
@@ -977,7 +1223,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosOpenAgain.
   ///
   /// In en, this message translates to:
-  /// **'Open again'**
+  /// **'Send again'**
   String get sosOpenAgain;
 
   /// No description provided for @sosCancelDraft.
@@ -1241,7 +1487,7 @@ abstract class AppLocalizations {
   /// No description provided for @guideTranslationWarning.
   ///
   /// In en, this message translates to:
-  /// **'Academic prototype: Burmese translations require review by qualified local language and emergency experts before deployment.'**
+  /// **'Burmese translations require review by qualified local language and emergency experts before deployment.'**
   String get guideTranslationWarning;
 
   /// No description provided for @guideArticleTitle.
@@ -1343,25 +1589,25 @@ abstract class AppLocalizations {
   /// No description provided for @assistantGemmaChecking.
   ///
   /// In en, this message translates to:
-  /// **'Checking optional Gemma local rewording availability.'**
+  /// **'Checking optional Gemma 3 local assistant availability.'**
   String get assistantGemmaChecking;
 
   /// No description provided for @assistantGemmaAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Optional Gemma local rewording is available for eligible noncritical articles.'**
+  /// **'Optional local Gemma 3 can answer general questions, with extra focus on disaster and preparedness topics.'**
   String get assistantGemmaAvailable;
 
   /// No description provided for @assistantGemmaUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Optional Gemma local rewording is unavailable. Missing optional models are normal; exact verified articles remain available.'**
+  /// **'Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.'**
   String get assistantGemmaUnavailable;
 
   /// No description provided for @assistantIntroduction.
   ///
   /// In en, this message translates to:
-  /// **'This tool always matches questions with a deterministic classifier and retrieves approved articles on this device. Optional local models cannot create instructions, calculate routes, or activate SOS.'**
+  /// **'This tool matches disaster questions with approved offline content. When the optional Gemma 3 model is installed, it can also answer general non-critical questions with disaster guidance prioritized.'**
   String get assistantIntroduction;
 
   /// No description provided for @assistantSuggestedQuestions.
@@ -1397,13 +1643,13 @@ abstract class AppLocalizations {
   /// No description provided for @assistantSearching.
   ///
   /// In en, this message translates to:
-  /// **'Searching approved offline content'**
+  /// **'Preparing an offline answer'**
   String get assistantSearching;
 
   /// No description provided for @assistantDisclaimer.
   ///
   /// In en, this message translates to:
-  /// **'This academic prototype retrieves only fixed, reviewed content. It is not a diagnosis or a replacement for authorized emergency or medical services.'**
+  /// **'Gemma answers are generated on-device and may be inaccurate. Disaster guidance is grounded in approved offline content when available. This is not a diagnosis or a replacement for authorized emergency or medical services.'**
   String get assistantDisclaimer;
 
   /// No description provided for @assistantInputLabel.
@@ -1460,6 +1706,12 @@ abstract class AppLocalizations {
   /// **'The deterministic classifier returned unknown, then the optional local ONNX classifier recognized this intent at or above the safety threshold.'**
   String get assistantClassifierOnnx;
 
+  /// No description provided for @assistantClassifierGemma.
+  ///
+  /// In en, this message translates to:
+  /// **'Answered by the optional local Gemma 3 model. Relevant disaster guidance is grounded in approved offline content when available.'**
+  String get assistantClassifierGemma;
+
   /// No description provided for @assistantEngineDeterministic.
   ///
   /// In en, this message translates to:
@@ -1471,6 +1723,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Response engine: optional local ONNX intent classifier'**
   String get assistantEngineOnnx;
+
+  /// No description provided for @assistantEngineGemma.
+  ///
+  /// In en, this message translates to:
+  /// **'Response engine: local Gemma 3 assistant'**
+  String get assistantEngineGemma;
+
+  /// No description provided for @assistantGemmaAnswerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma 3 answer'**
+  String get assistantGemmaAnswerTitle;
 
   /// No description provided for @assistantLocalRewordingTitle.
   ///

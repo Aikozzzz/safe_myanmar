@@ -196,6 +196,13 @@ class _MessageCard extends StatelessWidget {
                   icon: Icons.translate,
                   text: strings.guideTranslationWarning,
                 ),
+              ] else if (message.gemmaAnswer case final answer?) ...[
+                Text(
+                  strings.assistantGemmaAnswerTitle,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 6),
+                Text(answer),
               ] else
                 Text(_replyText(strings, message.replyKind!)),
               const SizedBox(height: 10),
@@ -407,6 +414,9 @@ String _classifierExplanation(
   IntentResult result,
   AssistantResponseEngine engine,
 ) {
+  if (engine == AssistantResponseEngine.gemma) {
+    return strings.assistantClassifierGemma;
+  }
   if (engine == AssistantResponseEngine.onnx) {
     return strings.assistantClassifierOnnx;
   }
@@ -423,6 +433,7 @@ String _responseEngineText(
 ) => switch (engine) {
   AssistantResponseEngine.deterministic => strings.assistantEngineDeterministic,
   AssistantResponseEngine.onnx => strings.assistantEngineOnnx,
+  AssistantResponseEngine.gemma => strings.assistantEngineGemma,
 };
 
 String _onnxStatusText(

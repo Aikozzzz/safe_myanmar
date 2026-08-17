@@ -4,8 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../profile/application/providers.dart';
 import '../data/native_sms_composer.dart';
+import '../data/native_sms_sender.dart';
 import '../data/secure_sos_draft_repository.dart';
+import '../data/sos_sim_preference.dart';
+import '../data/sos_ble_platform.dart';
+import '../domain/sos_ble.dart';
 import '../domain/sos_draft_repository.dart';
+import 'sos_ble_controller.dart';
+import 'sos_ble_state.dart';
 import 'sos_draft_queue_controller.dart';
 import 'sos_draft_queue_state.dart';
 
@@ -16,6 +22,25 @@ final sosDraftRepositoryProvider = Provider<SosDraftRepository>(
 final nativeSmsComposerProvider = Provider<NativeSmsComposer>(
   (_) => UrlLauncherNativeSmsComposer(),
 );
+
+final nativeSmsSenderProvider = Provider<NativeSmsSender>(
+  (_) => MethodChannelNativeSmsSender(),
+);
+
+final sosSimPreferenceStoreProvider = Provider<SosSimPreferenceStore>(
+  (ref) => SecureSosSimPreferenceStore(ref.watch(secureStorageDriverProvider)),
+);
+
+final sosBlePlatformProvider = Provider<SosBlePlatformService>(
+  (_) => MethodChannelSosBlePlatform(),
+);
+
+final sosBlePayloadCodecProvider = Provider<SosBlePayloadCodec>(
+  (_) => const SosBlePayloadCodec(),
+);
+
+final sosBleControllerProvider =
+    NotifierProvider<SosBleController, SosBleState>(SosBleController.new);
 
 final sosClockProvider = Provider<DateTime Function()>(
   (_) =>

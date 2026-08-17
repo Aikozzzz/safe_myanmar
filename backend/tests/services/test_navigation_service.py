@@ -15,10 +15,7 @@ from app.schemas.navigation import (
 from app.services.navigation import (
     HAZARDS,
     SHELTERS,
-    SIMULATION_MAX_LATITUDE,
-    SIMULATION_MAX_LONGITUDE,
-    SIMULATION_MIN_LATITUDE,
-    SIMULATION_MIN_LONGITUDE,
+    SIMULATION_REGIONS,
     NavigationService,
     OutsideSimulationArea,
     RoutingUnavailable,
@@ -57,6 +54,15 @@ def request(profile=None):
     )
 
 
+def yangon_request(profile=None):
+    return RouteSuggestionRequest(
+        origin=Coordinate(latitude=16.856152, longitude=96.130522),
+        shelter_id="simulation-yangon-shelter-1",
+        disaster_type="earthquake",
+        profile=profile,
+    )
+
+
 def test_simulation_gate_blocks_all_data_and_provider_access():
     provider = StubProvider(())
     service = NavigationService(False, provider, clock=lambda: NOW)
@@ -84,14 +90,48 @@ def test_fixed_lists_are_visibly_simulated_timestamped_and_fictional():
     assert all(item.data_at == shelters.data_at for item in shelters.items)
     assert all(item.data_at == hazards.data_at for item in hazards.items)
     assert "latitude 21.9300 through 21.9900" in shelters.uncertainty_notice
-    assert "longitude 96.0600 through 96.1200" in hazards.uncertainty_notice
+    assert "latitude 16.8000 through 16.9200" in hazards.uncertainty_notice
     assert all(
-        SIMULATION_MIN_LATITUDE <= item.coordinate.latitude <= SIMULATION_MAX_LATITUDE
-        and SIMULATION_MIN_LONGITUDE
-        <= item.coordinate.longitude
-        <= SIMULATION_MAX_LONGITUDE
+        any(region.contains(item.coordinate) for region in SIMULATION_REGIONS)
         for item in SHELTERS
     )
+    assert all(
+        any(
+            any(
+                region.contains(Coordinate(latitude=latitude, longitude=longitude))
+                for region in SIMULATION_REGIONS
+            )
+            for longitude, latitude in hazard.geometry.coordinates[0]
+        )
+        for hazard in HAZARDS
+    )
+
+
+def test_yangon_context_analysis_supports_a_realistic_phone_origin():
+    service = NavigationService(True, StubProvider(()), clock=lambda: NOW)
+
+    response = service.find_context_areas(
+        ContextAreaRequest(
+            origin=Coordinate(latitude=16.856152, longitude=96.130522),
+            disaster_type="earthquake",
+            scenario="outdoors_after_shaking",
+        )
+    )
+
+    assert 0 < len(response.items) <= 3
+    assert all(item.disaster_type == "earthquake" for item in response.items)
+    assert all(item.simulation for item in response.items)
+
+
+def test_yangon_routes_stay_inside_the_yangon_region():
+    route = directions_route([(96.130522, 16.856152), (96.132, 16.838)], 2100.0, 900.0)
+    service = NavigationService(True, StubProvider((route,)), clock=lambda: NOW)
+
+    response = service.suggest_routes(yangon_request())
+
+    assert len(response.options) == 1
+    assert response.options[0].recommended is True
+    assert response.options[0].geometry.coordinates[-1] == (96.132, 16.838)
 
 
 def test_context_analysis_prioritizes_open_space_for_outdoor_earthquake():
@@ -142,10 +182,14 @@ def test_context_analysis_does_not_route_outside_during_active_earthquake_shakin
     assert response.items == []
     assert "Drop, Cover, and Hold On" in response.uncertainty_notice
     assert all(
-        SIMULATION_MIN_LONGITUDE <= longitude <= SIMULATION_MAX_LONGITUDE
-        and SIMULATION_MIN_LATITUDE <= latitude <= SIMULATION_MAX_LATITUDE
+        any(
+            any(
+                region.contains(Coordinate(latitude=latitude, longitude=longitude))
+                for region in SIMULATION_REGIONS
+            )
+            for longitude, latitude in hazard.geometry.coordinates[0]
+        )
         for hazard in HAZARDS
-        for longitude, latitude in hazard.geometry.coordinates[0]
     )
 
 

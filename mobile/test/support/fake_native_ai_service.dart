@@ -24,20 +24,27 @@ final class FakeNativeAiService implements NativeAiService {
     this.rewriteResult = const NativeAiResult.unavailable(
       NativeAiReason.modelMissing,
     ),
+    this.answerResult = const NativeAiResult.unavailable(
+      NativeAiReason.modelMissing,
+    ),
   });
 
   NativeAiCapabilities capabilitiesResult;
   NativeAiResult<NativeIntentClassification> classificationResult;
   NativeAiResult<NativeAiAction> initializationResult;
   NativeAiResult<NativeVerifiedRewrite> rewriteResult;
+  NativeAiResult<NativeVerifiedRewrite> answerResult;
   Future<NativeAiCapabilities> Function()? capabilitiesHandler;
   int capabilitiesCalls = 0;
   int classificationCalls = 0;
   int initializationCalls = 0;
   int rewriteCalls = 0;
+  int answerCalls = 0;
   int cancelCalls = 0;
   int disposeCalls = 0;
   RewriteInvocation? lastRewrite;
+  String? lastQuestion;
+  String? lastApprovedContext;
 
   @override
   Future<NativeAiCapabilities> capabilities() async {
@@ -74,6 +81,17 @@ final class FakeNativeAiService implements NativeAiService {
       intent: intent,
     );
     return rewriteResult;
+  }
+
+  @override
+  Future<NativeAiResult<NativeVerifiedRewrite>> answerQuestion({
+    required String question,
+    required String approvedContext,
+  }) async {
+    answerCalls++;
+    lastQuestion = question;
+    lastApprovedContext = approvedContext;
+    return answerResult;
   }
 
   @override

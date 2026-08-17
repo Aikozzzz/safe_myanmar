@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import '../../location/domain/foreground_location.dart';
@@ -9,6 +11,8 @@ class NavigationMap extends StatefulWidget {
     required this.accessToken,
     required this.location,
     required this.shelters,
+    required this.contextAreas,
+    required this.selectedContextAreaId,
     required this.hazards,
     required this.routes,
     required this.selectedRouteId,
@@ -22,6 +26,8 @@ class NavigationMap extends StatefulWidget {
   final String accessToken;
   final ForegroundLocation location;
   final List<Shelter> shelters;
+  final List<ContextArea> contextAreas;
+  final String? selectedContextAreaId;
   final List<Hazard> hazards;
   final List<RouteOption> routes;
   final String? selectedRouteId;
@@ -98,6 +104,11 @@ class _NavigationMapState extends State<NavigationMap> {
         height: 300,
         child: mapbox.MapWidget(
           key: ValueKey('mapbox-map-widget-$_mapGeneration'),
+          // Claim map gestures so the surrounding ListView does not consume
+          // drags before Mapbox can pan, zoom, or rotate the map.
+          gestureRecognizers: {
+            Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
+          },
           viewport: mapbox.CameraViewportState(
             center: _point(widget.location.longitude, widget.location.latitude),
             zoom: 12,
@@ -211,6 +222,25 @@ class _NavigationMapState extends State<NavigationMap> {
                 circleStrokeColor: Colors.white.toARGB32(),
                 circleStrokeWidth: 2,
                 customData: {'shelter_id': shelter.id},
+              ),
+            )
+            .toList(),
+      );
+    }
+    if (widget.contextAreas.isNotEmpty) {
+      await shelterManager.createMulti(
+        widget.contextAreas
+            .map(
+              (area) => mapbox.CircleAnnotationOptions(
+                geometry: _point(
+                  area.coordinate.longitude,
+                  area.coordinate.latitude,
+                ),
+                circleRadius: area.id == widget.selectedContextAreaId ? 10 : 7,
+                circleColor: const Color(0xffef6c00).toARGB32(),
+                circleStrokeColor: Colors.white.toARGB32(),
+                circleStrokeWidth: 2,
+                customData: {'context_area_id': area.id},
               ),
             )
             .toList(),

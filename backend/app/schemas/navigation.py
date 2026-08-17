@@ -44,16 +44,16 @@ class Shelter(ExactModel):
     name: str
     coordinate: Coordinate
     description: str
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
+    source: str = "SafeMyanmar Demo"
     data_at: datetime
-    simulation: Literal[True] = True
+    simulation: bool = True
 
 
 class ShelterListResponse(ExactModel):
     items: list[Shelter]
     data_at: datetime
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
-    simulation: Literal[True] = True
+    source: str = "SafeMyanmar Demo"
+    simulation: bool = True
     uncertainty_notice: str
 
 
@@ -83,17 +83,17 @@ class ContextArea(ExactModel):
     distance_m: float = Field(ge=0, allow_inf_nan=False)
     metrics: ContextMetrics
     rationale: list[str] = Field(min_length=1, max_length=6)
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
+    source: str = "SafeMyanmar Demo"
     data_at: datetime
-    simulation: Literal[True] = True
+    simulation: bool = True
     uncertainty_notice: str
 
 
 class ContextAreaListResponse(ExactModel):
     items: list[ContextArea]
     data_at: datetime
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
-    simulation: Literal[True] = True
+    source: str = "SafeMyanmar Demo"
+    simulation: bool = True
     uncertainty_notice: str
 
 
@@ -102,16 +102,16 @@ class Hazard(ExactModel):
     name: str
     disaster_type: DisasterType
     geometry: PolygonGeometry
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
+    source: str = "SafeMyanmar Demo"
     data_at: datetime
-    simulation: Literal[True] = True
+    simulation: bool = True
 
 
 class HazardListResponse(ExactModel):
     items: list[Hazard]
     data_at: datetime
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
-    simulation: Literal[True] = True
+    source: str = "SafeMyanmar Demo"
+    simulation: bool = True
     uncertainty_notice: str
 
 

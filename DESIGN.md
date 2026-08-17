@@ -78,19 +78,28 @@ under their corresponding shell branches.
 ### SOS
 
 - The screen shows selected recipients, optional user text, the exact composed
-  body, profile/location data to be stored, and the external-composer disclosure
+  body, profile/location data to be stored, and the direct-SMS disclosure
   before activation.
-- A profile and at least one explicitly selected emergency contact are required.
+- A profile is required. SMS sharing requires at least one explicitly selected
+  emergency contact; Bluetooth sharing may be selected as the sole transport.
 - Pointer users hold the control to confirm. An accessible activation path uses
-  two explicit review/confirmation dialogs before opening messaging.
-- Confirmation persists a local draft before invoking the native external SMS
-  composer. Equivalent active drafts within five minutes are reused rather than
-  duplicated.
-- Implemented draft statuses are **Prepared**, **Composer opened**, **Failed to
-  open**, and **Cancelled**. "Composer opened" does not mean sent or delivered;
-  SafeMyanmar cannot observe either outcome.
+  two explicit review/confirmation dialogs before sending.
+- Confirmation persists a local draft before invoking Android `SmsManager`.
+  Equivalent active drafts within five minutes are reused rather than duplicated.
+- Implemented draft statuses include **Prepared**, **SMS sending**, **SMS accepted
+  by device**, **SMS failed**, **Composer opened**, **Failed to open**, and
+  **Cancelled**. Device acceptance does not mean carrier delivery.
 - Draft cards allow explicit reopen, cancel, and remove actions. Destructive
   reset/removal actions require confirmation.
+- A separate checkbox allows the user to share limited SOS data with nearby
+  SafeMyanmar Android users. It never starts from navigation or from opening the
+  SOS screen and does not replace SMS confirmation.
+- Nearby sharing broadcasts a temporary event ID, UTC timestamp, approximately
+  1 km grid, location status, and battery value for ten minutes. Exact
+  coordinates, profile data, contacts, and message text are excluded.
+- An opt-in foreground receiver shows peer-received events as unverified local
+  alerts. It does not merge them with official earthquake alerts, relay them, or
+  imply rescue acknowledgement. Optional sound is user-controlled.
 
 ### Guide And Assistant
 
@@ -104,10 +113,11 @@ under their corresponding shell branches.
 - Tier 2 is optional checksum-validated local ONNX intent refinement. It runs
   only when deterministic classification returns unknown and must meet the
   configured confidence threshold before its result is used.
-- Tier 3 is optional checksum-validated local LiteRT-LM rewording of supplied
-  verified English content. It is not used for trapped-person, first-aid, SOS,
-  or safer-route intents and may not add facts, diagnoses, route claims, rescue
-  claims, or instructions.
+- Tier 3 is optional checksum-validated local LiteRT-LM Gemma 3 answering for
+  general questions and rewording of supplied verified English content. It
+  prioritizes disaster topics, is not used for trapped-person, first-aid, SOS,
+  or safer-route intents, and may not add facts, diagnoses, route claims,
+  rescue claims, or instructions.
 - Capability banners identify optional tiers as available or unavailable.
   Missing models are normal, and deterministic retrieval remains active.
 - Assistant actions only navigate after a separate user tap. The assistant never

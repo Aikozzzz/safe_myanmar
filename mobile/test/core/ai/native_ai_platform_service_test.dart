@@ -113,6 +113,27 @@ void main() {
     expect(result.value, isNull);
   });
 
+  test('sends the general Gemma question contract', () async {
+    MethodCall? received;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      received = call;
+      return {'status': 'success', 'text': 'answer'};
+    });
+
+    final result = await service.answerQuestion(
+      question: 'What is the difference between a flood and an earthquake?',
+      approvedContext: '[flood] Flood overview',
+    );
+
+    expect(received?.method, 'answerQuestion');
+    expect(received?.arguments, {
+      'question': 'What is the difference between a flood and an earthquake?',
+      'approvedContext': '[flood] Flood overview',
+    });
+    expect(result.status, NativeAiStatus.success);
+    expect(result.value?.text, 'answer');
+  });
+
   test('Riverpod provider cancels then disposes native resources', () async {
     final calls = <String>[];
     messenger.setMockMethodCallHandler(providerChannel, (call) async {

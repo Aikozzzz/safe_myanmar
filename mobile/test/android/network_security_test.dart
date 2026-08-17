@@ -48,22 +48,31 @@ void main() {
     expect(debugPolicy, isNot(contains('<base-config')));
   });
 
-  test('main manifest requests only Internet and foreground location', () {
+  test('main manifest requests only declared app capabilities', () {
     final manifest = File(
       'android/app/src/main/AndroidManifest.xml',
     ).readAsStringSync();
     final permissions = RegExp(
-      r'<uses-permission\s+android:name="([^"]+)"\s*/>',
+      r'<uses-permission\s+android:name="([^"]+)"(?:\s+[^>]*)?\s*/>',
     ).allMatches(manifest).map((match) => match.group(1)).toSet();
 
     expect(permissions, {
       'android.permission.INTERNET',
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.BLUETOOTH',
+      'android.permission.BLUETOOTH_ADMIN',
+      'android.permission.BLUETOOTH_SCAN',
+      'android.permission.BLUETOOTH_ADVERTISE',
+      'android.permission.BLUETOOTH_CONNECT',
+      'android.permission.POST_NOTIFICATIONS',
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE',
+      'android.permission.SEND_SMS',
+      'android.permission.READ_PHONE_STATE',
     });
     for (final prohibited in [
       'android.permission.ACCESS_BACKGROUND_LOCATION',
-      'android.permission.FOREGROUND_SERVICE',
       'android.permission.FOREGROUND_SERVICE_LOCATION',
     ]) {
       expect(manifest, isNot(contains(prohibited)));
@@ -83,7 +92,6 @@ void main() {
     }
     for (final prohibited in [
       'android.permission.ACCESS_BACKGROUND_LOCATION',
-      'android.permission.SEND_SMS',
       'android.permission.READ_SMS',
       'android.permission.RECEIVE_SMS',
     ]) {
@@ -107,7 +115,10 @@ void main() {
     expect(readme, contains('`ACCESS_NETWORK_STATE`'));
     expect(readme, contains('`ACCESS_WIFI_STATE`'));
     expect(readme, contains('No background location permission'));
-    expect(readme, contains('does not request Android SMS'));
+    expect(
+      readme,
+      contains('Android `READ_PHONE_STATE` to identify active SIMs'),
+    );
     expect(readme, contains('GLES 3'));
     expect(readme, contains('future no-map product flavor'));
   });

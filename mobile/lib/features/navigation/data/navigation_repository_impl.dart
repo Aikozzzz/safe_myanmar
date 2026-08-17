@@ -2,12 +2,14 @@ import '../domain/navigation_models.dart';
 import '../domain/navigation_repository.dart';
 import 'navigation_local_source.dart';
 import 'navigation_remote_source.dart';
+import 'navigation_dto.dart';
 
 final class NavigationRepositoryImpl implements NavigationRepository {
   NavigationRepositoryImpl({
     required NavigationLocalSource localSource,
     required NavigationRemoteSource remoteSource,
     DateTime Function()? now,
+    this.allowSimulationData = false,
   }) : _local = localSource,
        _remote = remoteSource,
        _now = now ?? DateTime.now;
@@ -15,12 +17,20 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   final NavigationLocalSource _local;
   final NavigationRemoteSource _remote;
   final DateTime Function() _now;
+  final bool allowSimulationData;
   var _routeRequestGeneration = 0;
 
   @override
   Future<NavigationResource<ShelterCollection>> loadCachedShelters() async {
     try {
       final cached = await _local.readShelters();
+      if (cached != null && !_usableSource(cached.value.source)) {
+        return const NavigationResource(
+          data: null,
+          isCached: false,
+          remoteFailed: false,
+        );
+      }
       return NavigationResource(
         data: cached?.value.toDomain(),
         isCached: cached != null,
@@ -40,6 +50,13 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   Future<NavigationResource<HazardCollection>> loadCachedHazards() async {
     try {
       final cached = await _local.readHazards();
+      if (cached != null && !_usableSource(cached.value.source)) {
+        return const NavigationResource(
+          data: null,
+          isCached: false,
+          remoteFailed: false,
+        );
+      }
       return NavigationResource(
         data: cached?.value.toDomain(),
         isCached: cached != null,
@@ -59,6 +76,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   Future<NavigationResource<ShelterCollection>> loadShelters() async {
     try {
       final value = await _remote.fetchShelters();
+      _requireUsableSource(value.source);
       await _tryCache(() => _local.replaceShelters(value, _now().toUtc()));
       return NavigationResource(
         data: value.toDomain(),
@@ -68,6 +86,13 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readShelters();
+        if (cached != null && !_usableSource(cached.value.source)) {
+          return const NavigationResource(
+            data: null,
+            isCached: false,
+            remoteFailed: true,
+          );
+        }
         return NavigationResource(
           data: cached?.value.toDomain(),
           isCached: cached != null,
@@ -88,6 +113,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   Future<NavigationResource<HazardCollection>> loadHazards() async {
     try {
       final value = await _remote.fetchHazards();
+      _requireUsableSource(value.source);
       await _tryCache(() => _local.replaceHazards(value, _now().toUtc()));
       return NavigationResource(
         data: value.toDomain(),
@@ -97,6 +123,13 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readHazards();
+        if (cached != null && !_usableSource(cached.value.source)) {
+          return const NavigationResource(
+            data: null,
+            isCached: false,
+            remoteFailed: true,
+          );
+        }
         return NavigationResource(
           data: cached?.value.toDomain(),
           isCached: cached != null,
@@ -119,6 +152,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   ) async {
     try {
       final value = await _remote.findContextAreas(request);
+      _requireUsableSource(value.source);
       await _tryCache(
         () => _local.replaceContextAreas(value, request, _now().toUtc()),
       );
@@ -130,6 +164,13 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readContextAreas(request);
+        if (cached != null && !_usableSource(cached.value.source)) {
+          return const NavigationResource(
+            data: null,
+            isCached: false,
+            remoteFailed: true,
+          );
+        }
         return NavigationResource(
           data: cached?.value.toDomain(),
           isCached: cached != null,
@@ -152,6 +193,13 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   ) async {
     try {
       final cached = await _local.readContextAreas(request);
+      if (cached != null && !_usableSource(cached.value.source)) {
+        return const NavigationResource(
+          data: null,
+          isCached: false,
+          remoteFailed: false,
+        );
+      }
       return NavigationResource(
         data: cached?.value.toDomain(),
         isCached: cached != null,
@@ -174,6 +222,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     final generation = ++_routeRequestGeneration;
     try {
       final value = await _remote.fetchRouteSuggestions(request);
+      _requireUsableSource(value.source);
       if (generation == _routeRequestGeneration) {
         await _tryCache(
           () => _local.replaceRoutes(value, request, _now().toUtc()),
@@ -187,6 +236,13 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readRoutes(request);
+        if (cached != null && !_usableSource(cached.value.source)) {
+          return const NavigationResource(
+            data: null,
+            isCached: false,
+            remoteFailed: true,
+          );
+        }
         return NavigationResource(
           data: cached?.value.toDomain(),
           isCached: cached != null,
@@ -200,6 +256,15 @@ final class NavigationRepositoryImpl implements NavigationRepository {
           remoteFailed: true,
         );
       }
+    }
+  }
+
+  bool _usableSource(String source) =>
+      allowSimulationData || source != 'SafeMyanmar Demo';
+
+  void _requireUsableSource(String source) {
+    if (!_usableSource(source)) {
+      throw NavigationProtocolException();
     }
   }
 

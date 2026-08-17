@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from sqlalchemy import create_engine
@@ -14,6 +15,11 @@ from app.providers.usgs.client import UsgsClient
 from app.providers.usgs.normalizer import normalize_feed
 from app.repositories.earthquakes import EarthquakeRepository, ProviderSyncRepository
 from app.services.earthquakes import EarthquakeService
+from app.services.real_context_analysis import (
+    LiveEnvironmentProvider,
+    RealContextAnalyzer,
+)
+from app.services.real_navigation_data import YangonNavigationData
 
 
 def create_app() -> FastAPI:
@@ -30,6 +36,7 @@ def create_app() -> FastAPI:
         current_max_age_seconds=settings.current_max_age_seconds,
     )
     directions_provider = None
+    environment_provider = None
     navigation_service = None
     simulation_route_guard = None
     if settings.enable_simulation_data:
@@ -47,6 +54,36 @@ def create_app() -> FastAPI:
         )
         navigation_service = NavigationService(True, directions_provider)
         simulation_route_guard = SimulationRouteGuard()
+    else:
+        data_directory = (
+            Path(__file__).resolve().parents[2] / settings.navigation_data_path
+        )
+        if data_directory.is_dir():
+            from app.api.v1.navigation import SimulationRouteGuard
+            from app.providers.mapbox.directions import MapboxDirectionsProvider
+            from app.services.navigation import NavigationService
+
+            mapbox_token = (
+                settings.mapbox_directions_access_token.get_secret_value()
+                if settings.mapbox_directions_access_token is not None
+                else None
+            )
+            directions_provider = MapboxDirectionsProvider(
+                mapbox_token, settings.provider_timeout_seconds
+            )
+            environment_provider = LiveEnvironmentProvider(
+                overpass_url=settings.overpass_api_url,
+                elevation_url=settings.elevation_api_url,
+                timeout_seconds=settings.provider_timeout_seconds,
+            )
+            navigation_data = YangonNavigationData.load(data_directory)
+            navigation_service = NavigationService(
+                False,
+                directions_provider,
+                real_data=navigation_data,
+                context_analyzer=RealContextAnalyzer(environment_provider),
+            )
+            simulation_route_guard = SimulationRouteGuard()
 
     @asynccontextmanager
     async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
@@ -57,6 +94,8 @@ def create_app() -> FastAPI:
             try:
                 if directions_provider is not None:
                     directions_provider.close()
+                if environment_provider is not None:
+                    environment_provider.close()
             finally:
                 engine.dispose()
 
@@ -71,7 +110,10 @@ def create_app() -> FastAPI:
     register_error_handlers(application)
     application.include_router(health_router)
     application.include_router(
-        create_v1_router(enable_simulation_data=settings.enable_simulation_data)
+        create_v1_router(
+            enable_simulation_data=settings.enable_simulation_data,
+            enable_navigation_data=navigation_service is not None,
+        )
     )
     return application
 

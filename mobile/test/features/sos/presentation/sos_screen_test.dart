@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,9 @@ import 'package:mobile/features/profile/application/providers.dart';
 import 'package:mobile/features/profile/domain/local_profile.dart';
 import 'package:mobile/features/sos/application/providers.dart';
 import 'package:mobile/features/sos/data/native_sms_composer.dart';
+import 'package:mobile/features/sos/data/native_sms_sender.dart';
+import 'package:mobile/features/sos/data/sos_sim_preference.dart';
+import 'package:mobile/features/sos/domain/sos_ble.dart';
 import 'package:mobile/features/sos/domain/sos_draft.dart';
 import 'package:mobile/features/sos/presentation/hold_to_confirm.dart';
 
@@ -21,6 +26,8 @@ void main() {
   late FakeSosDraftRepository draftRepository;
   late FakeLocationRepository locationRepository;
   late _FakeComposer composer;
+  late _FakeSender sender;
+  late _FakeSimPreferenceStore simPreference;
   late ProviderContainer container;
 
   setUp(() {
@@ -41,9 +48,16 @@ void main() {
     locationRepository = FakeLocationRepository()
       ..currentLocation = preciseLocation;
     composer = _FakeComposer();
+    sender = _FakeSender();
+    simPreference = _FakeSimPreferenceStore();
   });
 
-  Future<void> pumpSos(WidgetTester tester, {double textScale = 1}) async {
+  Future<void> pumpSos(
+    WidgetTester tester, {
+    double textScale = 1,
+    SosBlePlatformService? blePlatform,
+    String draftId = 'draft-1',
+  }) async {
     final router = createRouter(initialLocation: '/sos');
     addTearDown(router.dispose);
     container = ProviderContainer(
@@ -52,8 +66,12 @@ void main() {
         sosDraftRepositoryProvider.overrideWithValue(draftRepository),
         locationRepositoryProvider.overrideWithValue(locationRepository),
         nativeSmsComposerProvider.overrideWithValue(composer),
+        nativeSmsSenderProvider.overrideWithValue(sender),
+        sosSimPreferenceStoreProvider.overrideWithValue(simPreference),
         sosClockProvider.overrideWithValue(() => DateTime.utc(2026, 7, 23, 2)),
-        sosDraftIdFactoryProvider.overrideWithValue(() => 'draft-1'),
+        sosDraftIdFactoryProvider.overrideWithValue(() => draftId),
+        if (blePlatform != null)
+          sosBlePlatformProvider.overrideWithValue(blePlatform),
       ],
     );
     addTearDown(container.dispose);
@@ -123,6 +141,49 @@ void main() {
     expect(composer.calls, 0);
   });
 
+  testWidgets('nearby sharing can prepare an SOS without an SMS contact', (
+    tester,
+  ) async {
+    profileRepository.profile = LocalProfile.empty();
+    final blePlatform = _FakeSosBlePlatform();
+    await pumpSos(
+      tester,
+      blePlatform: blePlatform,
+      draftId: '00112233-4455-6677-8899-aabbccddeeff',
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(container.read(sosBleControllerProvider).supported, isTrue);
+
+    final sharing = find.text('Share limited SOS data nearby');
+    await tester.scrollUntilVisible(
+      sharing,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(sharing);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      _holdLabel,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(
+      tester.widget<HoldToConfirm>(find.byType(HoldToConfirm)).enabled,
+      isTrue,
+    );
+    final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    await gesture.up();
+
+    expect(draftRepository.drafts, hasLength(1));
+    expect(blePlatform.broadcastPayloads, hasLength(1));
+    expect(sender.calls, 0);
+  });
+
   testWidgets('previews current, last-known, and unavailable location states', (
     tester,
   ) async {
@@ -160,45 +221,38 @@ void main() {
     );
   });
 
-  testWidgets(
-    'continuous hold prepares then opens composer and retains status',
-    (tester) async {
-      await pumpSos(tester);
-      await tester.scrollUntilVisible(
-        _holdLabel,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 3));
-      await tester.pumpAndSettle();
-      await gesture.up();
+  testWidgets('continuous hold prepares then sends SMS and retains status', (
+    tester,
+  ) async {
+    await pumpSos(tester);
+    await tester.scrollUntilVisible(
+      _holdLabel,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    await gesture.up();
 
-      expect(composer.calls, 1);
-      expect(composer.recipients, ['+12025550123']);
-      expect(
-        composer.body,
-        contains('User-prepared SafeMyanmar emergency message.'),
-      );
-      expect(
-        draftRepository.drafts.single.status,
-        SosDraftStatus.composerOpened,
-      );
-      expect(
-        draftRepository.drafts.single.body,
-        contains('Profile name: Test User'),
-      );
-      expect(
-        find.textContaining('SafeMyanmar cannot verify SMS transmission'),
-        findsWidgets,
-      );
-      expect(
-        find.text('Status: Messaging app opened; outcome unknown'),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(sender.calls, 1);
+    expect(sender.recipients, ['+12025550123']);
+    expect(
+      sender.body,
+      contains('User-prepared SafeMyanmar emergency message.'),
+    );
+    expect(draftRepository.drafts.single.status, SosDraftStatus.smsSent);
+    expect(
+      draftRepository.drafts.single.body,
+      contains('Profile name: Test User'),
+    );
+    expect(find.textContaining('device accepted the SMS'), findsWidgets);
+    expect(
+      find.text('Status: SMS accepted by device; delivery unconfirmed'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('releasing hold early cancels with no draft or composer', (
     tester,
@@ -215,55 +269,97 @@ void main() {
     await gesture.up();
     await tester.pump();
 
-    expect(find.text('Hold cancelled. Nothing was opened.'), findsOneWidget);
+    expect(find.text('Hold cancelled. Nothing was sent.'), findsOneWidget);
     expect(draftRepository.writes, 0);
     expect(composer.calls, 0);
+  });
+
+  testWidgets('chooses SIM 2 and can remember the preferred SIM', (
+    tester,
+  ) async {
+    sender.sims = const [
+      SmsSim(subscriptionId: 1, slotIndex: 0, label: 'MPT'),
+      SmsSim(subscriptionId: 2, slotIndex: 1, label: 'ATOM'),
+    ];
+    await pumpSos(tester);
+    await tester.scrollUntilVisible(
+      _holdLabel,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    await gesture.up();
+
+    expect(find.text('Choose SIM'), findsOneWidget);
+    await tester.tap(find.text('SIM 2 - ATOM'));
+    await tester.tap(find.text('Remember my preferred SIM'));
+    await tester.tap(find.text('Send using SIM'));
+    await tester.pumpAndSettle();
+
+    expect(sender.subscriptionId, 2);
+    expect(simPreference.preferredSubscriptionId, '2');
+    expect(draftRepository.drafts.single.status, SosDraftStatus.smsSent);
   });
 
   testWidgets('accessible path requires two explicit dialog confirmations', (
     tester,
   ) async {
     await pumpSos(tester);
+    final accessible = find.widgetWithText(
+      TextButton,
+      'Use confirmation dialogs instead',
+    );
     await tester.scrollUntilVisible(
-      find.text('Use confirmation dialogs instead'),
+      accessible,
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('Use confirmation dialogs instead'));
+    await tester.ensureVisible(accessible);
+    tester.widget<TextButton>(accessible).onPressed!();
+    await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     expect(find.text('Confirm SOS draft details'), findsOneWidget);
     expect(composer.calls, 0);
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Open the messaging app?'), findsOneWidget);
+    expect(find.text('Send SOS SMS directly?'), findsOneWidget);
     expect(composer.calls, 0);
 
-    await tester.tap(find.text('Prepare and open messaging'));
+    await tester.tap(find.text('Send SMS now'));
     await tester.pumpAndSettle();
-    expect(composer.calls, 1);
-    expect(draftRepository.drafts.single.status, SosDraftStatus.composerOpened);
+    expect(sender.calls, 1);
+    expect(draftRepository.drafts.single.status, SosDraftStatus.smsSent);
   });
 
   testWidgets(
-    'launcher failure is retained as failed-to-open, never delivery',
+    'SMS failure is retained as failed, never reported as delivered',
     (tester) async {
-      composer.result = false;
+      sender.result = const NativeSmsSendResult(NativeSmsSendStatus.failed);
       await pumpSos(tester);
+      final accessible = find.widgetWithText(
+        TextButton,
+        'Use confirmation dialogs instead',
+      );
       await tester.scrollUntilVisible(
-        find.text('Use confirmation dialogs instead'),
+        accessible,
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.text('Use confirmation dialogs instead'));
+      await tester.ensureVisible(accessible);
+      tester.widget<TextButton>(accessible).onPressed!();
+      await tester.pumpAndSettle();
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Prepare and open messaging'));
+      await tester.tap(find.text('Send SMS now'));
       await tester.pumpAndSettle();
 
-      expect(draftRepository.drafts.single.status, SosDraftStatus.failedToOpen);
-      expect(find.text('Status: Messaging app failed to open'), findsOneWidget);
+      expect(draftRepository.drafts.single.status, SosDraftStatus.smsFailed);
+      expect(find.text('Status: SMS failed; retry available'), findsOneWidget);
       expect(find.textContaining(RegExp(r'^Sent$|^Delivered$')), findsNothing);
     },
   );
@@ -272,16 +368,22 @@ void main() {
     tester,
   ) async {
     await pumpSos(tester);
+    final accessible = find.widgetWithText(
+      TextButton,
+      'Use confirmation dialogs instead',
+    );
     await tester.scrollUntilVisible(
-      find.text('Use confirmation dialogs instead'),
+      accessible,
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('Use confirmation dialogs instead'));
+    await tester.ensureVisible(accessible);
+    tester.widget<TextButton>(accessible).onPressed!();
+    await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Prepare and open messaging'));
+    await tester.tap(find.text('Send SMS now'));
     await tester.pumpAndSettle();
     final preparedBody = draftRepository.drafts.single.body;
 
@@ -289,7 +391,7 @@ void main() {
         .read(localProfileControllerProvider.notifier)
         .saveDisplayName('Changed User');
     await tester.pumpAndSettle();
-    final openAgain = find.widgetWithText(OutlinedButton, 'Open again');
+    final openAgain = find.widgetWithText(OutlinedButton, 'Send again');
     await tester.scrollUntilVisible(
       openAgain,
       200,
@@ -304,9 +406,9 @@ void main() {
     expect(find.textContaining(preparedBody), findsWidgets);
     expect(preparedBody, contains('Profile name: Test User'));
     expect(preparedBody, isNot(contains('Changed User')));
-    await tester.tap(find.text('Prepare and open messaging'));
+    await tester.tap(find.text('Send SMS now'));
     await tester.pumpAndSettle();
-    expect(composer.body, preparedBody);
+    expect(sender.body, preparedBody);
   });
 
   testWidgets('SOS screen fits 390x844 at 200 percent text with 48dp actions', (
@@ -343,7 +445,7 @@ void main() {
 
 Finder get _holdLabel => find.descendant(
   of: find.byType(HoldToConfirm),
-  matching: find.text('Hold for 3 seconds to prepare and open messaging'),
+  matching: find.text('Hold for 3 seconds to send SMS'),
 );
 
 final preciseLocation = ForegroundLocation(
@@ -375,5 +477,81 @@ final class _FakeComposer implements NativeSmsComposer {
     this.recipients = recipients;
     this.body = body;
     return result;
+  }
+}
+
+final class _FakeSosBlePlatform implements SosBlePlatformService {
+  final broadcastPayloads = <Uint8List>[];
+
+  @override
+  Stream<Uint8List> get payloadStream => const Stream<Uint8List>.empty();
+
+  @override
+  Future<bool> isSupported() async => true;
+
+  @override
+  Future<bool> requestPermissions() async => true;
+
+  @override
+  Future<int?> batteryPercent() async => 80;
+
+  @override
+  Future<void> startBroadcast(Uint8List payload) async {
+    broadcastPayloads.add(payload);
+  }
+
+  @override
+  Future<void> stopBroadcast() async {}
+
+  @override
+  Future<void> startScan() async {}
+
+  @override
+  Future<void> stopScan() async {}
+}
+
+final class _FakeSender implements NativeSmsSender {
+  List<SmsSim> sims = const [
+    SmsSim(subscriptionId: 1, slotIndex: 0, label: 'Test SIM'),
+  ];
+  bool permission = true;
+  NativeSmsSendResult result = const NativeSmsSendResult(
+    NativeSmsSendStatus.sent,
+  );
+  int calls = 0;
+  List<String>? recipients;
+  String? body;
+  int? subscriptionId;
+
+  @override
+  Future<List<SmsSim>> listSims() async => sims;
+
+  @override
+  Future<bool> requestPermission() async => permission;
+
+  @override
+  Future<NativeSmsSendResult> send({
+    required List<String> recipients,
+    required String body,
+    required int subscriptionId,
+  }) async {
+    calls++;
+    this.recipients = recipients;
+    this.body = body;
+    this.subscriptionId = subscriptionId;
+    return result;
+  }
+}
+
+final class _FakeSimPreferenceStore implements SosSimPreferenceStore {
+  String? preferredSubscriptionId;
+
+  @override
+  Future<String?> readPreferredSubscriptionId() async =>
+      preferredSubscriptionId;
+
+  @override
+  Future<void> writePreferredSubscriptionId(String? subscriptionId) async {
+    preferredSubscriptionId = subscriptionId;
   }
 }

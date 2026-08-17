@@ -152,6 +152,23 @@ void main() {
     },
   );
 
+  test('analysis controls stay open when an input changes', () async {
+    final repository = FakeNavigationRepository();
+    final container = ProviderContainer(
+      overrides: [navigationRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(navigationControllerProvider.notifier);
+
+    await controller.analyzeContext(location);
+    controller.selectDisasterType(DisasterType.flood);
+
+    final state = container.read(navigationControllerProvider);
+    expect(state.contextAnalysisRequested, isTrue);
+    expect(state.contextAreas, isNull);
+    expect(state.selectedContextAreaId, isNull);
+  });
+
   test('late route response is discarded after a newer request', () async {
     final first = Completer<NavigationResource<RouteSuggestions>>();
     final second = Completer<NavigationResource<RouteSuggestions>>();

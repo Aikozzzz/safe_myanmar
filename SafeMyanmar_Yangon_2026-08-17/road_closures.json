@@ -1,0 +1,19 @@
+[
+  {
+    "id": "mfsd-ygn-pyay-mp46-3-tree-20260816",
+    "road_name": "Yangon–Pyay Road at milepost 46/3 near Lathagone Village, Taikkyi Township",
+    "geometry": null,
+    "status": "unknown",
+    "reason": "A tree fell after rainfall and blocked the road. MFSD reported that clearance work was completed at 07:48 MST, but did not explicitly state that the road had reopened.",
+    "source": "Myanmar Fire Services Department",
+    "source_url": "https://www.fsd.gov.mm/news-detail/1760",
+    "reported_at": "2026-08-16T07:07:00+06:30",
+    "updated_at": "2026-08-16T07:48:00+06:30",
+    "expires_at": "2026-08-16T07:48:00+06:30",
+    "verification_level": "official",
+    "license": "No open-data license stated; site copyright applies.",
+    "geometry_missing_reason": "Official report identified a road and milepost but published no coordinates; no estimated point was added.",
+    "retrieved_at": "2026-08-17T13:42:17+00:00",
+    "is_stale": true
+  }
+]

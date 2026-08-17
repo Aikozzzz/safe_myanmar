@@ -55,6 +55,24 @@ void main() {
     expect(repository.writes, 1);
   });
 
+  test('allows a Bluetooth-only draft only when explicitly enabled', () async {
+    await load();
+
+    final result = await controller().prepare(
+      SosDraftPreparation(
+        recipients: const [],
+        message: null,
+        location: null,
+        profileName: 'Test User',
+        body: 'Bluetooth-only SOS payload.',
+        allowNoRecipients: true,
+      ),
+    );
+
+    expect(result.result, SosDraftOperationResult.success);
+    expect(result.draft?.recipients, isEmpty);
+  });
+
   test('equivalent active draft reuses its immutable body snapshot', () async {
     await load();
     final first = (await controller().prepare(preparation())).draft!;
@@ -146,6 +164,9 @@ void main() {
     final prepared = (await controller().prepare(preparation())).draft!;
 
     for (final status in [
+      SosDraftStatus.smsSending,
+      SosDraftStatus.smsSent,
+      SosDraftStatus.smsFailed,
       SosDraftStatus.composerOpened,
       SosDraftStatus.failedToOpen,
       SosDraftStatus.cancelled,

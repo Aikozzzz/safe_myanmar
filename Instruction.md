@@ -49,8 +49,8 @@ Open `backend/.env`.
 
 ### Basic Mode
 
-Basic mode provides live USGS earthquake information and all offline mobile
-features. Keep simulation disabled:
+Basic mode provides live USGS earthquake information, the configured real
+navigation snapshot, and all offline mobile features. Keep simulation disabled:
 
 ```env
 DATABASE_URL=postgresql+psycopg://safemyanmar_dev:safemyanmar_dev_password@localhost:5432/safemyanmar
@@ -60,12 +60,25 @@ PROVIDER_TIMEOUT_SECONDS=10.0
 REFRESH_MINIMUM_SECONDS=60
 CURRENT_MAX_AGE_SECONDS=300
 ENABLE_SIMULATION_DATA=false
+NAVIGATION_DATA_PATH=SafeMyanmar_Yangon_2026-08-17
+OVERPASS_API_URL=https://overpass-api.de/api/interpreter
+ELEVATION_API_URL=https://api.opentopodata.org/v1/aster30m
 MAPBOX_DIRECTIONS_ACCESS_TOKEN=
 ```
 
+The supplied Yangon snapshot is loaded from the repository root. It contains no
+verified shelters, so shelter results remain empty instead of being fabricated.
+
+When the user explicitly analyzes nearby areas, earthquake analysis checks
+mapped building and tree clearance through OpenStreetMap/Overpass. Flood
+analysis compares terrain elevations through OpenTopoData. These providers
+must be reachable; results are suggested lower-exposure points, not guaranteed
+safe places or official shelters.
+
 ### Simulation Navigation Mode
 
-To expose fictional shelters, hazards, and route endpoints, set:
+To expose the separate fictional shelters, hazards, and route endpoints for
+development demonstrations, set:
 
 ```env
 ENABLE_SIMULATION_DATA=true
@@ -78,14 +91,19 @@ or commit it. Restrict the token to the required Mapbox APIs.
 The simulation API is registered only when the backend starts with
 `ENABLE_SIMULATION_DATA=true`. Restart the API after changing this value.
 
-Simulation navigation is limited to this fictional Mandalay demonstration area:
+Simulation navigation supports two separate fictional demonstration regions:
 
 ```text
+Mandalay
 Latitude:  21.9300 to 21.9900
 Longitude: 96.0600 to 96.1200
+
+Yangon
+Latitude:  16.8000 to 16.9200
+Longitude: 96.0800 to 96.2000
 ```
 
-For an Android emulator demonstration, set the emulator location near:
+For an Android emulator demonstration in Mandalay, set the emulator location near:
 
 ```text
 Latitude:  21.9500
@@ -93,14 +111,34 @@ Longitude: 96.0800
 ```
 
 Use Android Emulator **Extended controls > Location** to set these coordinates.
-Requests outside the demonstration area are rejected.
+For a physical phone in Yangon, enable foreground location and use the real
+device location within the Yangon region. Requests outside both regions are
+rejected.
 
 The Map screen does not select a fixed shelter. After location permission is
 granted, choose a disaster type and tap **Analyze nearby areas**. The backend
-returns up to three fictional lower-exposure candidates. Earthquake analysis is
-for outdoors after shaking; during active shaking, follow Drop, Cover, and Hold
-On guidance. Flood candidates compare simulated elevation and flood exposure.
-These candidates are not official shelters or guarantees.
+returns up to three mapped lower-exposure candidates for earthquake and
+higher-ground candidates for flood when the required external data is
+available. Earthquake analysis is for outdoors after shaking; during active
+shaking, follow Drop, Cover, and Hold On guidance. Candidates are not official
+shelters or guarantees. Other disaster types explain when analysis data is not
+yet available instead of returning fictional locations.
+
+## Bluetooth SOS Sharing (Android)
+
+Bluetooth SOS sharing is an explicit, separate option on the SOS screen. When
+selected during confirmation, Android broadcasts a compact payload for up to ten
+minutes through a foreground service. The payload contains only a temporary SOS
+event ID, UTC timestamp, approximately 1 km location grid, current/last-known/
+unavailable status, and battery value. It does not contain exact coordinates,
+profile names, contacts, or message text.
+
+Nearby receiving is opt-in and currently works while the SOS screen is open.
+Received events are marked peer-received and unverified. They do not confirm
+delivery to rescue services. Android BLE, notification, and connected-device
+foreground-service permissions are requested only after the user enables the
+feature. Bluetooth must be enabled on both devices, and both devices must have
+SafeMyanmar installed.
 
 ## 4. Start The Backend
 
@@ -234,7 +272,7 @@ Run the app with:
 Set-Location mobile
 flutter run `
   --dart-define=API_BASE_URL=http://127.0.0.1:8000 `
-  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=
+  --dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=pk.eyJ1IjoiYWlrb21hcGJveCIsImEiOiJjbXNuZWVxN2kwaWxsMzJxd3h4anoxMG9iIn0.MQxZ27bJrgB_HV7TW2jcxA
 ```
 
 Omit `MAPBOX_PUBLIC_ACCESS_TOKEN` when map tiles are not needed.
@@ -249,14 +287,16 @@ Omit `MAPBOX_PUBLIC_ACCESS_TOKEN` when map tiles are not needed.
 5. Open **More** to add a local profile and emergency contacts.
 6. Select contacts for SOS use.
 7. Open **SOS**, review the exact SMS body, and hold the confirmation control for
-   three seconds. SafeMyanmar opens the phone messaging app; the user must send
-   the SMS there.
+     three seconds. On dual-SIM devices, choose **SIM 1** or **SIM 2** and
+     optionally enable **Remember my preferred SIM**. Grant SIM and Android SMS
+     permissions when prompted. SafeMyanmar sends through the selected SIM and
+     records device acceptance; carrier delivery is not guaranteed.
 8. Open **Guide** for source-backed offline articles and deterministic emergency
    question matching.
 
-Opening the SOS tab does not send, prepare, or queue a message. SafeMyanmar
-cannot verify SMS sent or delivered status because the external messaging app
-controls transmission.
+Opening the SOS tab does not send, prepare, or queue a message. Direct sending
+requires an active SIM/SMS service and explicit permission. SafeMyanmar cannot
+verify carrier delivery.
 
 ## 9. Optional On-Device AI Models
 
@@ -270,6 +310,14 @@ credentials. See:
 ```text
 docs/architecture/optional-ai-model-provisioning.md
 ```
+
+LiteRT-LM Tier 3 initializes only after the fixed Gemma model and manifest pass
+schema, model ID, SHA-256, ABI, memory, and storage checks. It uses the CPU
+backend initially. When available, Gemma can answer general non-critical
+questions and receives approved disaster context when relevant. Initialization
+and answer failures leave the
+deterministic assistant active; they do not crash the application. Tier 3 is
+never used for trapped-person, first-aid, SOS, or safer-route intents.
 
 ## 10. Run Tests
 
@@ -367,8 +415,14 @@ to call Directions, and not expired or restricted incorrectly.
 
 ### Route request is outside the simulation area
 
-Set the emulator location within latitude `21.9300-21.9900` and longitude
-`96.0600-96.1200`.
+Use a location inside one of the supported fictional regions:
+
+- Mandalay: latitude `21.9300-21.9900`, longitude `96.0600-96.1200`.
+- Yangon: latitude `16.8000-16.9200`, longitude `96.0800-96.2000`.
+
+The physical device must also be rebuilt with
+`--dart-define=API_BASE_URL=http://127.0.0.1:8000` and connected with
+`adb reverse tcp:8000 tcp:8000` when using the local backend.
 
 ### Map says configuration is unavailable
 
