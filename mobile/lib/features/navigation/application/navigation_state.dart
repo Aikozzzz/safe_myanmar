@@ -15,6 +15,8 @@ final class NavigationState {
     this.contextAnalysisLoading = false,
     this.contextAnalysisFailed = false,
     this.contextAnalysisRequested = false,
+    this.contextCached = false,
+    this.contextCachedAt,
     this.selectedContextAreaId,
     this.contextRequest,
     this.disasterType = DisasterType.earthquake,
@@ -40,6 +42,8 @@ final class NavigationState {
   final bool contextAnalysisLoading;
   final bool contextAnalysisFailed;
   final bool contextAnalysisRequested;
+  final bool contextCached;
+  final DateTime? contextCachedAt;
   final String? selectedContextAreaId;
   final ContextAreaRequest? contextRequest;
   final DisasterType disasterType;
@@ -70,6 +74,8 @@ final class NavigationState {
     bool? contextAnalysisLoading,
     bool? contextAnalysisFailed,
     bool? contextAnalysisRequested,
+    bool? contextCached,
+    Object? contextCachedAt = _notProvided,
     Object? selectedContextAreaId = _notProvided,
     Object? contextRequest = _notProvided,
     DisasterType? disasterType,
@@ -106,6 +112,10 @@ final class NavigationState {
     contextAnalysisFailed: contextAnalysisFailed ?? this.contextAnalysisFailed,
     contextAnalysisRequested:
         contextAnalysisRequested ?? this.contextAnalysisRequested,
+    contextCached: contextCached ?? this.contextCached,
+    contextCachedAt: identical(contextCachedAt, _notProvided)
+        ? this.contextCachedAt
+        : contextCachedAt as DateTime?,
     selectedContextAreaId: identical(selectedContextAreaId, _notProvided)
         ? this.selectedContextAreaId
         : selectedContextAreaId as String?,

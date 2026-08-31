@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from app.schemas.navigation import (
     ContextAreaRequest,
     Coordinate,
@@ -8,6 +10,7 @@ from app.schemas.navigation import (
 )
 from app.services.real_context_analysis import (
     BuildingFeature,
+    ContextAnalysisUnavailable,
     EnvironmentSnapshot,
     RealContextAnalyzer,
 )
@@ -147,38 +150,68 @@ def test_active_earthquake_returns_guidance_without_querying_environment():
     assert provider.calls == []
 
 
-def test_unsupported_disaster_returns_explanation_without_failing():
+def test_empty_guidance_response_uses_source_timestamp_when_available():
     provider = StubEnvironmentProvider(lambda candidates: None)
     analyzer = RealContextAnalyzer(provider)
 
     response = analyzer.find_context_areas(
-        request("landslide"),
+        request("earthquake", "general"),
         (),
         source="Yangon test snapshot",
         uncertainty_notice="Test notice.",
+        source_data_at=NOW,
     )
 
-    assert response.items == []
-    assert (
-        "No current verified landslide hazard geometry" in response.uncertainty_notice
-    )
-    assert provider.calls == []
+    assert response.data_at == NOW
 
 
-def test_hazard_geometry_supports_disaster_types_without_environment_query():
+def test_unsupported_disaster_is_unavailable_without_querying_environment():
     provider = StubEnvironmentProvider(lambda candidates: None)
     analyzer = RealContextAnalyzer(provider)
 
+    with pytest.raises(ContextAnalysisUnavailable):
+        analyzer.find_context_areas(
+            request("landslide"),
+            (),
+            source="Yangon test snapshot",
+            uncertainty_notice="Test notice.",
+        )
+    assert provider.calls == []
+
+
+def test_unsupported_hazard_geometry_is_unavailable_without_environment_query():
+    provider = StubEnvironmentProvider(lambda candidates: None)
+    analyzer = RealContextAnalyzer(provider)
+
+    with pytest.raises(ContextAnalysisUnavailable):
+        analyzer.find_context_areas(
+            request("severe_weather"),
+            (current_hazard("severe_weather"),),
+            source="Yangon test snapshot",
+            uncertainty_notice="Test notice.",
+        )
+    assert provider.calls == []
+
+
+def test_missing_earthquake_environment_data_does_not_become_maximum_clearance():
+    provider = StubEnvironmentProvider(
+        lambda candidates: EnvironmentSnapshot(
+            buildings=(),
+            trees=(),
+            elevations_m=(),
+            observed_at=NOW,
+            source="OSM test snapshot",
+        )
+    )
+    analyzer = RealContextAnalyzer(provider)
+
     response = analyzer.find_context_areas(
-        request("severe_weather"),
-        (current_hazard("severe_weather"),),
+        request("earthquake", "outdoors_after_shaking"),
+        (current_hazard("earthquake"),),
         source="Yangon test snapshot",
-        uncertainty_notice="Test notice.",
+        uncertainty_notice="Test data is not an official safety assessment.",
     )
 
-    assert response.items
-    assert response.items[0].disaster_type == "severe_weather"
-    assert response.items[0].metrics.hazard_intersections == 0
-    assert "current snapshot hazard geometry" in response.items[0].source
-    assert "does not assess fire spread" in response.items[0].uncertainty_notice
-    assert provider.calls == []
+    assert response.items == []
+    assert response.data_at == NOW
+    assert "data was incomplete" in response.uncertainty_notice

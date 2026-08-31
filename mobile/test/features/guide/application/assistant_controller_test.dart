@@ -111,6 +111,58 @@ void main() {
     expect(reply.sosDraft, isNull);
   });
 
+  test('general disaster comparisons go directly to the chat model', () async {
+    final nativeAi = FakeNativeAiService(
+      capabilitiesResult: availableNativeAiCapabilities,
+      answerResult: const NativeAiResult.success(
+        NativeVerifiedRewrite('APPROVED CHAT ANSWER'),
+      ),
+    );
+    final container = _container(nativeAi);
+    addTearDown(container.dispose);
+    await _loadCapabilities(container);
+
+    await container
+        .read(assistantControllerProvider.notifier)
+        .send("what's the difference between typhoon and flood");
+    final reply = container.read(assistantControllerProvider).messages.last;
+
+    expect(reply.result!.intent, EmergencyIntent.unknown);
+    expect(reply.article, isNull);
+    expect(reply.gemmaAnswer, 'APPROVED CHAT ANSWER');
+    expect(reply.responseEngine, AssistantResponseEngine.gemma);
+    expect(nativeAi.classificationCalls, 0);
+    expect(nativeAi.answerCalls, 1);
+    expect(nativeAi.rewriteCalls, 0);
+  });
+
+  test(
+    'general chat waits for capability discovery before falling back',
+    () async {
+      final capabilities = Completer<NativeAiCapabilities>();
+      final nativeAi = FakeNativeAiService(
+        answerResult: const NativeAiResult.success(
+          NativeVerifiedRewrite('DELAYED CHAT ANSWER'),
+        ),
+      )..capabilitiesHandler = () => capabilities.future;
+      final container = _container(nativeAi);
+      addTearDown(container.dispose);
+
+      final send = container
+          .read(assistantControllerProvider.notifier)
+          .send('what is a typhoon?');
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(assistantControllerProvider).messages, isEmpty);
+
+      capabilities.complete(availableNativeAiCapabilities);
+      await send;
+
+      final reply = container.read(assistantControllerProvider).messages.last;
+      expect(reply.gemmaAnswer, 'DELAYED CHAT ANSWER');
+      expect(reply.responseEngine, AssistantResponseEngine.gemma);
+    },
+  );
+
   test('ONNX below 0.75 retains deterministic unknown', () async {
     final nativeAi = FakeNativeAiService(
       capabilitiesResult: availableNativeAiCapabilities,
@@ -322,6 +374,30 @@ void main() {
 
   for (final output in ['   ', List.filled(2001, 'x').join()]) {
     test('invalid Gemma output silently retains exact article only', () async {
+      final nativeAi = FakeNativeAiService(
+        capabilitiesResult: availableNativeAiCapabilities,
+        rewriteResult: NativeAiResult.success(NativeVerifiedRewrite(output)),
+      );
+      final container = _container(nativeAi);
+      addTearDown(container.dispose);
+      await _loadCapabilities(container);
+
+      await container
+          .read(assistantControllerProvider.notifier)
+          .send('What should I do during an earthquake?');
+      final reply = container.read(assistantControllerProvider).messages.last;
+
+      expect(reply.article!.answerEn, 'APPROVED EARTHQUAKE ANSWER');
+      expect(reply.localRewording, isNull);
+    });
+  }
+
+  for (final output in [
+    'This route is guaranteed safe.',
+    'I have diagnosed the injury.',
+    'Rescue teams will definitely arrive.',
+  ]) {
+    test('unsafe Gemma claims fall back to approved article content', () async {
       final nativeAi = FakeNativeAiService(
         capabilitiesResult: availableNativeAiCapabilities,
         rewriteResult: NativeAiResult.success(NativeVerifiedRewrite(output)),

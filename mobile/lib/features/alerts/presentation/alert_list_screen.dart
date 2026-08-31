@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/safe_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/alert_list_state.dart';
 import '../application/providers.dart';
@@ -28,22 +29,24 @@ class AlertListScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: switch (state.phase) {
-          AlertListPhase.loading => _LoadingContent(
-            label: strings.loadingEarthquakes,
-          ),
-          AlertListPhase.unavailable => _UnavailableContent(
-            refreshing: state.isRefreshing,
-            onRefresh: () =>
-                ref.read(alertListControllerProvider.notifier).refresh(),
-          ),
-          AlertListPhase.data || AlertListPhase.empty => _DataContent(
-            state: state,
-            onRefresh: () =>
-                ref.read(alertListControllerProvider.notifier).refresh(),
-            onOpenEarthquake: onOpenEarthquake,
-          ),
-        },
+        child: SafeContent(
+          child: switch (state.phase) {
+            AlertListPhase.loading => _LoadingContent(
+              label: strings.loadingEarthquakes,
+            ),
+            AlertListPhase.unavailable => _UnavailableContent(
+              refreshing: state.isRefreshing,
+              onRefresh: () =>
+                  ref.read(alertListControllerProvider.notifier).refresh(),
+            ),
+            AlertListPhase.data || AlertListPhase.empty => _DataContent(
+              state: state,
+              onRefresh: () =>
+                  ref.read(alertListControllerProvider.notifier).refresh(),
+              onOpenEarthquake: onOpenEarthquake,
+            ),
+          },
+        ),
       ),
     );
   }

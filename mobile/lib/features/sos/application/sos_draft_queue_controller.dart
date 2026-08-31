@@ -143,6 +143,40 @@ final class SosDraftQueueController extends Notifier<SosDraftQueueState> {
         : SosDraftOperationResult.failed;
   }
 
+  Future<SosDraftOperationResult> setSmsResult(
+    String id, {
+    required SosDraftStatus status,
+    required String? attemptId,
+    required int confirmedParts,
+    required int totalParts,
+  }) async {
+    if (state.isBusy) return SosDraftOperationResult.busy;
+    if (confirmedParts < 0 ||
+        totalParts < 0 ||
+        confirmedParts > totalParts ||
+        !{
+          SosDraftStatus.smsSending,
+          SosDraftStatus.smsSent,
+          SosDraftStatus.smsPartial,
+          SosDraftStatus.smsUnknown,
+          SosDraftStatus.smsFailed,
+        }.contains(status)) {
+      return SosDraftOperationResult.invalid;
+    }
+    final index = state.drafts.indexWhere((draft) => draft.id == id);
+    if (index < 0) return SosDraftOperationResult.notFound;
+    final updated = state.drafts.toList();
+    updated[index] = updated[index].withSmsResult(
+      status: status,
+      attemptId: attemptId,
+      confirmedParts: confirmedParts,
+      totalParts: totalParts,
+    );
+    return await _save(updated)
+        ? SosDraftOperationResult.success
+        : SosDraftOperationResult.failed;
+  }
+
   Future<SosDraftOperationResult> remove(String id) async {
     if (state.isBusy) return SosDraftOperationResult.busy;
     if (!state.drafts.any((draft) => draft.id == id)) {

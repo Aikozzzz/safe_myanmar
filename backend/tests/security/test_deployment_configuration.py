@@ -6,8 +6,18 @@ ROOT = Path(__file__).resolve().parents[3]
 def test_api_image_contains_alembic_configuration_and_migrations():
     dockerfile = (ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
 
-    assert "COPY alembic.ini ." in dockerfile
-    assert "COPY alembic ./alembic" in dockerfile
+    assert "COPY backend/alembic.ini ." in dockerfile
+    assert "COPY backend/alembic ./alembic" in dockerfile
+    assert "COPY SafeMyanmar_Yangon_2026-08-17 /app/SafeMyanmar_Yangon_2026-08-17" in (
+        dockerfile
+    )
+
+
+def test_api_image_build_context_can_package_root_navigation_snapshot():
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "context: ." in compose
+    assert "dockerfile: backend/Dockerfile" in compose
 
 
 def test_root_environment_example_matches_cross_layer_contract():
@@ -30,9 +40,13 @@ def test_root_environment_example_matches_cross_layer_contract():
         "REFRESH_MINIMUM_SECONDS=60\n"
         "CURRENT_MAX_AGE_SECONDS=300\n"
         "ENABLE_SIMULATION_DATA=false\n"
-        "# Optional backend secret. Required only for route suggestions when "
-        "simulation\n"
-        "# data is enabled. Never pass this token to Flutter.\n"
+        "ENABLE_SIMULATION_ANALYSIS=false\n"
+        "NAVIGATION_DATA_PATH=SafeMyanmar_Yangon_2026-08-17\n"
+        "OVERPASS_API_URL=https://overpass-api.de/api/interpreter\n"
+        "ELEVATION_API_URL=https://api.opentopodata.org/v1/aster30m\n"
+        "# Optional backend secret. Required only for route suggestions when a "
+        "directions\n"
+        "# provider is configured. Never pass this token to Flutter.\n"
         "MAPBOX_DIRECTIONS_ACCESS_TOKEN=\n"
     )
 

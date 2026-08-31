@@ -10,9 +10,11 @@ import 'package:mobile/features/location/domain/foreground_location.dart';
 import 'package:mobile/features/location/presentation/location_screen.dart';
 import 'package:mobile/features/navigation/application/providers.dart';
 import 'package:mobile/features/navigation/data/navigation_dto.dart';
+import 'package:mobile/features/navigation/domain/navigation_models.dart';
 import 'package:mobile/features/navigation/domain/navigation_repository.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 
+import '../../../support/fake_location_permission_prompt_store.dart';
 import '../../../support/fake_location_repository.dart';
 import '../../../support/fake_navigation_repository.dart';
 import '../../../support/navigation_fixtures.dart';
@@ -20,10 +22,12 @@ import '../../../support/navigation_fixtures.dart';
 void main() {
   late FakeLocationRepository locationRepository;
   late FakeNavigationRepository navigationRepository;
+  late FakeLocationPermissionPromptStore promptStore;
 
   setUp(() {
     locationRepository = FakeLocationRepository()..currentLocation = location;
     navigationRepository = FakeNavigationRepository();
+    promptStore = FakeLocationPermissionPromptStore();
     navigationRepository.contextAreas = NavigationResource(
       data: ContextAreaCollectionDto.fromJson(
         contextAreaResponseJson(),
@@ -38,6 +42,7 @@ void main() {
       ProviderScope(
         overrides: [
           locationRepositoryProvider.overrideWithValue(locationRepository),
+          locationPermissionPromptStoreProvider.overrideWithValue(promptStore),
           navigationRepositoryProvider.overrideWithValue(navigationRepository),
           mapboxPublicAccessTokenProvider.overrideWithValue(
             MapboxPublicAccessToken.fromRaw(''),
@@ -98,7 +103,10 @@ void main() {
 
     expect(find.byType(MapWidget), findsNothing);
     expect(find.text('Map configuration unavailable'), findsOneWidget);
-    expect(find.text('SIMULATION'), findsOneWidget);
+    expect(find.byKey(const ValueKey('map-layer-legend')), findsNothing);
+    expect(find.text('Hazard summary'), findsOneWidget);
+    expect(find.text('SIMULATION: Test Hazard'), findsOneWidget);
+    expect(find.text('SIMULATION'), findsWidgets);
     expect(find.text('Disaster type'), findsNothing);
     expect(find.text('Earthquake context'), findsNothing);
     expect(find.text('Travel profile'), findsNothing);
@@ -107,14 +115,49 @@ void main() {
     await analyzeContext(tester);
 
     expect(find.text('Nearby lower-exposure areas'), findsOneWidget);
+    expect(find.text('Context summary'), findsOneWidget);
+    expect(
+      find.text(
+        'No mapped hazards found. This does not confirm the area is safe.',
+      ),
+      findsOneWidget,
+    );
     expect(
       find.text('Building clearance: 120 m; tree clearance: 90 m'),
-      findsOneWidget,
+      findsWidgets,
     );
     expect(find.text('Disaster type'), findsOneWidget);
     expect(find.text('Earthquake context'), findsOneWidget);
     expect(find.text('Travel profile'), findsOneWidget);
     expect(find.text('Request route suggestions'), findsOneWidget);
+  });
+
+  testWidgets('context summary exposes cached status and cache time', (
+    tester,
+  ) async {
+    final cached = NavigationResource<ContextAreaCollection>(
+      data: navigationRepository.contextAreas.data,
+      isCached: true,
+      remoteFailed: true,
+      cachedAt: DateTime.utc(2026, 7, 23, 12, 30),
+    );
+    navigationRepository.cachedContextAreas = cached;
+    navigationRepository.contextAreas = cached;
+
+    await pumpScreen(tester);
+    await enableLocation(tester);
+    await analyzeContext(tester);
+
+    expect(
+      find.text(
+        'Previously loaded information remains visible and may be stale.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Saved for offline use: Jul 23, 2026 12:30:00 UTC'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('cached shelter details load before permission or GPS', (
@@ -156,7 +199,7 @@ void main() {
     await analyzeContext(tester);
     expect(
       find.text('Building clearance: 120 m; tree clearance: 90 m'),
-      findsOneWidget,
+      findsWidgets,
     );
   });
 

@@ -60,6 +60,7 @@ PROVIDER_TIMEOUT_SECONDS=10.0
 REFRESH_MINIMUM_SECONDS=60
 CURRENT_MAX_AGE_SECONDS=300
 ENABLE_SIMULATION_DATA=false
+ENABLE_SIMULATION_ANALYSIS=false
 NAVIGATION_DATA_PATH=SafeMyanmar_Yangon_2026-08-17
 OVERPASS_API_URL=https://overpass-api.de/api/interpreter
 ELEVATION_API_URL=https://api.opentopodata.org/v1/aster30m
@@ -74,6 +75,22 @@ mapped building and tree clearance through OpenStreetMap/Overpass. Flood
 analysis compares terrain elevations through OpenTopoData. These providers
 must be reachable; results are suggested lower-exposure points, not guaranteed
 safe places or official shelters.
+
+### Combined Backend Analysis Mode
+
+To augment real `/api/v1/context-areas` analysis with fictional simulation
+hazard geometry without exposing simulation records in the mobile hazard or
+shelter lists, set:
+
+```env
+ENABLE_SIMULATION_DATA=false
+ENABLE_SIMULATION_ANALYSIS=true
+```
+
+This is development-only and is rejected in production. Combined responses
+identify the collected snapshot and `SafeMyanmar Demo` simulation source in
+`source`, set `simulation: true` to indicate mixed analysis, and include an
+uncertainty notice. Restart Uvicorn after changing the setting.
 
 ### Simulation Navigation Mode
 
@@ -129,16 +146,26 @@ yet available instead of returning fictional locations.
 Bluetooth SOS sharing is an explicit, separate option on the SOS screen. When
 selected during confirmation, Android broadcasts a compact payload for up to ten
 minutes through a foreground service. The payload contains only a temporary SOS
-event ID, UTC timestamp, approximately 1 km location grid, current/last-known/
-unavailable status, and battery value. It does not contain exact coordinates,
-profile names, contacts, or message text.
+event ID, UTC timestamp, fixed-point
+latitude/longitude when available, current/last-known/unavailable status, and
+battery value. It does not contain profile names, contacts, or message text.
 
 Nearby receiving is opt-in and currently works while the SOS screen is open.
 Received events are marked peer-received and unverified. They do not confirm
-delivery to rescue services. Android BLE, notification, and connected-device
-foreground-service permissions are requested only after the user enables the
-feature. Bluetooth must be enabled on both devices, and both devices must have
-SafeMyanmar installed.
+delivery to rescue services. A separate **Relay nearby SOS alerts once** opt-in
+allows this device to rebroadcast each valid frame at most once over Bluetooth;
+relayed frames are limited to one hop and are never uploaded to the backend.
+Android BLE, notification, and connected-device foreground-service permissions
+are requested only after the user enables the feature. Bluetooth must be
+enabled on both devices, and both devices must have SafeMyanmar installed.
+
+The Map tab uses Mapbox satellite-streets imagery when a public token is
+configured. The sender can inspect the active frame details and sees its
+received broadcast location as an orange marker. Received SOS frames with a
+location are displayed as unverified red source markers at their received
+coordinates. BLE signal
+strength is only an approximate proximity indicator and is not a precise
+location or coverage measurement.
 
 ## 4. Start The Backend
 
@@ -165,7 +192,8 @@ Invoke-RestMethod http://localhost:8000/health/ready
 Invoke-RestMethod http://localhost:8000/api/v1/alerts
 ```
 
-When simulation is enabled, these endpoints are also available:
+When a navigation snapshot or simulation mode is enabled, these endpoints are
+also available:
 
 ```powershell
 Invoke-RestMethod http://localhost:8000/api/v1/shelters
@@ -281,6 +309,7 @@ Omit `MAPBOX_PUBLIC_ACCESS_TOKEN` when map tiles are not needed.
 
 1. Open **Home** to view current or cached USGS earthquake observations.
 2. Open **Map** and select **Use my location** only if location use is wanted.
+   Later launches reuse that permission until it is revoked in system settings.
 3. Grant approximate or precise foreground location permission.
 4. In simulation mode, select a fictional shelter, disaster type, and walking
    or driving profile, then request routes.
@@ -407,6 +436,13 @@ Run `adb reverse tcp:8000 tcp:8000` and use
 
 Set `ENABLE_SIMULATION_DATA=true` in `backend/.env` and restart Uvicorn. The
 routes are not registered when simulation is disabled.
+
+### Combined analysis does not show simulation records in the lists
+
+That is intentional. Set `ENABLE_SIMULATION_ANALYSIS=true` for backend-only
+context-area analysis. The `/api/v1/hazards` and `/api/v1/shelters` responses
+continue to contain collected snapshot data only; inspect `/context-areas`
+source and uncertainty fields to identify mixed analysis.
 
 ### Route suggestions return `503`
 

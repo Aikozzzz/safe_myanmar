@@ -30,6 +30,24 @@ final class IntentResult {
   final List<String> matchedTerms;
 }
 
+/// Returns true when a disaster word is part of an informational chat question
+/// rather than a request for emergency action.
+bool isGeneralChatQuestion(String input) {
+  final normalized = normalizeEmergencyText(input).text;
+  final tokens = normalized
+      .split(' ')
+      .where((token) => token.isNotEmpty)
+      .toSet();
+  final topicCount = tokens.intersection(_generalChatTopics).length;
+  if (topicCount == 0) return false;
+
+  final comparison = _comparisonCues.any(normalized.contains);
+  final informational = _informationalCues.any(normalized.contains);
+  final action = _emergencyActionCues.any(normalized.contains);
+  return !action &&
+      ((comparison && topicCount >= 2) || (informational && topicCount >= 1));
+}
+
 final class EmergencyIntentClassifier {
   const EmergencyIntentClassifier();
 
@@ -147,3 +165,51 @@ const _intentTerms = <EmergencyIntent, Map<String, double>>{
     'damaged building': 3.5,
   },
 };
+
+const _generalChatTopics = <String>{
+  'earthquake',
+  'flood',
+  'floodwater',
+  'typhoon',
+  'typhon',
+  'cyclone',
+  'hurricane',
+  'storm',
+  'fire',
+  'landslide',
+  'rain',
+};
+
+const _comparisonCues = <String>[
+  'difference',
+  'compare',
+  'comparison',
+  'versus',
+  ' vs ',
+];
+
+const _informationalCues = <String>[
+  'what is',
+  'what are',
+  'what s',
+  'tell me about',
+  'explain',
+  'define',
+  'why does',
+  'why do',
+  'how does',
+  'how long',
+];
+
+const _emergencyActionCues = <String>[
+  'how do i',
+  'how can i',
+  'what should i do',
+  'avoid',
+  'check',
+  'send',
+  'find',
+  'show',
+  'report',
+  'help me',
+];

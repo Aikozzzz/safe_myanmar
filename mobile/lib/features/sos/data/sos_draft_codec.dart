@@ -6,7 +6,7 @@ import '../domain/sos_draft.dart';
 import '../domain/sos_draft_repository.dart';
 
 abstract final class SosDraftCodec {
-  static const version = 2;
+  static const version = 3;
 
   static String encode(List<SosDraft> drafts) => jsonEncode({
     'version': version,
@@ -19,7 +19,9 @@ abstract final class SosDraftCodec {
       if (decoded is! Map<String, dynamic>) throw const FormatException();
       final storedVersion = decoded['version'];
       if (storedVersion is! int) throw const FormatException();
-      if (storedVersion != 1 && storedVersion != version) {
+      if (storedVersion != 1 &&
+          storedVersion != 2 &&
+          storedVersion != version) {
         throw const SosDraftReadException(
           SosDraftReadFailureKind.unsupportedVersion,
         );
@@ -66,6 +68,9 @@ abstract final class SosDraftCodec {
     'profileName': draft.profileName,
     'body': draft.body,
     'status': draft.status.name,
+    'smsAttemptId': draft.smsAttemptId,
+    'smsConfirmedParts': draft.smsConfirmedParts,
+    'smsTotalParts': draft.smsTotalParts,
   };
 
   static SosDraft _decodeDraft(
@@ -82,6 +87,9 @@ abstract final class SosDraftCodec {
     final status = _status(value['status']);
     final storedProfileName = value['profileName'];
     final storedBody = value['body'];
+    final smsAttemptId = value['smsAttemptId'];
+    final smsConfirmedParts = value['smsConfirmedParts'] ?? 0;
+    final smsTotalParts = value['smsTotalParts'] ?? 0;
     if (id is! String ||
         id.isEmpty ||
         id.length > 100 ||
@@ -95,12 +103,20 @@ abstract final class SosDraftCodec {
             (message.isEmpty || message.length > maxSosMessageLength))) {
       throw const FormatException();
     }
-    if (storedVersion == version &&
-        (storedProfileName is! String ||
-            storedProfileName.length > maxSosProfileNameLength ||
-            storedBody is! String ||
-            storedBody.trim().isEmpty ||
-            storedBody.length > maxSosBodyLength)) {
+    if ((storedVersion == version &&
+            (storedProfileName is! String ||
+                storedProfileName.length > maxSosProfileNameLength ||
+                storedBody is! String ||
+                storedBody.trim().isEmpty ||
+                storedBody.length > maxSosBodyLength)) ||
+        smsAttemptId is! String? ||
+        smsConfirmedParts is! int ||
+        smsTotalParts is! int ||
+        smsConfirmedParts < 0 ||
+        smsTotalParts < 0 ||
+        smsConfirmedParts > smsTotalParts ||
+        (smsAttemptId != null &&
+            (smsAttemptId.isEmpty || smsAttemptId.length > 100))) {
       throw const FormatException();
     }
 
@@ -165,6 +181,9 @@ abstract final class SosDraftCodec {
       profileName: profileName,
       body: body,
       status: status,
+      smsAttemptId: storedVersion == version ? smsAttemptId : null,
+      smsConfirmedParts: storedVersion == version ? smsConfirmedParts : 0,
+      smsTotalParts: storedVersion == version ? smsTotalParts : 0,
     );
   }
 

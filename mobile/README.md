@@ -6,6 +6,11 @@ an optional Mapbox map with validated navigation data, local SOS draft
 preparation, bilingual offline Guide content, constrained assistance, secure
 local profile/contact store, and Android-first Bluetooth SOS sharing.
 
+Home presents a Safety Center of explicit navigation cards. SOS uses a
+setup-and-review sequence with a readiness summary and exact outgoing preview.
+Guide offers deterministic quick actions, while Map pairs its visible layers
+with a legend and source-, timestamp-, cache-, and uncertainty-aware summaries.
+
 This app is not an official warning, prediction, dispatch, medical, or
 guaranteed-safety service. Navigation records are source-backed and may be
 empty or stale; they do not guarantee safe places or routes. Follow authorized
@@ -58,6 +63,14 @@ with `--dart-define`.
   supporting SDKs to detect connectivity and Wi-Fi state. These do not grant
   access to Wi-Fi credentials or device location.
 - Location is requested only after the user selects **Use my location** on Map.
+  That choice is remembered; later launches restore location when OS permission
+  remains granted, without a new in-app or system prompt.
+- The Mapbox view uses a readable street-map style with a floating location
+  action. Tapping the action or the user marker recenters the map and shows
+  precision, coordinates, and capture-time details in a bottom sheet.
+- The map legend lists only visible layers and never relies on color alone.
+  Hazard and context summaries remain readable without map tiles and retain
+  source, timestamp, cached-data, simulation, and uncertainty labels.
 - The flow distinguishes not requested, requesting, approximate, precise,
   denied, permanently denied, service disabled, last known, and recoverable
   error states. Permanent denial and disabled services link to settings.
@@ -65,24 +78,43 @@ with `--dart-define`.
   continuously tracked.
 - Mapbox SDK components can initialize and send SDK, device, and usage telemetry
   to Mapbox when the app starts, before location permission. SafeMyanmar does
-  not provide device location to Mapbox at that point. Before permission, the
-  Mapbox platform view is not constructed or centered; simulation shelter and
-  hazard refreshes may still use the network without device location. Enabling
-  location constructs and centers the remote map, disclosing the viewed map area
-  to Mapbox. Exact origin coordinates are sent to the SafeMyanmar backend and
+  not provide device location to Mapbox at that point. Before the first
+  **Use my location** choice, the Mapbox platform view is not constructed or
+  centered; simulation shelter and hazard refreshes may still use the network
+  without device location. Later launches reuse that choice while OS permission
+  remains granted. Enabling location constructs and centers the remote map,
+  disclosing the viewed map area to Mapbox. Exact origin coordinates are sent
+  to the SafeMyanmar backend and
   then Mapbox Directions only after the user explicitly requests a route.
 - The app requests Android `READ_PHONE_STATE` to identify active SIMs and
   `SEND_SMS` after explicit SOS confirmation. It does not request contacts or
   SMS read permissions. It sends the reviewed body through the selected SIM;
   carrier delivery is not verified.
-- Optional Bluetooth SOS sharing is separately confirmed. It broadcasts only a
-  temporary event ID, UTC timestamp, approximately 1 km grid, current/last-known
-  location status, and battery value. Exact coordinates, names, contacts, and
-  message text are never broadcast. Advertising stops after ten minutes and is
-  controlled by a foreground service notification.
-- Nearby SOS receiving is opt-in and currently foreground-only. Received events
-  are peer-received and unverified; SafeMyanmar does not acknowledge, relay, or
-  dispatch them. Optional sound is controlled by the receiver.
+- Optional Bluetooth SOS sharing is separately confirmed for each SOS. Location
+  is excluded by default; the user must enable location sharing for that SOS,
+  review the preview, and can continue without coordinates if location becomes
+  unavailable. The frame broadcasts a structured temporary sender token,
+  sequence, UTC timestamp, fixed-point coordinates when available,
+  current/last-known location status, and battery value. The sender token is
+  stored securely and rotates daily; it is an event correlation identifier, not
+  authentication. Names, contacts, and message text are never broadcast.
+  Advertising stops after ten minutes and is controlled by a foreground service
+  notification. Coordinates received over Bluetooth are peer-supplied and
+  unverified; the Map tab plots all retained located sources, supports selecting
+  a source and fitting the camera to all markers, and the SOS details provide a
+  Google Maps query link.
+- Nearby SOS receiving is opt-in. Foreground receiving listens only while the
+  app session has enabled it; the separate Android background receiver uses a
+  visible connected-device foreground-service notification and restores only
+  the persisted background preference. It validates frames natively, encrypts a
+  bounded app-private queue, deduplicates event IDs, replaces older frames from
+  the same sender, and sends an unverified notification for each new sender
+  event. Tapping that notification opens the Map tab and focuses the retained
+  event when it has coordinates. Background receiving never relays or uploads
+  frames. A separate foreground-only relay opt-in can rebroadcast each valid
+  frame once over Bluetooth; frames are limited to one relay hop and are not
+  uploaded or dispatched. Optional sound is controlled by the foreground
+  receiver.
 - Profile, emergency contacts, and SOS drafts are stored locally with
   `flutter_secure_storage`. They are not uploaded by the implemented app.
 - Alert/navigation caches and Guide articles use app-private Drift/SQLite
@@ -91,7 +123,7 @@ with `--dart-define`.
 
 ## Offline Behavior
 
-- Drift schema v5 caches the latest successful earthquake snapshot and
+- Drift schema v6 caches the latest successful earthquake snapshot and
   SIMULATION context-area, hazard, and route responses. Context and route cache
   entries are bound
   to a practical-precision origin, shelter, disaster, and travel profile; v3
@@ -112,7 +144,19 @@ with `--dart-define`.
   network, subject to platform secure-storage availability.
 - Map tiles, fresh navigation data, live earthquake refresh, and Mapbox route
   generation need network access. Previously cached map data can still be shown
-  with a warning; there is no bundled offline basemap.
+  with a warning; there is no bundled offline basemap. The map uses Mapbox
+  satellite-streets imagery, displays the active broadcast area in orange, and
+  displays nearby SOS sources as unverified red markers at the coordinates
+  received in the BLE frame when location data is available. The source list
+  below the map exposes timestamp, location status, battery, signal, protocol,
+  and relay details for the selected event. RSSI is only an approximate
+  proximity signal.
+- Background SOS events are retained only until their advertised TTL and are
+  capped at 64 encrypted app-private frames. Same-sender sequence high-water
+  marks prevent delayed older frames from returning after replacement. Android
+  may stop background scanning after force-stop, Bluetooth disablement,
+  permission revocation, or device-specific battery restrictions; SafeMyanmar
+  does not claim continuous detection.
 
 ## Feature Boundaries
 
@@ -124,8 +168,10 @@ with `--dart-define`.
   hazard geometry for the selected disaster type, can use mapped building/tree
   data for earthquakes and terrain elevation for floods, and otherwise only
   excludes points intersecting current hazard geometry. It does not claim any
-  area or route is safe. Fictional analysis remains separately gated behind
-  `ENABLE_SIMULATION_DATA=true`.
+area or route is safe. Fictional navigation records remain separately gated
+behind `ENABLE_SIMULATION_DATA=true`; `ENABLE_SIMULATION_ANALYSIS=true` is a
+backend-only development option that augments context-area analysis without
+adding simulation records to mobile hazard or shelter lists.
 - SOS persists at most five drafts, suppresses equivalent active drafts within
   five minutes, previews shared data, and requires hold/accessibility
   confirmation. Status means prepared, SMS sending, SMS accepted by the device,

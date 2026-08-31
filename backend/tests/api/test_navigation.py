@@ -3,7 +3,11 @@ from datetime import UTC, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.v1.navigation import SimulationRouteGuard, get_navigation_service
+from app.api.v1.navigation import (
+    ContextAnalysisGuard,
+    SimulationRouteGuard,
+    get_navigation_service,
+)
 from app.main import create_app
 from app.providers.mapbox.directions import DirectionsRoute
 from app.schemas.navigation import LineStringGeometry
@@ -41,6 +45,13 @@ def enabled_navigation_app(monkeypatch):
     return create_app()
 
 
+@pytest.fixture
+def real_navigation_app_with_simulation_analysis(monkeypatch):
+    monkeypatch.setenv("NAVIGATION_DATA_PATH", "SafeMyanmar_Yangon_2026-08-17")
+    monkeypatch.setenv("ENABLE_SIMULATION_ANALYSIS", "true")
+    return create_app()
+
+
 def enable_simulation(application, routes=()):
     provider = StubProvider(routes)
     service = NavigationService(True, provider, clock=lambda: NOW)
@@ -59,6 +70,9 @@ def valid_request():
 def test_endpoints_are_disabled_without_a_navigation_snapshot(
     navigation_app_without_data,
 ):
+    assert navigation_app_without_data.state.navigation_data_error == (
+        "navigation_data_missing"
+    )
     with TestClient(navigation_app_without_data) as client:
         shelters = client.get("/api/v1/shelters")
         hazards = client.get("/api/v1/hazards")
@@ -87,7 +101,7 @@ def test_real_navigation_snapshot_is_exposed_without_simulation(real_navigation_
     assert "SafeMyanmar Yangon snapshot" in hazards.json()["source"]
 
 
-def test_real_context_analysis_uses_current_snapshot_hazard_types(
+def test_real_context_analysis_rejects_unsupported_snapshot_hazard_types(
     real_navigation_app,
 ):
     with TestClient(real_navigation_app) as client:
@@ -99,12 +113,31 @@ def test_real_context_analysis_uses_current_snapshot_hazard_types(
             },
         )
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["simulation"] is False
-    assert payload["items"] == []
-    assert "No candidate met" in payload["uncertainty_notice"]
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "context_analysis_unavailable"
+
+
+def test_real_analysis_can_include_labeled_simulation_data_without_mixing_lists(
+    real_navigation_app_with_simulation_analysis,
+):
+    with TestClient(real_navigation_app_with_simulation_analysis) as client:
+        context = client.post(
+            "/api/v1/context-areas",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "disaster_type": "fire",
+            },
+        )
+        hazards = client.get("/api/v1/hazards")
+
+    assert context.status_code == 200
+    payload = context.json()
+    assert payload["simulation"] is True
     assert "SafeMyanmar Yangon snapshot" in payload["source"]
+    assert "SafeMyanmar Demo simulation analysis data" in payload["source"]
+    assert "backend analysis only" in payload["uncertainty_notice"]
+    assert hazards.status_code == 200
+    assert hazards.json()["simulation"] is False
 
 
 def test_lists_remain_available_when_route_provider_has_no_token(
@@ -319,6 +352,45 @@ def test_route_posts_are_rate_limited_per_client_host(enabled_navigation_app):
     assert limited.json()["error"]["code"] == "route_rate_limit_exceeded"
     assert limited.headers["Retry-After"] == "60"
     assert "96.08" not in limited.text
+
+
+def test_context_posts_are_rate_limited_per_client_host(enabled_navigation_app):
+    enable_simulation(enabled_navigation_app)
+    enabled_navigation_app.state.context_analysis_guard = ContextAnalysisGuard(
+        requests_per_window=1
+    )
+    body = {
+        "origin": {"latitude": 21.95, "longitude": 96.08},
+        "disaster_type": "earthquake",
+        "scenario": "outdoors_after_shaking",
+    }
+
+    with TestClient(enabled_navigation_app) as client:
+        first = client.post("/api/v1/context-areas", json=body)
+        limited = client.post("/api/v1/context-areas", json=body)
+
+    assert first.status_code == 200
+    assert limited.status_code == 429
+    assert limited.json()["error"]["code"] == "context_rate_limit_exceeded"
+    assert limited.headers["Retry-After"] == "60"
+
+
+def test_context_analysis_concurrency_is_bounded(enabled_navigation_app):
+    enable_simulation(enabled_navigation_app)
+    guard = ContextAnalysisGuard(max_concurrent_calls=1)
+    enabled_navigation_app.state.context_analysis_guard = guard
+    body = {
+        "origin": {"latitude": 21.95, "longitude": 96.08},
+        "disaster_type": "earthquake",
+        "scenario": "outdoors_after_shaking",
+    }
+
+    with guard.provider_slot(), TestClient(enabled_navigation_app) as client:
+        response = client.post("/api/v1/context-areas", json=body)
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "context_analysis_busy"
+    assert response.headers["Retry-After"] == "1"
 
 
 def test_rate_limit_state_is_anonymized_bounded_and_short_lived():

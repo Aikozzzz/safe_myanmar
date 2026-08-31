@@ -21,6 +21,7 @@ EARTHQUAKE_BUILDING_CLEARANCE_M = 25.0
 EARTHQUAKE_HIGH_BUILDING_CLEARANCE_M = 50.0
 EARTHQUAKE_TREE_CLEARANCE_M = 20.0
 HIGH_BUILDING_HEIGHT_M = 10.0
+SUPPORTED_REAL_ANALYSIS_TYPES = frozenset({"earthquake", "flood"})
 
 
 class ContextAnalysisUnavailable(Exception):
@@ -204,7 +205,15 @@ class RealContextAnalyzer:
         *,
         source: str,
         uncertainty_notice: str,
+        simulation_data_included: bool = False,
+        source_data_at: datetime | None = None,
     ) -> ContextAreaListResponse:
+        if (
+            request.disaster_type not in SUPPORTED_REAL_ANALYSIS_TYPES
+            and not simulation_data_included
+        ):
+            raise ContextAnalysisUnavailable
+        source_data_at = _source_data_timestamp(hazards, source_data_at)
         if request.disaster_type == "earthquake" and request.scenario != (
             "outdoors_after_shaking"
         ):
@@ -213,6 +222,8 @@ class RealContextAnalyzer:
                 uncertainty_notice
                 + " During active shaking, use Drop, Cover, and Hold On "
                 "instead of moving to a suggested area.",
+                simulation=simulation_data_included,
+                data_at=source_data_at,
             )
         relevant_hazards = tuple(
             hazard
@@ -226,6 +237,8 @@ class RealContextAnalyzer:
                 + f" No current verified {request.disaster_type} hazard "
                 "geometry is available in this snapshot, so nearby analysis "
                 "was not generated.",
+                simulation=simulation_data_included,
+                data_at=source_data_at,
             )
 
         candidates = _candidate_coordinates(request.origin, request.search_radius_m)
@@ -246,6 +259,30 @@ class RealContextAnalyzer:
                 observed_at=max(hazard.data_at for hazard in relevant_hazards),
                 source="current snapshot hazard geometry",
             )
+        if request.disaster_type == "earthquake" and (
+            not snapshot.buildings
+            or not snapshot.trees
+            or any(building.height_m is None for building in snapshot.buildings)
+        ):
+            return _empty_response(
+                f"{source}; {snapshot.source}",
+                uncertainty_notice
+                + " Required mapped building and tree data was incomplete, so "
+                "nearby analysis was not generated.",
+                simulation=simulation_data_included,
+                data_at=snapshot.observed_at,
+            )
+        if request.disaster_type == "flood" and len(snapshot.elevations_m) != len(
+            environment_points
+        ):
+            return _empty_response(
+                f"{source}; {snapshot.source}",
+                uncertainty_notice
+                + " Required terrain elevation data was incomplete, so nearby "
+                "analysis was not generated.",
+                simulation=simulation_data_included,
+                data_at=snapshot.observed_at,
+            )
         origin_elevation = snapshot.elevations_m[0] if snapshot.elevations_m else None
         ranked = []
         for index, candidate in enumerate(candidates):
@@ -263,7 +300,6 @@ class RealContextAnalyzer:
                     for building in snapshot.buildings
                     for building_point in building.points
                 ),
-                request.search_radius_m,
             )
             high_building_clearance = _nearest_distance(
                 (candidate.longitude, candidate.latitude),
@@ -273,12 +309,10 @@ class RealContextAnalyzer:
                     if building.is_high
                     for building_point in building.points
                 ),
-                request.search_radius_m,
             )
             tree_clearance = _nearest_distance(
                 (candidate.longitude, candidate.latitude),
                 snapshot.trees,
-                request.search_radius_m,
             )
             relative_elevation = (
                 snapshot.elevations_m[index + 1] - origin_elevation
@@ -330,8 +364,8 @@ class RealContextAnalyzer:
                         scenario=request.scenario,
                         distance_m=round(_distance_m(request.origin, candidate), 1),
                         metrics=ContextMetrics(
-                            building_clearance_m=round(building_clearance, 1),
-                            tree_clearance_m=round(tree_clearance, 1),
+                            building_clearance_m=round(building_clearance or 0.0, 1),
+                            tree_clearance_m=round(tree_clearance or 0.0, 1),
                             relative_elevation_m=round(relative_elevation, 1),
                             building_density=round(building_density, 3),
                             tree_density=round(tree_density, 3),
@@ -340,7 +374,7 @@ class RealContextAnalyzer:
                         rationale=rationale,
                         source=f"{source}; {snapshot.source}",
                         data_at=snapshot.observed_at,
-                        simulation=False,
+                        simulation=simulation_data_included,
                         uncertainty_notice=uncertainty_notice
                         + " "
                         + _coverage_notice(request.disaster_type),
@@ -352,7 +386,7 @@ class RealContextAnalyzer:
             items=items,
             data_at=snapshot.observed_at,
             source=f"{source}; {snapshot.source}",
-            simulation=False,
+            simulation=simulation_data_included,
             uncertainty_notice=(
                 uncertainty_notice + " " + _coverage_notice(request.disaster_type)
                 if items
@@ -390,16 +424,19 @@ def _candidate_coordinates(
 def _candidate_allowed(
     disaster_type: str,
     hazard_count: int,
-    building_clearance: float,
-    high_building_clearance: float,
-    tree_clearance: float,
+    building_clearance: float | None,
+    high_building_clearance: float | None,
+    tree_clearance: float | None,
     relative_elevation: float,
 ) -> bool:
     if hazard_count:
         return False
     if disaster_type == "earthquake":
         return (
-            building_clearance >= EARTHQUAKE_BUILDING_CLEARANCE_M
+            building_clearance is not None
+            and high_building_clearance is not None
+            and tree_clearance is not None
+            and building_clearance >= EARTHQUAKE_BUILDING_CLEARANCE_M
             and high_building_clearance >= EARTHQUAKE_HIGH_BUILDING_CLEARANCE_M
             and tree_clearance >= EARTHQUAKE_TREE_CLEARANCE_M
         )
@@ -427,15 +464,20 @@ def _ranking(
         )
     if disaster_type == "flood":
         return (hazard_count, -relative_elevation, float(index))
-    return (hazard_count, -building_clearance, -tree_clearance, float(index))
+    return (
+        hazard_count,
+        -(building_clearance or 0.0),
+        -(tree_clearance or 0.0),
+        float(index),
+    )
 
 
 def _rationale(
     disaster_type: str,
     hazard_count: int,
-    building_clearance: float,
-    high_building_clearance: float,
-    tree_clearance: float,
+    building_clearance: float | None,
+    high_building_clearance: float | None,
+    tree_clearance: float | None,
     relative_elevation: float,
 ) -> list[str]:
     reasons = []
@@ -486,15 +528,42 @@ def _coverage_notice(disaster_type: str) -> str:
     return "Mapped hazards and environment data may be incomplete or stale."
 
 
-def _empty_response(source: str, notice: str) -> ContextAreaListResponse:
-    now = datetime.now(UTC)
+def _empty_response(
+    source: str,
+    notice: str,
+    *,
+    simulation: bool = False,
+    data_at: datetime | None = None,
+) -> ContextAreaListResponse:
+    timestamp = data_at or datetime.now(UTC)
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        timestamp = datetime.now(UTC)
+    else:
+        timestamp = timestamp.astimezone(UTC)
     return ContextAreaListResponse(
         items=[],
-        data_at=now,
+        data_at=timestamp,
         source=source,
-        simulation=False,
+        simulation=simulation,
         uncertainty_notice=notice,
     )
+
+
+def _source_data_timestamp(
+    hazards: Sequence[Hazard], source_data_at: datetime | None
+) -> datetime:
+    timestamps = [
+        hazard.data_at.astimezone(UTC)
+        for hazard in hazards
+        if hazard.data_at.tzinfo is not None and hazard.data_at.utcoffset() is not None
+    ]
+    if (
+        source_data_at is not None
+        and source_data_at.tzinfo is not None
+        and source_data_at.utcoffset() is not None
+    ):
+        timestamps.append(source_data_at.astimezone(UTC))
+    return max(timestamps, default=datetime.now(UTC))
 
 
 def _way_points(value: Any, center: Any = None) -> tuple[tuple[float, float], ...]:
@@ -565,10 +634,9 @@ def _density(
 def _nearest_distance(
     coordinate: tuple[float, float],
     points: Sequence[tuple[float, float]] | Any,
-    fallback: float,
-) -> float:
+) -> float | None:
     distances = (_distance_pair_m(coordinate, point) for point in points)
-    return min(distances, default=fallback)
+    return min(distances, default=None)
 
 
 def _distance_m(first: Coordinate, second: Coordinate) -> float:

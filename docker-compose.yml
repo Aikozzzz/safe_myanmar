@@ -17,7 +17,8 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-safemyanmar_dev}:${POSTGRES_PASSWORD:-safemyanmar_dev_password}@db:5432/${POSTGRES_DB:-safemyanmar}
     ports:

@@ -149,19 +149,11 @@ void main() {
     addTearDown(local.close);
     final repository = _repository(local, _successfulClient());
 
-    await expectLater(
-      repository.refresh(),
-      throwsA(
-        isA<AlertStorageException>().having(
-          (error) => error.toString(),
-          'safe string',
-          allOf(isNot(contains('path')), isNot(contains('secret'))),
-        ),
-      ),
-    );
+    final result = await repository.refresh();
 
     expect(local.replaceCalls, 1);
     expect((await local.readSnapshot())!.items.single.title, 'cached');
+    expect(result.items.single.id, 'usgs:example');
   });
 
   test('getById delegates to the scoped local source', () async {

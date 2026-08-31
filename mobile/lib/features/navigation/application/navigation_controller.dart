@@ -50,6 +50,8 @@ final class NavigationController extends Notifier<NavigationState> {
           ? ContextScenario.outdoorsAfterShaking
           : ContextScenario.general,
       contextAreas: null,
+      contextCached: false,
+      contextCachedAt: null,
       selectedContextAreaId: null,
       contextRequest: null,
     );
@@ -61,6 +63,8 @@ final class NavigationController extends Notifier<NavigationState> {
     state = state.copyWith(
       contextScenario: value,
       contextAreas: null,
+      contextCached: false,
+      contextCachedAt: null,
       selectedContextAreaId: null,
       contextRequest: null,
     );
@@ -107,6 +111,8 @@ final class NavigationController extends Notifier<NavigationState> {
       state = state.copyWith(
         contextAreas: null,
         contextAnalysisRequested: false,
+        contextCached: false,
+        contextCachedAt: null,
         selectedContextAreaId: null,
         contextRequest: null,
       );
@@ -126,6 +132,8 @@ final class NavigationController extends Notifier<NavigationState> {
         state = state.copyWith(
           contextAreas: null,
           contextAnalysisRequested: false,
+          contextCached: false,
+          contextCachedAt: null,
           selectedContextAreaId: null,
           contextRequest: null,
         );
@@ -216,6 +224,8 @@ final class NavigationController extends Notifier<NavigationState> {
       contextAnalysisFailed: false,
       contextAnalysisRequested: true,
       contextAreas: null,
+      contextCached: false,
+      contextCachedAt: null,
       selectedContextAreaId: null,
     );
     late final NavigationRepository repository;
@@ -236,6 +246,8 @@ final class NavigationController extends Notifier<NavigationState> {
     if (generation != _contextGeneration) return;
     state = state.copyWith(
       contextAreas: cached.data,
+      contextCached: cached.isCached,
+      contextCachedAt: cached.cachedAt,
       contextRequest: request,
       selectedContextAreaId: cached.data?.items.firstOrNull?.id,
     );
@@ -246,6 +258,8 @@ final class NavigationController extends Notifier<NavigationState> {
       contextAnalysisLoading: false,
       contextAnalysisFailed: result.remoteFailed,
       contextAreas: areas,
+      contextCached: result.isCached,
+      contextCachedAt: result.cachedAt,
       contextRequest: request,
       selectedContextAreaId: areas?.items.firstOrNull?.id,
     );

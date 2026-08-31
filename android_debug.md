@@ -256,10 +256,14 @@ The current fictional navigation data supports two separate regions:
 - Mandalay: latitude `21.9300-21.9900`, longitude `96.0600-96.1200`.
 - Yangon: latitude `16.8000-16.9200`, longitude `96.0800-96.2000`.
 
-Real Yangon GPS readings can be analyzed when simulation is enabled. Locations
-outside both regions are rejected because the app does not present fictional
-data as real nationwide hazard information. Nearby-area analysis does not need a
-Mapbox Directions token; route suggestions do.
+Real Yangon GPS readings can be analyzed when simulation navigation is enabled.
+Locations outside both regions are rejected for fictional navigation because the
+app does not present simulation data as real nationwide hazard information. For
+real snapshot analysis with optional simulation augmentation, enable
+`ENABLE_SIMULATION_ANALYSIS=true` on the backend; the `/context-areas` response
+will label the mixed sources, while hazard and shelter lists remain collected
+data only. Nearby-area analysis does not need a Mapbox Directions token; route
+suggestions do.
 
 ### Gemma is unavailable
 

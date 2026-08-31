@@ -3,7 +3,11 @@ from datetime import UTC, datetime, timedelta, timezone
 import httpx
 import pytest
 
-from app.providers.usgs.client import ProviderClientError, UsgsClient
+from app.providers.usgs.client import (
+    MAX_RESPONSE_BYTES,
+    ProviderClientError,
+    UsgsClient,
+)
 
 FEED_URL = "https://earthquake.usgs.gov/example/feed.geojson"
 RETRIEVED_AT = datetime(2026, 7, 13, 1, 2, 3, tzinfo=UTC)
@@ -117,6 +121,38 @@ def test_invalid_json_is_invalid_provider_payload():
 
     assert caught.value.code == "invalid_provider_payload"
     assert "not-json" not in str(caught.value)
+
+
+def test_oversized_response_body_is_rejected_before_json_parsing():
+    client, http_client = client_with_handler(
+        lambda request: httpx.Response(200, content=b"x" * (MAX_RESPONSE_BYTES + 1))
+    )
+
+    try:
+        with pytest.raises(ProviderClientError) as caught:
+            client.fetch()
+    finally:
+        http_client.close()
+
+    assert caught.value.code == "provider_response_too_large"
+
+
+def test_oversized_content_length_is_rejected_before_reading_response():
+    client, http_client = client_with_handler(
+        lambda request: httpx.Response(
+            200,
+            headers={"content-length": str(MAX_RESPONSE_BYTES + 1)},
+            content=b"{}",
+        )
+    )
+
+    try:
+        with pytest.raises(ProviderClientError) as caught:
+            client.fetch()
+    finally:
+        http_client.close()
+
+    assert caught.value.code == "provider_response_too_large"
 
 
 @pytest.mark.parametrize("payload", [[], None, "value", 1, True])

@@ -112,7 +112,11 @@ void main() {
       ).hasMatch(nativeSources),
       isFalse,
     );
-    expect(nativeSources, contains('conversation.sendMessage(prompt)'));
+    expect(
+      nativeSources,
+      contains('conversation.sendMessage(\n                prompt'),
+    );
+    expect(nativeSources, contains('maxOutputToken = MAX_GENERATION_TOKENS'));
     expect(nativeSources, contains('Backend.CPU()'));
   });
 

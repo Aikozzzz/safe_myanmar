@@ -1,13 +1,22 @@
 # Navigation API
 
 The default development configuration loads the validated snapshot configured
-by `NAVIGATION_DATA_PATH`. The current Yangon snapshot exposes current hazard
-records but no verified shelters or lower-exposure destination dataset, so
-those lists and context-area recommendations may be empty. Stale or
-geometry-less records are excluded. Real context analysis only runs for a
-disaster type with a current snapshot hazard geometry; it never turns the
-absence of a hazard record into a safety claim. Responses include source,
-timestamp, `simulation: false`, and an uncertainty notice.
+by `NAVIGATION_DATA_PATH`. At startup, the snapshot must pass validation and be
+no more than 30 days old; otherwise `/health/ready` returns a safe
+`navigation_data_missing`, `navigation_data_invalid`, or `navigation_data_stale`
+error. The current Yangon snapshot exposes current hazard records but no
+verified shelters or lower-exposure destination dataset, so those lists and
+context-area recommendations may be empty. Stale or geometry-less records are
+excluded, including shelters. Real context analysis only runs for earthquake
+and flood data with a current snapshot hazard geometry; unsupported real
+disaster types return `503 context_analysis_unavailable` rather than a generic
+lower-exposure result. It never turns the absence of a hazard record into a
+safety claim. Responses include source, timestamp, `simulation: false`, and an
+uncertainty notice. Set
+`ENABLE_SIMULATION_ANALYSIS=true` in a non-production environment to include
+fictional hazard geometry in real `/context-areas` calculations only. The source
+and uncertainty notice identify this mixed analysis, while `/hazards` and
+`/shelters` continue to return collected snapshot data only.
 
 The fictional API described below remains available only when
 `ENABLE_SIMULATION_DATA=true`. It is for development demonstrations only and
@@ -34,6 +43,7 @@ visible. Shelter and hazard lists remain available if routing is unavailable.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ENABLE_SIMULATION_DATA` | `false` | Enables all three simulation endpoints outside production |
+| `ENABLE_SIMULATION_ANALYSIS` | `false` | Adds labeled simulation hazards to real context-area analysis only; forbidden in production |
 | `NAVIGATION_DATA_PATH` | `SafeMyanmar_Yangon_2026-08-17` | Validated real navigation snapshot directory |
 | `OVERPASS_API_URL` | `https://overpass-api.de/api/interpreter` | Mapped building/tree lookup for earthquake analysis |
 | `ELEVATION_API_URL` | `https://api.opentopodata.org/v1/aster30m` | Terrain elevation lookup for flood analysis |
@@ -54,6 +64,11 @@ host's fixed-size, per-process keyed hash, expires in memory, and retains at mos
 1,024 hashes; it does not retain raw hosts or use tokens or coordinates as keys.
 These per-process limits do not replace an authenticated edge rate limiter for
 any shared deployment.
+
+Context analysis is separately limited to 10 POSTs per client host in a rolling
+60-second window and at most two concurrent analyses per process. These limits
+also apply to explicitly enabled simulation analysis and do not replace an
+authenticated edge rate limiter for a shared deployment.
 
 Mapbox responses are limited to 1 MiB, three routes, and 5,000 geometry points
 per route before geometry scoring. Malformed, non-finite, overflowing, or
@@ -152,3 +167,7 @@ route_rate_limit_exceeded`; and exhausted provider concurrency returns `503
 routing_busy`. The `429` and busy `503` responses include bounded `Retry-After`
 headers. Error responses do not include the origin, destination, provider URL,
 or token.
+
+Context-analysis rate limits return `429 context_rate_limit_exceeded`; exhausted
+analysis capacity returns `503 context_analysis_busy`. Both include a bounded
+`Retry-After` header.

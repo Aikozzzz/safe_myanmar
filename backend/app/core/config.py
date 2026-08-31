@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     refresh_minimum_seconds: int = 60
     current_max_age_seconds: int = 300
     enable_simulation_data: bool = False
+    enable_simulation_analysis: bool = False
     navigation_data_path: str = "SafeMyanmar_Yangon_2026-08-17"
     overpass_api_url: str = "https://overpass-api.de/api/interpreter"
     elevation_api_url: str = "https://api.opentopodata.org/v1/aster30m"
@@ -55,6 +56,8 @@ class Settings(BaseSettings):
 
         if self.enable_simulation_data:
             raise ValueError("Production must not enable simulation data.")
+        if self.enable_simulation_analysis:
+            raise ValueError("Production must not enable simulation analysis.")
 
         components = (url.username, url.password, url.host, url.database)
         if any(

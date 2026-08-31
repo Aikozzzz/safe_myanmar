@@ -76,6 +76,7 @@ def test_simulation_data_is_disabled_by_default():
     settings = Settings(database_url=DEVELOPMENT_DATABASE_URL)
 
     assert settings.enable_simulation_data is False
+    assert settings.enable_simulation_analysis is False
     assert settings.mapbox_directions_access_token is None
 
 
@@ -85,6 +86,15 @@ def test_production_rejects_enabled_simulation_data():
             database_url=PRODUCTION_DATABASE_URL,
             environment="production",
             enable_simulation_data=True,
+        )
+
+
+def test_production_rejects_enabled_simulation_analysis():
+    with pytest.raises(ValidationError, match="must not enable simulation analysis"):
+        Settings(
+            database_url=PRODUCTION_DATABASE_URL,
+            environment="production",
+            enable_simulation_analysis=True,
         )
 
 

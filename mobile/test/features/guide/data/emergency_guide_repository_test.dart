@@ -7,7 +7,7 @@ import 'package:mobile/features/guide/data/drift_emergency_guide_repository.dart
 
 void main() {
   test(
-    'v2 to v5 preserves alert and navigation cache data and seeds',
+    'v2 to v6 preserves alert and navigation cache data and seeds',
     () async {
       final directory = await Directory.systemTemp.createTemp('guide-v2-v3-');
       addTearDown(() => directory.delete(recursive: true));
@@ -41,7 +41,7 @@ void main() {
           .getSingle();
       final articles = await DriftEmergencyGuideRepository(database).search();
 
-      expect(database.schemaVersion, 5);
+      expect(database.schemaVersion, 6);
       expect(alert.read<String>('title'), 'Preserved alert');
       expect(shelter.read<String>('payload'), '{"kept":true}');
       expect(articles, hasLength(5));

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'safe_tokens.dart';
+
 abstract final class SafeTheme {
   static ThemeData light() {
     return _theme(
@@ -72,6 +74,26 @@ abstract final class SafeTheme {
       outlinedButtonTheme: const OutlinedButtonThemeData(style: buttonStyle),
       textButtonTheme: const TextButtonThemeData(style: buttonStyle),
       iconButtonTheme: const IconButtonThemeData(style: buttonStyle),
+      cardTheme: const CardThemeData(
+        margin: EdgeInsets.zero,
+        elevation: SafeElevation.card,
+        shape: RoundedRectangleBorder(borderRadius: SafeRadii.md),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surface.withValues(
+          alpha: brightness == Brightness.dark ? 0.45 : 0.7,
+        ),
+        border: const OutlineInputBorder(borderRadius: SafeRadii.sm),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: SafeRadii.sm,
+          borderSide: BorderSide(color: onSurface.withValues(alpha: 0.18)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: SafeRadii.sm,
+          borderSide: BorderSide(color: primary, width: 2),
+        ),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
         height: 80,

@@ -132,6 +132,39 @@ void main() {
   );
 
   test(
+    'preserves context cache metadata for stale summary presentation',
+    () async {
+      final cachedAt = DateTime.utc(2026, 7, 23, 12, 30);
+      final cached = NavigationResource<ContextAreaCollection>(
+        data: ContextAreaCollection(
+          items: const [],
+          dataAt: DateTime.utc(2026, 7, 23, 12),
+          source: 'OpenStreetMap',
+          uncertaintyNotice: 'Mapped data may be incomplete.',
+        ),
+        isCached: true,
+        remoteFailed: true,
+        cachedAt: cachedAt,
+      );
+      final repository = FakeNavigationRepository()
+        ..cachedContextAreas = cached
+        ..contextAreas = cached;
+      final container = ProviderContainer(
+        overrides: [navigationRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(navigationControllerProvider.notifier);
+
+      await controller.analyzeContext(location);
+
+      final state = container.read(navigationControllerProvider);
+      expect(state.contextCached, isTrue);
+      expect(state.contextCachedAt, cachedAt);
+      expect(state.contextAnalysisFailed, isTrue);
+    },
+  );
+
+  test(
     'changing route inputs immediately clears prior route context',
     () async {
       final repository = FakeNavigationRepository();

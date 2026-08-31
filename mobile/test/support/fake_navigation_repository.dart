@@ -25,6 +25,12 @@ final class FakeNavigationRepository implements NavigationRepository {
         isCached: false,
         remoteFailed: false,
       );
+  NavigationResource<ContextAreaCollection> cachedContextAreas =
+      const NavigationResource(
+        data: null,
+        isCached: false,
+        remoteFailed: false,
+      );
   final List<RouteSuggestionRequest> requests = [];
   Future<NavigationResource<RouteSuggestions>> Function(
     RouteSuggestionRequest request,
@@ -68,11 +74,7 @@ final class FakeNavigationRepository implements NavigationRepository {
   @override
   Future<NavigationResource<ContextAreaCollection>> loadCachedContextAreas(
     ContextAreaRequest request,
-  ) async => const NavigationResource(
-    data: null,
-    isCached: false,
-    remoteFailed: false,
-  );
+  ) async => cachedContextAreas;
 
   @override
   Future<NavigationResource<ShelterCollection>> loadShelters() async =>

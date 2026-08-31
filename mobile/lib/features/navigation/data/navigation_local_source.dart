@@ -96,9 +96,11 @@ final class DriftNavigationLocalSource implements NavigationLocalSource {
     if (row == null) return null;
     if (row.originLatitudeE5 == null ||
         row.originLongitudeE5 == null ||
-        row.shelterId == null ||
         row.disasterType == null ||
-        row.routeProfile == null) {
+        row.routeProfile == null ||
+        row.scenario == null ||
+        row.searchRadiusM == null ||
+        (row.contextAreaId == null && row.shelterId == null)) {
       await (_database.delete(
         _database.cachedRouteResponses,
       )..where((table) => table.id.equals(row.id))).go();
@@ -107,8 +109,11 @@ final class DriftNavigationLocalSource implements NavigationLocalSource {
     if (row.originLatitudeE5 != request.originLatitudeE5 ||
         row.originLongitudeE5 != request.originLongitudeE5 ||
         row.shelterId != request.shelterId ||
+        row.contextAreaId != request.contextAreaId ||
         row.disasterType != request.disasterType.wireValue ||
-        row.routeProfile != request.profile.name) {
+        row.routeProfile != request.profile.name ||
+        row.scenario != request.scenario.wireValue ||
+        row.searchRadiusM != request.searchRadiusM.round()) {
       return null;
     }
     return CachedNavigationResponse(
@@ -195,8 +200,11 @@ final class DriftNavigationLocalSource implements NavigationLocalSource {
             originLatitudeE5: Value(request.originLatitudeE5),
             originLongitudeE5: Value(request.originLongitudeE5),
             shelterId: Value(request.shelterId),
+            contextAreaId: Value(request.contextAreaId),
             disasterType: Value(request.disasterType.wireValue),
             routeProfile: Value(request.profile.name),
+            scenario: Value(request.scenario.wireValue),
+            searchRadiusM: Value(request.searchRadiusM.round()),
           ),
         );
   }

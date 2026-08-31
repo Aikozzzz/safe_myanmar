@@ -25,16 +25,23 @@ class SosBleBroadcastService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var advertiser: android.bluetooth.le.BluetoothLeAdvertiser? = null
     private var callback: AdvertiseCallback? = null
-    private var resultReceiver: ResultReceiver? = null
+    private var startResultReceiver: ResultReceiver? = null
+    private var stopResultReceiver: ResultReceiver? = null
+    private var activeStartId: Int? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            stopBroadcast()
+            stopResultReceiver = parcelableResultReceiver(intent)
+            stopBroadcast(startId)
             return START_NOT_STICKY
         }
         val payload = intent?.getByteArrayExtra(EXTRA_PAYLOAD)
-            ?: return START_NOT_STICKY.also { stopSelf() }
-        resultReceiver = parcelableResultReceiver(intent)
+            ?: return START_NOT_STICKY.also { stopSelfResult(startId) }
+        val durationMs = intent.getLongExtra(
+            EXTRA_DURATION_MS,
+            BROADCAST_DURATION_MS,
+        ).coerceIn(5_000L, BROADCAST_DURATION_MS)
+        startResultReceiver = parcelableResultReceiver(intent)
         try {
             createNotificationChannel()
             val notification = notification()
@@ -47,38 +54,48 @@ class SosBleBroadcastService : Service() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-            startBroadcast(payload)
+            startBroadcast(payload, startId)
             handler.removeCallbacksAndMessages(null)
-            handler.postDelayed({ stopBroadcast() }, BROADCAST_DURATION_MS)
+            handler.postDelayed({
+                if (activeStartId == startId) stopBroadcast(startId)
+            }, durationMs)
         } catch (error: Throwable) {
             android.util.Log.e(TAG, "Unable to start BLE SOS advertising", error)
-            resultReceiver?.send(
+            startResultReceiver?.send(
                 RESULT_FAILED,
                 Bundle().apply { putInt(EXTRA_ERROR_CODE, -1) },
             )
-            resultReceiver = null
-            stopBroadcast()
+            startResultReceiver = null
+            stopBroadcast(startId)
         }
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
-        stopBroadcast()
+        stopAdvertising()
+        startResultReceiver?.send(
+            RESULT_FAILED,
+            Bundle().apply { putInt(EXTRA_ERROR_CODE, ERROR_STOPPED_BEFORE_START) },
+        )
+        startResultReceiver = null
+        stopResultReceiver?.send(RESULT_STOPPED, null)
+        stopResultReceiver = null
+        activeStartId = null
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startBroadcast(payload: ByteArray) {
+    private fun startBroadcast(payload: ByteArray, startId: Int) {
         val adapter = (getSystemService(BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
             ?: throw IllegalStateException("Bluetooth advertising is unavailable.")
         if (!adapter.isEnabled) throw IllegalStateException("Bluetooth is disabled.")
         val currentAdvertiser = adapter.bluetoothLeAdvertiser
             ?: throw IllegalStateException("Bluetooth advertising is unavailable.")
-        // Stop only the previous advertiser. stopBroadcast() also calls stopSelf(),
-        // which could destroy this foreground service during a restart.
+        // A restart should replace only the advertiser, not terminate this service.
         stopAdvertising()
+        activeStartId = startId
         val settings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
@@ -92,18 +109,18 @@ class SosBleBroadcastService : Service() {
         val advertiseCallback = object : AdvertiseCallback() {
             override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
                 android.util.Log.i(TAG, "BLE SOS advertising started")
-                resultReceiver?.send(RESULT_STARTED, null)
-                resultReceiver = null
+                startResultReceiver?.send(RESULT_STARTED, null)
+                startResultReceiver = null
             }
 
             override fun onStartFailure(errorCode: Int) {
                 android.util.Log.e(TAG, "BLE SOS advertising failed: $errorCode")
-                resultReceiver?.send(
+                startResultReceiver?.send(
                     RESULT_FAILED,
                     Bundle().apply { putInt(EXTRA_ERROR_CODE, errorCode) },
                 )
-                resultReceiver = null
-                stopBroadcast()
+                startResultReceiver = null
+                stopBroadcast(activeStartId)
             }
         }
         advertiser = currentAdvertiser
@@ -111,12 +128,23 @@ class SosBleBroadcastService : Service() {
         currentAdvertiser.startAdvertising(settings, data, advertiseCallback)
     }
 
-    private fun stopBroadcast() {
+    private fun stopBroadcast(stopSelfId: Int?) {
         handler.removeCallbacksAndMessages(null)
+        val hadBroadcastState = activeStartId != null || advertiser != null || callback != null
         stopAdvertising()
-        resultReceiver = null
+        startResultReceiver?.send(
+            RESULT_FAILED,
+            Bundle().apply { putInt(EXTRA_ERROR_CODE, ERROR_STOPPED_BEFORE_START) },
+        )
+        startResultReceiver = null
+        stopResultReceiver?.send(RESULT_STOPPED, null)
+        stopResultReceiver = null
+        activeStartId = null
+        if (hadBroadcastState) {
+            android.util.Log.i(TAG, "BLE SOS advertising stopped")
+        }
         stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
+        stopSelfId?.let { stopSelfResult(it) }
     }
 
     private fun stopAdvertising() {
@@ -178,6 +206,7 @@ class SosBleBroadcastService : Service() {
         private const val ACTION_START = "org.safemyanmar.mobile.sos.START_BROADCAST"
         private const val ACTION_STOP = "org.safemyanmar.mobile.sos.STOP_BROADCAST"
         private const val EXTRA_PAYLOAD = "payload"
+        private const val EXTRA_DURATION_MS = "duration_ms"
         private const val CHANNEL_ID = "nearby_sos_sharing"
         private const val NOTIFICATION_ID = 4402
         private const val BROADCAST_DURATION_MS = 10 * 60 * 1000L
@@ -186,16 +215,20 @@ class SosBleBroadcastService : Service() {
         private const val TAG = "SosBleBroadcastService"
         const val RESULT_STARTED = 1
         const val RESULT_FAILED = 2
+        const val RESULT_STOPPED = 3
+        private const val ERROR_STOPPED_BEFORE_START = -2
 
         fun start(
             context: Context,
             payload: ByteArray,
             resultReceiver: ResultReceiver,
+            durationMs: Long = BROADCAST_DURATION_MS,
         ) {
             val intent = Intent(context, SosBleBroadcastService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_PAYLOAD, payload)
                 putExtra(EXTRA_RESULT_RECEIVER, resultReceiver)
+                putExtra(EXTRA_DURATION_MS, durationMs)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -205,9 +238,14 @@ class SosBleBroadcastService : Service() {
         }
 
         fun stop(context: Context) {
+            stop(context, null)
+        }
+
+        fun stop(context: Context, resultReceiver: ResultReceiver?) {
             context.startService(
                 Intent(context, SosBleBroadcastService::class.java).apply {
                     action = ACTION_STOP
+                    putExtra(EXTRA_RESULT_RECEIVER, resultReceiver)
                 },
             )
         }

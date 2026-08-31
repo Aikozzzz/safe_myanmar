@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:mobile/features/location/domain/foreground_location.dart';
 import 'package:mobile/features/profile/application/providers.dart';
 import 'package:mobile/features/profile/domain/local_profile.dart';
 import 'package:mobile/features/sos/application/providers.dart';
+import 'package:mobile/features/sos/data/sos_ble_sender_identity.dart';
 import 'package:mobile/features/sos/data/native_sms_composer.dart';
 import 'package:mobile/features/sos/data/native_sms_sender.dart';
 import 'package:mobile/features/sos/data/sos_sim_preference.dart';
@@ -18,6 +20,7 @@ import 'package:mobile/features/sos/domain/sos_draft.dart';
 import 'package:mobile/features/sos/presentation/hold_to_confirm.dart';
 
 import '../../../support/fake_local_profile_repository.dart';
+import '../../../support/fake_location_permission_prompt_store.dart';
 import '../../../support/fake_location_repository.dart';
 import '../../../support/fake_sos_draft_repository.dart';
 
@@ -25,6 +28,7 @@ void main() {
   late FakeLocalProfileRepository profileRepository;
   late FakeSosDraftRepository draftRepository;
   late FakeLocationRepository locationRepository;
+  late FakeLocationPermissionPromptStore promptStore;
   late _FakeComposer composer;
   late _FakeSender sender;
   late _FakeSimPreferenceStore simPreference;
@@ -47,6 +51,7 @@ void main() {
     draftRepository = FakeSosDraftRepository();
     locationRepository = FakeLocationRepository()
       ..currentLocation = preciseLocation;
+    promptStore = FakeLocationPermissionPromptStore();
     composer = _FakeComposer();
     sender = _FakeSender();
     simPreference = _FakeSimPreferenceStore();
@@ -65,9 +70,13 @@ void main() {
         localProfileRepositoryProvider.overrideWithValue(profileRepository),
         sosDraftRepositoryProvider.overrideWithValue(draftRepository),
         locationRepositoryProvider.overrideWithValue(locationRepository),
+        locationPermissionPromptStoreProvider.overrideWithValue(promptStore),
         nativeSmsComposerProvider.overrideWithValue(composer),
         nativeSmsSenderProvider.overrideWithValue(sender),
         sosSimPreferenceStoreProvider.overrideWithValue(simPreference),
+        sosBleSenderIdentityStoreProvider.overrideWithValue(
+          _FakeSosBleSenderIdentitySource(),
+        ),
         sosClockProvider.overrideWithValue(() => DateTime.utc(2026, 7, 23, 2)),
         sosDraftIdFactoryProvider.overrideWithValue(() => draftId),
         if (blePlatform != null)
@@ -87,6 +96,34 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> revealInSos(WidgetTester tester, Finder target) async {
+    if (target.evaluate().isEmpty) {
+      final scrollable = find.byType(Scrollable).first;
+      final state = tester.state<ScrollableState>(scrollable);
+      state.position.jumpTo(0);
+      await tester.pump();
+
+      for (
+        var attempt = 0;
+        attempt < 30 && target.evaluate().isEmpty;
+        attempt++
+      ) {
+        final position = state.position;
+        if (position.pixels >= position.maxScrollExtent) {
+          break;
+        }
+        position.jumpTo(
+          (position.pixels + 240).clamp(0, position.maxScrollExtent).toDouble(),
+        );
+        await tester.pump();
+      }
+    }
+
+    expect(target, findsWidgets);
+    await tester.ensureVisible(target.first);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('opening SOS shows preview but prepares and opens nothing', (
     tester,
   ) async {
@@ -94,12 +131,36 @@ void main() {
 
     expect(find.text('Selected recipients'), findsOneWidget);
     expect(find.text('Test Contact: +12025550123'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Exact SMS preview'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Exact SMS preview'), findsOneWidget);
     expect(
       find.textContaining('Location unavailable; no coordinates included.'),
       findsOneWidget,
     );
     expect(draftRepository.writes, 0);
+    expect(composer.calls, 0);
+  });
+
+  testWidgets('shows readiness before review without starting an SOS', (
+    tester,
+  ) async {
+    await pumpSos(tester);
+
+    final readiness = find.byKey(const Key('sos-readiness-summary'));
+    expect(readiness, findsOneWidget);
+    expect(
+      find.descendant(
+        of: readiness,
+        matching: find.byIcon(Icons.check_circle_outline),
+      ),
+      findsOneWidget,
+    );
+    expect(draftRepository.writes, 0);
+    expect(sender.calls, 0);
     expect(composer.calls, 0);
   });
 
@@ -110,6 +171,13 @@ void main() {
       await pumpSos(tester);
 
       expect(find.text('No contacts selected'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('sos-readiness-summary')),
+          matching: find.byIcon(Icons.person_search_outlined),
+        ),
+        findsOneWidget,
+      );
       final contactsAction = find.widgetWithText(
         OutlinedButton,
         'Open More contacts',
@@ -155,12 +223,17 @@ void main() {
     await tester.pump();
     expect(container.read(sosBleControllerProvider).supported, isTrue);
 
-    final sharing = find.text('Share limited SOS data nearby');
+    final sharing = find.widgetWithText(
+      CheckboxListTile,
+      'Share limited SOS data nearby',
+    );
     await tester.scrollUntilVisible(
       sharing,
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(sharing);
+    await tester.pumpAndSettle();
     await tester.tap(sharing);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -182,16 +255,83 @@ void main() {
     expect(draftRepository.drafts, hasLength(1));
     expect(blePlatform.broadcastPayloads, hasLength(1));
     expect(sender.calls, 0);
+    await revealInSos(tester, find.text('Broadcast frame details'));
+    expect(find.textContaining('Event ID: a55a102030400000'), findsOneWidget);
+    expect(find.textContaining('Battery: 80%'), findsOneWidget);
+  });
+
+  testWidgets('nearby SOS shows the decoded frame details', (tester) async {
+    final blePlatform = _FakeSosBlePlatform();
+    addTearDown(blePlatform.dispose);
+    await pumpSos(tester, blePlatform: blePlatform);
+
+    final payload = const SosBlePayloadCodec().encode(
+      SosBleEvent(
+        eventId: '1122334455667788',
+        createdAt: DateTime.now().toUtc(),
+        locationStatus: SosBleLocationStatus.current,
+        batteryPercent: 73,
+        latitude: 21.951,
+        longitude: 96.081,
+      ),
+    );
+    blePlatform.events.add(SosBleAdvertisement(payload, rssi: -57));
+    await tester.pump();
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.text('Nearby unverified SOS'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.textContaining('Event ID: 1122334455667788'), findsOneWidget);
+    expect(find.textContaining('Battery: 73%'), findsOneWidget);
+    expect(find.textContaining('Signal: -57 dBm'), findsOneWidget);
+    expect(
+      find.textContaining('Protocol: v3; TTL: 10 minutes'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Coordinates: 21.951000, 96.081000'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        'Google Maps: https://maps.google.com/?q=21.951000,96.081000',
+      ),
+      findsOneWidget,
+    );
+    container
+        .read(sosBleControllerProvider.notifier)
+        .dismissNearbyEvent('1122334455667788');
+    await tester.pump();
   });
 
   testWidgets('previews current, last-known, and unavailable location states', (
     tester,
   ) async {
     await pumpSos(tester);
+    final locationSharing = find.widgetWithText(
+      SwitchListTile,
+      'Include location in this SOS',
+    );
     await container
         .read(foregroundLocationControllerProvider.notifier)
         .requestLocation();
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      locationSharing,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(locationSharing);
+    await tester.pumpAndSettle();
+    await tester.tap(locationSharing);
+    await tester.pumpAndSettle();
+    await revealInSos(
+      tester,
+      find.textContaining('Current precise location: 16.840900, 96.173500'),
+    );
     expect(
       find.textContaining('Current precise location: 16.840900, 96.173500'),
       findsWidgets,
@@ -203,6 +343,12 @@ void main() {
         .read(foregroundLocationControllerProvider.notifier)
         .requestLocation();
     await tester.pumpAndSettle();
+    await revealInSos(
+      tester,
+      find.textContaining(
+        'Last-known approximate location: 21.958800, 96.089100',
+      ),
+    );
     expect(
       find.textContaining(
         'Last-known approximate location: 21.958800, 96.089100',
@@ -215,11 +361,94 @@ void main() {
         .read(foregroundLocationControllerProvider.notifier)
         .requestLocation();
     await tester.pumpAndSettle();
+    await revealInSos(
+      tester,
+      find.text('Location unavailable. No coordinates will be included.'),
+    );
     expect(
       find.text('Location unavailable. No coordinates will be included.'),
       findsWidgets,
     );
   });
+
+  testWidgets(
+    'explicitly continues without location when it becomes unavailable',
+    (tester) async {
+      profileRepository.profile = LocalProfile.empty();
+      final blePlatform = _FakeSosBlePlatform();
+      addTearDown(blePlatform.dispose);
+      await pumpSos(
+        tester,
+        blePlatform: blePlatform,
+        draftId: '00112233-4455-6677-8899-aabbccddeeff',
+      );
+
+      final locationSharing = find.widgetWithText(
+        SwitchListTile,
+        'Include location in this SOS',
+      );
+      await tester.scrollUntilVisible(
+        locationSharing,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(locationSharing);
+      await tester.pumpAndSettle();
+      await tester.tap(locationSharing);
+      await tester.pumpAndSettle();
+
+      locationRepository.currentLocationError = StateError('unavailable');
+      locationRepository.lastKnownLocation = null;
+      await container
+          .read(foregroundLocationControllerProvider.notifier)
+          .requestLocation();
+      await tester.pumpAndSettle();
+      expect(
+        container.read(foregroundLocationControllerProvider).location,
+        isNull,
+      );
+      expect(tester.widget<SwitchListTile>(locationSharing).value, isTrue);
+
+      final nearbySharing = find.widgetWithText(
+        CheckboxListTile,
+        'Share limited SOS data nearby',
+      );
+      await tester.scrollUntilVisible(
+        nearbySharing,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(nearbySharing);
+      await tester.pumpAndSettle();
+      await tester.tap(nearbySharing);
+      await tester.pumpAndSettle();
+      final accessible = find.widgetWithText(
+        TextButton,
+        'Use confirmation dialogs instead',
+      );
+      await tester.scrollUntilVisible(
+        accessible,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(accessible);
+      tester.widget<TextButton>(accessible).onPressed!();
+      await tester.pumpAndSettle();
+      expect(find.text('Confirm SOS draft details'), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.text('Send SOS SMS directly?'), findsOneWidget);
+      await tester.tap(find.text('Send SMS now'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Location unavailable'), findsOneWidget);
+      await tester.tap(find.text('Continue without location'));
+      await tester.pumpAndSettle();
+
+      expect(draftRepository.drafts.single.location, isNull);
+      expect(blePlatform.broadcastPayloads, hasLength(1));
+    },
+  );
 
   testWidgets('continuous hold prepares then sends SMS and retains status', (
     tester,
@@ -230,6 +459,8 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(_holdLabel);
+    await tester.pumpAndSettle();
     final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
     await tester.pump();
     await tester.pump(const Duration(seconds: 3));
@@ -481,16 +712,39 @@ final class _FakeComposer implements NativeSmsComposer {
 }
 
 final class _FakeSosBlePlatform implements SosBlePlatformService {
+  final events = StreamController<SosBleAdvertisement>.broadcast();
   final broadcastPayloads = <Uint8List>[];
 
   @override
-  Stream<Uint8List> get payloadStream => const Stream<Uint8List>.empty();
+  Stream<SosBleAdvertisement> get payloadStream => events.stream;
+
+  @override
+  Stream<String> get notificationEventStream => const Stream.empty();
+
+  void dispose() => events.close();
 
   @override
   Future<bool> isSupported() async => true;
 
   @override
-  Future<bool> requestPermissions() async => true;
+  Future<bool> requestPermissions({
+    required bool receive,
+    required bool broadcast,
+    required bool background,
+  }) async => true;
+
+  @override
+  Future<SosBlePermissionState> getPermissionState() async =>
+      const SosBlePermissionState(
+        supported: true,
+        bluetoothEnabled: true,
+        scanGranted: true,
+        advertiseGranted: true,
+        notificationGranted: true,
+      );
+
+  @override
+  Future<bool> openAppSettings() async => true;
 
   @override
   Future<int?> batteryPercent() async => 80;
@@ -501,6 +755,9 @@ final class _FakeSosBlePlatform implements SosBlePlatformService {
   }
 
   @override
+  Future<void> startRelayBroadcast(Uint8List payload) async {}
+
+  @override
   Future<void> stopBroadcast() async {}
 
   @override
@@ -508,6 +765,29 @@ final class _FakeSosBlePlatform implements SosBlePlatformService {
 
   @override
   Future<void> stopScan() async {}
+
+  @override
+  Future<bool> isBackgroundScanEnabled() async => false;
+
+  @override
+  Future<void> startBackgroundScan() async {}
+
+  @override
+  Future<void> stopBackgroundScan() async {}
+
+  @override
+  Future<List<SosBleAdvertisement>> readBackgroundAdvertisements() async =>
+      const [];
+
+  @override
+  Future<String?> getPendingNotificationEventId() async => null;
+}
+
+final class _FakeSosBleSenderIdentitySource
+    implements SosBleSenderIdentitySource {
+  @override
+  Future<SosBleSenderMetadata> next({DateTime? now}) async =>
+      const SosBleSenderMetadata(senderToken: '10203040', eventSequence: 0);
 }
 
 final class _FakeSender implements NativeSmsSender {

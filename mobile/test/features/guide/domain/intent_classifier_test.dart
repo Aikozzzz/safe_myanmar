@@ -41,6 +41,19 @@ void main() {
     expect(classifier.classify('hello there').intent, EmergencyIntent.unknown);
   });
 
+  test('keeps informational disaster questions in general chat', () {
+    expect(
+      isGeneralChatQuestion("what's the difference between typhoon and flood"),
+      isTrue,
+    );
+    expect(isGeneralChatQuestion('flood vs earthquake'), isTrue);
+    expect(
+      isGeneralChatQuestion('How long does it take for Typhon to pass a city'),
+      isTrue,
+    );
+    expect(isGeneralChatQuestion('How do I avoid floodwater?'), isFalse);
+  });
+
   test('retrieves a Burmese earthquake intent deterministically', () {
     expect(
       classifier.classify('ငလျင်လှုပ်နေရင် ဘာလုပ်ရမလဲ').intent,

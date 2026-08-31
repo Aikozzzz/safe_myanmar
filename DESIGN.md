@@ -41,8 +41,9 @@ under their corresponding shell branches.
 
 ### Home And Alerts
 
-- Home introduces the app and provides an explicit action to open earthquake
-  information.
+- Home is a Safety Center with large, labeled actions for earthquake
+  information, Map, SOS setup, and the offline Guide. Each card performs only
+  navigation; opening SOS never prepares or sends a message.
 - The alert list distinguishes loading, current, cached, stale, successful
   empty, and unavailable states without treating empty results as all clear.
 - Alert cards and detail preserve USGS attribution, magnitude, depth,
@@ -54,7 +55,9 @@ under their corresponding shell branches.
 ### Map And Location
 
 - Initial state explains why location is useful and does not request permission
-  until the user selects **Use my location**.
+  until the user selects **Use my location**. After a successful grant, later
+  launches reuse that choice while OS permission remains granted and do not ask
+  again.
 - Status cards distinguish requesting, precise, approximate, denied,
   permanently denied, service disabled, last known, and recoverable error.
 - Denial remains usable with a retry. Permanent denial offers app settings;
@@ -66,6 +69,13 @@ under their corresponding shell branches.
   markers, fictional hazard polygons, and route lines. Without it, the screen
   shows a configuration-unavailable card while retaining non-map controls and
   statuses.
+- The map follows a Waze-inspired interaction: a readable street map is the
+  visual focus, a floating location action recenters on the user's available
+  location, and tapping that action or the user marker opens a detail sheet
+  with precision, coordinates, and capture time.
+- A compact map legend appears only for visible layers and pairs every marker
+  color with an icon and label. Hazard and context summaries state the source,
+  data time, cache state, rationale, and uncertainty in text outside the map.
 - Shelter, disaster type, and walking/driving selectors precede a separate
   route-request action. No route request occurs from changing a selector.
 - Up to three ranked route cards act as the route option selector. The selected
@@ -77,6 +87,9 @@ under their corresponding shell branches.
 
 ### SOS
 
+- SOS is organized as a setup-and-review sequence with a readiness summary,
+  recipients, optional message, location and nearby-sharing choices, the exact
+  outgoing preview, confirmation, and draft history.
 - The screen shows selected recipients, optional user text, the exact composed
   body, profile/location data to be stored, and the direct-SMS disclosure
   before activation.
@@ -94,15 +107,22 @@ under their corresponding shell branches.
 - A separate checkbox allows the user to share limited SOS data with nearby
   SafeMyanmar Android users. It never starts from navigation or from opening the
   SOS screen and does not replace SMS confirmation.
-- Nearby sharing broadcasts a temporary event ID, UTC timestamp, approximately
-  1 km grid, location status, and battery value for ten minutes. Exact
-  coordinates, profile data, contacts, and message text are excluded.
+- Nearby sharing broadcasts a temporary event ID, UTC timestamp, fixed-point
+  latitude/longitude when available, location status, and battery value for ten
+  minutes. Profile data, contacts, and message text are excluded. Received
+  coordinates are peer-supplied and unverified; the Map tab plots them and the
+  SOS details can open a Google Maps query.
 - An opt-in foreground receiver shows peer-received events as unverified local
-  alerts. It does not merge them with official earthquake alerts, relay them, or
-  imply rescue acknowledgement. Optional sound is user-controlled.
+  alerts. A separate relay opt-in may rebroadcast each valid event once over
+  Bluetooth only, limited to one hop. It does not merge them with official
+  earthquake alerts or imply rescue acknowledgement. Optional sound is
+  user-controlled.
 
 ### Guide And Assistant
 
+- Guide provides large deterministic quick actions for earthquake, flood, fire,
+  first aid, Map, and SOS, followed by explicit Map, SOS, and assistant next
+  steps. No quick action requests location or activates SOS automatically.
 - Guide opens with an offline/source-backed label, introduction, assistant
   action, search field, and category chips.
 - Article cards show English and Myanmar titles and source. Detail shows both
@@ -142,6 +162,10 @@ under their corresponding shell branches.
 - Simulation is an explicit non-production backend opt-in. The UI must never
   style simulation data as an official alert or silently mix it into the USGS
   earthquake feed.
+- `ENABLE_SIMULATION_ANALYSIS` is a separate non-production backend-only mode.
+  It may combine fictional hazard geometry with collected navigation data for
+  `/context-areas` analysis, but the response must identify both sources and
+  simulation uncertainty. It must not alter alert, hazard, or shelter lists.
 - Cached alert data shows its last successful update. Data beyond its freshness
   threshold displays **Stale information** and is not described as live.
 - Cached navigation and route responses remain available after a remote failure

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/safe_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/local_profile_controller.dart';
 import '../application/local_profile_state.dart';
@@ -20,61 +21,64 @@ class MoreScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(strings.moreTitle)),
       body: SafeArea(
-        child: switch (profile) {
-          null => _ProfileUnavailable(state: state),
-          final value => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (state.phase == LocalProfilePhase.saving) ...[
-                const _SavingBanner(),
-                const SizedBox(height: 12),
-              ],
-              if (state.errorKind == LocalProfileErrorKind.write) ...[
-                _WriteErrorBanner(
-                  onRetry: () =>
-                      ref.read(localProfileControllerProvider.notifier).retry(),
+        child: SafeContent(
+          child: switch (profile) {
+            null => _ProfileUnavailable(state: state),
+            final value => ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (state.phase == LocalProfilePhase.saving) ...[
+                  const _SavingBanner(),
+                  const SizedBox(height: 12),
+                ],
+                if (state.errorKind == LocalProfileErrorKind.write) ...[
+                  _WriteErrorBanner(
+                    onRetry: () => ref
+                        .read(localProfileControllerProvider.notifier)
+                        .retry(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  strings.profileOverviewTitle,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
-              ],
-              Text(
-                strings.profileOverviewTitle,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 12),
-              _OverviewCard(profile: value),
-              const SizedBox(height: 12),
-              _MoreActionCard(
-                icon: Icons.person_outline,
-                title: strings.editProfile,
-                subtitle: value.displayName.isEmpty
-                    ? strings.profileNotSet
-                    : value.displayName,
-                onTap: state.isBusy
-                    ? null
-                    : () => context.push('/more/profile'),
-              ),
-              const SizedBox(height: 12),
-              _MoreActionCard(
-                icon: Icons.contact_phone_outlined,
-                title: strings.manageContacts,
-                subtitle: strings.contactsSummary(
-                  value.contacts.length,
-                  value.contacts
-                      .where((contact) => contact.selectedForSos)
-                      .length,
+                _OverviewCard(profile: value),
+                const SizedBox(height: 12),
+                _MoreActionCard(
+                  icon: Icons.person_outline,
+                  title: strings.editProfile,
+                  subtitle: value.displayName.isEmpty
+                      ? strings.profileNotSet
+                      : value.displayName,
+                  onTap: state.isBusy
+                      ? null
+                      : () => context.push('/more/profile'),
                 ),
-                onTap: state.isBusy
-                    ? null
-                    : () => context.push('/more/contacts'),
-              ),
-              const SizedBox(height: 16),
-              _PrivacyCard(
-                title: strings.profilePrivacyTitle,
-                description: strings.profilePrivacyDescription,
-              ),
-            ],
-          ),
-        },
+                const SizedBox(height: 12),
+                _MoreActionCard(
+                  icon: Icons.contact_phone_outlined,
+                  title: strings.manageContacts,
+                  subtitle: strings.contactsSummary(
+                    value.contacts.length,
+                    value.contacts
+                        .where((contact) => contact.selectedForSos)
+                        .length,
+                  ),
+                  onTap: state.isBusy
+                      ? null
+                      : () => context.push('/more/contacts'),
+                ),
+                const SizedBox(height: 16),
+                _PrivacyCard(
+                  title: strings.profilePrivacyTitle,
+                  description: strings.profilePrivacyDescription,
+                ),
+              ],
+            ),
+          },
+        ),
       ),
     );
   }

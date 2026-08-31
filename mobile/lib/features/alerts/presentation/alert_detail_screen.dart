@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/security/trusted_usgs_uri.dart';
+import '../../../core/widgets/safe_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/providers.dart';
 import '../domain/earthquake.dart';
@@ -34,13 +35,18 @@ class AlertDetailScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: earthquake.when(
-          loading: () => _LoadingContent(label: strings.loadingEarthquakes),
-          error: (_, _) =>
-              _NotFoundContent(message: strings.earthquakeInformationNotFound),
-          data: (value) => value == null
-              ? _NotFoundContent(message: strings.earthquakeInformationNotFound)
-              : _DetailContent(earthquake: value),
+        child: SafeContent(
+          child: earthquake.when(
+            loading: () => _LoadingContent(label: strings.loadingEarthquakes),
+            error: (_, _) => _NotFoundContent(
+              message: strings.earthquakeInformationNotFound,
+            ),
+            data: (value) => value == null
+                ? _NotFoundContent(
+                    message: strings.earthquakeInformationNotFound,
+                  )
+                : _DetailContent(earthquake: value),
+          ),
         ),
       ),
     );

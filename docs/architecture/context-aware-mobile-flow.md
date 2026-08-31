@@ -5,6 +5,9 @@
 The Android client uses explicit user actions, foreground location, network
 results, cache availability, and local configuration to select honest UI states.
 It never activates SOS, shares location, or requests navigation automatically.
+An explicitly enabled Android background SOS receiver may scan for validated
+nearby BLE frames, show an unverified notification, and retain the frame for
+later display; it does not relay or upload in the background.
 
 ```mermaid
 flowchart TD
@@ -29,11 +32,20 @@ simulation navigation, local SOS preparation, offline guidance, and local
 profile/contact management. Riverpod controllers convert permission, provider,
 cache, secure-storage, and optional-model outcomes into visible states.
 
+Home exposes large Safety Center cards for alerts, Map, SOS setup, and Guide.
+They navigate only and never activate location, SMS, or Bluetooth by
+themselves. SOS retains an explicit setup, exact preview, and confirmation
+sequence; Guide quick actions open only curated content or an explicit route.
+
 ## Location And Navigation
 
-1. The Map tab starts at `notRequested`; it does not prompt on app launch.
+1. The Map tab starts at `notRequested` and does not show a system permission
+   prompt on app launch. If the user previously selected **Use my location** and
+   OS permission is still granted, the controller restores the current location
+   without asking again.
 2. **Use my location** checks services and foreground permission, requesting
-   permission only when currently denied.
+   permission only when currently denied. A successful grant is stored so later
+   launches can restore location without repeating the in-app prompt.
 3. The controller reports precise, approximate, denied, permanently denied,
    service disabled, recoverable error, or a timestamped last-known fallback.
 4. Once a location exists, hazards load from the backend. A user action is
@@ -42,13 +54,22 @@ cache, secure-storage, and optional-model outcomes into visible states.
 5. A valid `MAPBOX_PUBLIC_ACCESS_TOKEN` enables map rendering. Missing/invalid
    configuration does not hide the location or analysis flow. The map claims
    gestures from the surrounding scroll view so it can be panned, zoomed, and
-   rotated directly.
+   rotated directly. A Waze-inspired floating location action recenters the
+   map; tapping it or the user marker opens a detail sheet with precision,
+   coordinates, and capture time. A visible-layer legend pairs marker colors
+   with icons and labels.
 6. The user taps **Analyze nearby areas**. Once the nearby-area analysis is
    requested, disaster type, earthquake scenario, travel profile, and route
    controls become available. Changing an analysis input clears the previous
    result but keeps these controls visible for the next explicit analysis.
    Earthquake analysis is limited to outdoors after shaking; flood analysis
-   compares simulated elevation and flood exposure.
+   compares terrain elevation and current hazard exposure. In the optional
+   backend-only `ENABLE_SIMULATION_ANALYSIS` mode, fictional hazard geometry may
+   be added to that calculation, but the response labels the mixed sources and
+   the mobile hazard and shelter lists remain collected-data-only.
+   Plain-language summaries expose the selected result's typed metrics,
+   rationale, source, timestamp, cached state, and uncertainty without claiming
+   an official shelter or guaranteed safety.
 7. The user selects a generated lower-exposure area and explicitly requests
    route alternatives.
 8. The backend requests up to three Mapbox alternatives and ranks them by
@@ -56,9 +77,32 @@ cache, secure-storage, and optional-model outcomes into visible states.
    can select any returned option.
 
 `ENABLE_SIMULATION_DATA` is false by default and forbidden in production. All
-shelters, hazards, and routes are fictional, timestamped, attributed, labeled
-SIMULATION, and uncertain. A cached route is not recomputed for a changed
-location and is shown only with a cache warning after remote failure.
+shelters, hazards, and routes in that mode are fictional, timestamped,
+attributed, labeled SIMULATION, and uncertain. `ENABLE_SIMULATION_ANALYSIS` is
+also false by default and forbidden in production; it only augments backend
+context analysis and must never silently replace or merge the mobile hazard or
+shelter lists. A cached route is not recomputed for a changed location and is
+shown only with a cache warning after remote failure.
+
+## Background SOS Receiving
+
+1. The SOS screen exposes a separate opt-in for Android background receiving.
+   Foreground receiving and relay remain independent controls.
+2. Enabling it requests nearby-device and notification permissions, then starts
+   a connected-device foreground service with an ongoing notification.
+3. The service validates the BLE marker, protocol version, length, checksum,
+   timestamp, TTL, hop count, battery, and coordinates before accepting a
+   frame. It encrypts a bounded app-private queue and deduplicates event IDs.
+4. A new accepted frame produces an unverified notification without placing
+   exact coordinates in notification text. The frame is not relayed or
+   uploaded by the service.
+5. When the app resumes, Flutter hydrates unexpired frames. A notification tap
+   opens `/map`; when the frame includes coordinates, the map adds the
+   unverified marker and focuses it. Without coordinates, the event remains in
+   the SOS list but cannot be plotted.
+6. Android may stop the service after force-stop, Bluetooth disablement,
+   permission revocation, or OEM battery policy. The UI must continue to label
+   the receiver as best-effort rather than continuous coverage.
 
 ## Alerts And Offline State
 
@@ -102,8 +146,11 @@ failed models fall back without blocking deterministic guidance. See
 
 - Android requests Internet, foreground coarse/fine location, and SMS-send only
   after explicit SOS confirmation.
-- There is no background location, contacts, call, camera, microphone,
-  notification, storage, or model-download permission in the implemented flow.
+- There is no background location, contacts, call, camera, microphone, or
+  model-download permission in the implemented flow. Notification permission
+  is requested only when Bluetooth SOS receiving or sharing is explicitly
+  enabled; background receiving also uses the connected-device foreground
+  service permission.
 - Exact route origin is sent to the configured backend only when the user
   requests a route. The backend does not persist or log route coordinates.
 - No action is inferred from movement, alert severity, or assistant text.

@@ -10,6 +10,8 @@ enum SosDraftStatus {
   prepared,
   smsSending,
   smsSent,
+  smsPartial,
+  smsUnknown,
   smsFailed,
   composerOpened,
   failedToOpen,
@@ -91,6 +93,9 @@ final class SosDraft {
     required this.profileName,
     required this.body,
     required this.status,
+    this.smsAttemptId,
+    this.smsConfirmedParts = 0,
+    this.smsTotalParts = 0,
   }) : selectedContactIds = List.unmodifiable(selectedContactIds),
        recipients = List.unmodifiable(recipients);
 
@@ -103,6 +108,9 @@ final class SosDraft {
   final String profileName;
   final String body;
   final SosDraftStatus status;
+  final String? smsAttemptId;
+  final int smsConfirmedParts;
+  final int smsTotalParts;
 
   bool get isActive => status != SosDraftStatus.cancelled;
 
@@ -116,6 +124,29 @@ final class SosDraft {
     profileName: profileName,
     body: body,
     status: status,
+    smsAttemptId: smsAttemptId,
+    smsConfirmedParts: smsConfirmedParts,
+    smsTotalParts: smsTotalParts,
+  );
+
+  SosDraft withSmsResult({
+    required SosDraftStatus status,
+    required String? attemptId,
+    required int confirmedParts,
+    required int totalParts,
+  }) => SosDraft(
+    id: id,
+    createdAt: createdAt,
+    selectedContactIds: selectedContactIds,
+    recipients: recipients,
+    message: message,
+    location: location,
+    profileName: profileName,
+    body: body,
+    status: status,
+    smsAttemptId: attemptId,
+    smsConfirmedParts: confirmedParts,
+    smsTotalParts: totalParts,
   );
 
   bool isEquivalentTo({
@@ -141,7 +172,10 @@ final class SosDraft {
           location == other.location &&
           profileName == other.profileName &&
           body == other.body &&
-          status == other.status;
+          status == other.status &&
+          smsAttemptId == other.smsAttemptId &&
+          smsConfirmedParts == other.smsConfirmedParts &&
+          smsTotalParts == other.smsTotalParts;
 
   @override
   int get hashCode => Object.hash(
@@ -154,6 +188,9 @@ final class SosDraft {
     profileName,
     body,
     status,
+    smsAttemptId,
+    smsConfirmedParts,
+    smsTotalParts,
   );
 }
 

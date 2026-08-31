@@ -87,6 +87,7 @@ final class AssistantController extends Notifier<AssistantState> {
   late EmergencyIntentClassifier _classifier;
   late NativeAiService _nativeAi;
   NativeAiCapabilities? _capabilities;
+  Future<void>? _capabilitiesFuture;
   Future<bool>? _gemmaInitialization;
   var _disposed = false;
 
@@ -99,15 +100,29 @@ final class AssistantController extends Notifier<AssistantState> {
       _disposed = true;
       unawaited(_cancelNativeOperation());
     });
-    unawaited(Future<void>.microtask(_loadCapabilities));
+    _capabilitiesFuture = Future<void>.microtask(_loadCapabilities);
+    unawaited(_capabilitiesFuture!);
     return AssistantState(messages: const []);
   }
 
   Future<void> send(String input) async {
     final text = _boundedQuestion(input);
     if (text.isEmpty || state.isLoading) return;
-    final dartResult = _classifier.classify(text);
     final criticalMatch = detectCriticalQuestion(text);
+    final generalChat = criticalMatch == null && isGeneralChatQuestion(text);
+    if (generalChat) {
+      await (_capabilitiesFuture ??= _loadCapabilities());
+      if (_disposed) return;
+    }
+    final dartResult = generalChat
+        ? IntentResult(
+            intent: EmergencyIntent.unknown,
+            confidence: 0,
+            explanation:
+                'General chat questions are answered by the offline assistant.',
+            matchedTerms: const [],
+          )
+        : _classifier.classify(text);
     final extraction = extractSosDraft(text);
     state = state.copyWith(
       messages: [...state.messages, AssistantMessage.user(text)],
@@ -124,7 +139,9 @@ final class AssistantController extends Notifier<AssistantState> {
             matchedTerms: [criticalMatch.term],
           );
     var responseEngine = AssistantResponseEngine.deterministic;
-    if (criticalMatch == null && dartResult.intent == EmergencyIntent.unknown) {
+    if (criticalMatch == null &&
+        !generalChat &&
+        dartResult.intent == EmergencyIntent.unknown) {
       if (_capabilities?.tier2.available == true) {
         try {
           final nativeResult = await _nativeAi.classifyIntent(text);
@@ -154,7 +171,7 @@ final class AssistantController extends Notifier<AssistantState> {
     }
     if (_disposed) return;
 
-    final articleId = _articleIds[result.intent];
+    final articleId = generalChat ? null : _articleIds[result.intent];
     EmergencyArticle? article;
     if (articleId != null) {
       try {
@@ -262,7 +279,8 @@ final class AssistantController extends Notifier<AssistantState> {
       if (rewrite.status != NativeAiStatus.success ||
           text == null ||
           text.isEmpty ||
-          text.length > _maximumRewriteCharacters) {
+          text.length > _maximumRewriteCharacters ||
+          !_isSafeGeneratedText(text)) {
         return null;
       }
       return text;
@@ -300,7 +318,8 @@ final class AssistantController extends Notifier<AssistantState> {
       if (answer.status != NativeAiStatus.success ||
           text == null ||
           text.isEmpty ||
-          text.length > _maximumRewriteCharacters) {
+          text.length > _maximumRewriteCharacters ||
+          !_isSafeGeneratedText(text)) {
         return null;
       }
       return text;
@@ -333,6 +352,14 @@ const _maximumSourceCharacters = 200;
 const _maximumRewriteCharacters = 2000;
 const _maximumContextArticles = 8;
 
+final _unsafeGeneratedTextPatterns = [
+  RegExp(r'\bguaranteed\s+(?:safe|recovery|delivery|arrival)\b'),
+  RegExp(r'\b(?:definitely|completely)\s+safe\b'),
+  RegExp(r'\b(?:i|we)\s+(?:have\s+)?diagnos(?:e|ed|is)\b'),
+  RegExp(r'\brescue\s+(?:teams|services).{0,40}\b(?:will|definitely)\b'),
+  RegExp(r'\b(?:i|we)\s+(?:have\s+)?sent\s+(?:an?\s+)?sos\b'),
+];
+
 const _unavailableCapabilities = NativeAiCapabilities(
   tier2: NativeAiCapability(
     available: false,
@@ -348,6 +375,13 @@ String _boundedQuestion(String input) {
   final text = input.trim();
   if (text.length <= _maximumQuestionCharacters) return text;
   return text.substring(0, _maximumQuestionCharacters).trimRight();
+}
+
+bool _isSafeGeneratedText(String text) {
+  final normalized = text.trim().toLowerCase();
+  return !_unsafeGeneratedTextPatterns.any(
+    (pattern) => pattern.hasMatch(normalized),
+  );
 }
 
 bool _canUseGemma(EmergencyIntent intent, AssistantReplyKind replyKind) =>

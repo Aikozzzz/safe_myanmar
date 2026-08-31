@@ -74,8 +74,11 @@ class CachedRouteResponses extends Table {
   IntColumn get originLatitudeE5 => integer().nullable()();
   IntColumn get originLongitudeE5 => integer().nullable()();
   TextColumn get shelterId => text().nullable()();
+  TextColumn get contextAreaId => text().nullable()();
   TextColumn get disasterType => text().nullable()();
   TextColumn get routeProfile => text().nullable()();
+  TextColumn get scenario => text().nullable()();
+  IntColumn get searchRadiusM => integer().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -134,7 +137,7 @@ final class AppDatabase extends _$AppDatabase {
   AppDatabase.open() : this(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -176,6 +179,20 @@ final class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await migrator.createTable(cachedContextAreaResponses);
+      }
+      if (from >= 2 && from < 6) {
+        await migrator.addColumn(
+          cachedRouteResponses,
+          cachedRouteResponses.contextAreaId,
+        );
+        await migrator.addColumn(
+          cachedRouteResponses,
+          cachedRouteResponses.scenario,
+        );
+        await migrator.addColumn(
+          cachedRouteResponses,
+          cachedRouteResponses.searchRadiusM,
+        );
       }
     },
   );

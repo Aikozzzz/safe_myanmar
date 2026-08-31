@@ -37,7 +37,12 @@ void main() {
       expect(size.height, greaterThanOrEqualTo(48));
     }
 
-    await tester.tap(find.text('Map'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Map'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Location access is off'), findsOneWidget);

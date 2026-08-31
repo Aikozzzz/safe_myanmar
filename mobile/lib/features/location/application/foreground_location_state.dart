@@ -2,6 +2,7 @@ import '../domain/foreground_location.dart';
 
 enum ForegroundLocationPhase {
   notRequested,
+  permissionExplanationRequired,
   requesting,
   preciseAvailable,
   approximateAvailable,
@@ -20,6 +21,9 @@ final class ForegroundLocationState {
 
   const ForegroundLocationState.requesting()
     : this._(ForegroundLocationPhase.requesting, null);
+
+  const ForegroundLocationState.permissionExplanationRequired()
+    : this._(ForegroundLocationPhase.permissionExplanationRequired, null);
 
   const ForegroundLocationState.denied()
     : this._(ForegroundLocationPhase.denied, null);

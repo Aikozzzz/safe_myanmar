@@ -8,6 +8,7 @@ import '../data/native_sms_sender.dart';
 import '../data/secure_sos_draft_repository.dart';
 import '../data/sos_sim_preference.dart';
 import '../data/sos_ble_platform.dart';
+import '../data/sos_ble_sender_identity.dart';
 import '../domain/sos_ble.dart';
 import '../domain/sos_draft_repository.dart';
 import 'sos_ble_controller.dart';
@@ -37,6 +38,10 @@ final sosBlePlatformProvider = Provider<SosBlePlatformService>(
 
 final sosBlePayloadCodecProvider = Provider<SosBlePayloadCodec>(
   (_) => const SosBlePayloadCodec(),
+);
+
+final sosBleSenderIdentityStoreProvider = Provider<SosBleSenderIdentitySource>(
+  (ref) => SosBleSenderIdentityStore(ref.watch(secureStorageDriverProvider)),
 );
 
 final sosBleControllerProvider =

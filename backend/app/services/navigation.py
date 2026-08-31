@@ -308,12 +308,14 @@ class NavigationService:
         clock: Callable[[], datetime] | None = None,
         real_data: YangonNavigationData | None = None,
         context_analyzer: RealContextAnalyzer | None = None,
+        simulation_analysis_enabled: bool = False,
     ) -> None:
         self._simulation_enabled = simulation_enabled
         self._directions = directions_provider
         self._clock = clock or (lambda: datetime.now(UTC))
         self._real_data = real_data
         self._context_analyzer = context_analyzer
+        self._simulation_analysis_enabled = simulation_analysis_enabled
 
     def list_shelters(self) -> ShelterListResponse:
         if self._real_data is not None:
@@ -340,11 +342,26 @@ class NavigationService:
     ) -> ContextAreaListResponse:
         if self._real_data is not None:
             if self._context_analyzer is not None:
+                hazards = self._real_data.hazards
+                source = self._real_data.source
+                uncertainty_notice = self._real_data.uncertainty_notice
+                simulation_data_included = False
+                if self._simulation_analysis_enabled:
+                    hazards = (*hazards, *HAZARDS)
+                    source += "; SafeMyanmar Demo simulation analysis data"
+                    uncertainty_notice += (
+                        " Simulation hazard geometry is included for backend analysis "
+                        "only and is not returned by the hazard list. The collected "
+                        "and fictional sources are intentionally labeled separately."
+                    )
+                    simulation_data_included = True
                 return self._context_analyzer.find_context_areas(
                     request,
-                    self._real_data.hazards,
-                    source=self._real_data.source,
-                    uncertainty_notice=self._real_data.uncertainty_notice,
+                    hazards,
+                    source=source,
+                    uncertainty_notice=uncertainty_notice,
+                    simulation_data_included=simulation_data_included,
+                    source_data_at=self._real_data.retrieved_at,
                 )
             return ContextAreaListResponse(
                 items=[],

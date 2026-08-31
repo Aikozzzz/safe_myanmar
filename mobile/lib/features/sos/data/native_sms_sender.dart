@@ -1,6 +1,13 @@
 import 'package:flutter/services.dart';
 
-enum NativeSmsSendStatus { sent, permissionDenied, unavailable, failed }
+enum NativeSmsSendStatus {
+  sent,
+  partial,
+  unknown,
+  permissionDenied,
+  unavailable,
+  failed,
+}
 
 final class SmsSim {
   const SmsSim({
@@ -17,11 +24,21 @@ final class SmsSim {
 }
 
 final class NativeSmsSendResult {
-  const NativeSmsSendResult(this.status);
+  const NativeSmsSendResult(
+    this.status, {
+    this.attemptId,
+    this.confirmedParts = 0,
+    this.totalParts = 0,
+  });
 
   final NativeSmsSendStatus status;
+  final String? attemptId;
+  final int confirmedParts;
+  final int totalParts;
 
-  bool get acceptedByDevice => status == NativeSmsSendStatus.sent;
+  bool get acceptedByDevice =>
+      status == NativeSmsSendStatus.sent ||
+      status == NativeSmsSendStatus.partial;
 }
 
 abstract interface class NativeSmsSender {
@@ -110,12 +127,21 @@ final class MethodChannelNativeSmsSender implements NativeSmsSender {
           'subscription_id': subscriptionId,
         },
       );
-      return NativeSmsSendResult(switch (response?['status']) {
-        'sent' => NativeSmsSendStatus.sent,
-        'permission_denied' => NativeSmsSendStatus.permissionDenied,
-        'unavailable' => NativeSmsSendStatus.unavailable,
-        _ => NativeSmsSendStatus.failed,
-      });
+      final confirmedParts = response?['confirmed_parts'];
+      final totalParts = response?['total_parts'];
+      return NativeSmsSendResult(
+        switch (response?['status']) {
+          'sent' => NativeSmsSendStatus.sent,
+          'partial' => NativeSmsSendStatus.partial,
+          'unknown' => NativeSmsSendStatus.unknown,
+          'permission_denied' => NativeSmsSendStatus.permissionDenied,
+          'unavailable' => NativeSmsSendStatus.unavailable,
+          _ => NativeSmsSendStatus.failed,
+        },
+        attemptId: response?['attempt_id'] as String?,
+        confirmedParts: confirmedParts is int ? confirmedParts : 0,
+        totalParts: totalParts is int ? totalParts : 0,
+      );
     } on MissingPluginException {
       return const NativeSmsSendResult(NativeSmsSendStatus.unavailable);
     } on PlatformException catch (error) {

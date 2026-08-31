@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from app.api.health import get_readiness_checker
+from app.api.health import NavigationDataNotReady, get_readiness_checker
 
 
 class ReadyChecker:
@@ -14,6 +14,11 @@ class UnavailableChecker:
         raise RuntimeError(
             "could not connect to postgresql://admin:secret@database/internal"
         )
+
+
+class MissingNavigationDataChecker:
+    def check(self) -> None:
+        raise NavigationDataNotReady("navigation_data_missing")
 
 
 def test_liveness_returns_ok(client):
@@ -59,6 +64,18 @@ def test_readiness_uses_safe_error_when_database_is_unavailable(app, client):
     assert "admin" not in response.text
     assert "secret" not in response.text
     assert "could not connect" not in response.text
+
+
+def test_readiness_exposes_missing_navigation_data_safely(app, client):
+    app.dependency_overrides[get_readiness_checker] = lambda: (
+        MissingNavigationDataChecker()
+    )
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "navigation_data_missing"
+    assert "snapshot is missing" in response.json()["error"]["message"]
 
 
 def test_unexpected_error_uses_consistent_request_id_in_body_and_header(app):

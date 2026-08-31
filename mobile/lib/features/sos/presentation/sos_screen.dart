@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../location/application/foreground_location_state.dart';
@@ -28,6 +31,7 @@ class SosScreen extends ConsumerStatefulWidget {
 class _SosScreenState extends ConsumerState<SosScreen> {
   final _messageController = TextEditingController();
   var _shareNearbySos = false;
+  var _includeLocation = false;
   var _sendingSms = false;
 
   @override
@@ -47,7 +51,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
     final selectedContacts =
         profile?.contacts.where((contact) => contact.selectedForSos).toList() ??
         const <EmergencyContact>[];
-    final location = _snapshotLocation(locationState);
+    final location = _includeLocation ? _snapshotLocation(locationState) : null;
     final message = _messageController.text.trim();
     final body = buildSosMessage(
       strings: strings,
@@ -59,16 +63,35 @@ class _SosScreenState extends ConsumerState<SosScreen> {
         profile != null &&
         (selectedContacts.isNotEmpty || _shareNearbySos) &&
         !queueState.isBusy;
+    final bleSharingReady = !_shareNearbySos || bleState.supported != false;
+    final readinessReady =
+        canPrepare &&
+        bleSharingReady &&
+        (!_includeLocation || location != null);
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.sosTitle)),
+      appBar: AppBar(title: Text(strings.sosSetupTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              strings.sosIntroduction,
+              strings.sosSetupDescription,
               style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 16),
+            _ReadinessSummary(
+              setupTitle: strings.sosSetupTitle,
+              readyTitle: strings.sosReadinessReady,
+              needsContactTitle: strings.sosReadinessNeedsContact,
+              locationUnavailableTitle: strings.sosReadinessLocationUnavailable,
+              hasRecipients: selectedContacts.isNotEmpty,
+              nearbySharingEnabled: _shareNearbySos,
+              locationSharingEnabled: _includeLocation,
+              locationAvailable: location != null,
+              bleAvailable: bleState.supported != false,
+              queueBusy: queueState.isBusy,
+              ready: readinessReady,
             ),
             const SizedBox(height: 16),
             if (queueState.errorKind != null) ...[
@@ -98,14 +121,16 @@ class _SosScreenState extends ConsumerState<SosScreen> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 8),
-            _SharedDataPreview(
-              profile: profile,
-              location: location,
-              body: body,
+            Card(
+              child: SwitchListTile(
+                value: _includeLocation,
+                onChanged: (value) => unawaited(_setLocationSharing(value)),
+                title: Text(strings.sosLocationSharingTitle),
+                subtitle: Text(strings.sosLocationSharingDescription),
+                secondary: const Icon(Icons.location_on_outlined),
+              ),
             ),
-            const SizedBox(height: 16),
-            _DisclosureCard(description: strings.sosDirectSmsDisclosure),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             _NearbySosCard(
               sharingEnabled: _shareNearbySos,
               onSharingChanged: (value) =>
@@ -114,6 +139,10 @@ class _SosScreenState extends ConsumerState<SosScreen> {
               onListeningChanged: (value) => ref
                   .read(sosBleControllerProvider.notifier)
                   .setListening(value),
+              onOpenAppSettings: () => unawaited(_openSosAppSettings()),
+              onRelayChanged: (value) => ref
+                  .read(sosBleControllerProvider.notifier)
+                  .setRelayEnabled(value),
               onSoundChanged: (value) => ref
                   .read(sosBleControllerProvider.notifier)
                   .setSoundEnabled(value),
@@ -123,6 +152,21 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                   .read(sosBleControllerProvider.notifier)
                   .dismissNearbyEvent(eventId),
             ),
+            const SizedBox(height: 16),
+            _BackgroundSosReceiverCard(
+              state: bleState,
+              onChanged: (value) => ref
+                  .read(sosBleControllerProvider.notifier)
+                  .setBackgroundListening(value),
+            ),
+            const SizedBox(height: 16),
+            _SharedDataPreview(
+              profile: profile,
+              location: location,
+              body: body,
+            ),
+            const SizedBox(height: 16),
+            _DisclosureCard(description: strings.sosDirectSmsDisclosure),
             const SizedBox(height: 16),
             HoldToConfirm(
               enabled: canPrepare,
@@ -219,9 +263,20 @@ class _SosScreenState extends ConsumerState<SosScreen> {
         .where((contact) => contact.selectedForSos)
         .toList();
     if (contacts.isEmpty && !_shareNearbySos) return;
-    final location = _snapshotLocation(
-      ref.read(foregroundLocationControllerProvider),
-    );
+    SosLocationSnapshot? location;
+    if (_includeLocation) {
+      await ref
+          .read(foregroundLocationControllerProvider.notifier)
+          .requestLocation(confirmed: true);
+      if (!mounted) return;
+      location = _snapshotLocation(
+        ref.read(foregroundLocationControllerProvider),
+      );
+      if (location == null) {
+        setState(() => _includeLocation = false);
+        if (!await _confirmContinueWithoutLocation(strings)) return;
+      }
+    }
     final body = buildSosMessage(
       strings: strings,
       profileName: profile.displayName,
@@ -257,6 +312,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
       );
       return;
     }
+    setState(() => _includeLocation = false);
     if (_shareNearbySos) {
       await ref
           .read(sosBleControllerProvider.notifier)
@@ -275,6 +331,47 @@ class _SosScreenState extends ConsumerState<SosScreen> {
     }
   }
 
+  Future<void> _setLocationSharing(bool enabled) async {
+    if (!enabled) {
+      if (mounted) setState(() => _includeLocation = false);
+      return;
+    }
+    await ref
+        .read(foregroundLocationControllerProvider.notifier)
+        .requestLocation(confirmed: true);
+    if (!mounted) return;
+    final location = _snapshotLocation(
+      ref.read(foregroundLocationControllerProvider),
+    );
+    if (location == null) {
+      setState(() => _includeLocation = false);
+      _showNotice(AppLocalizations.of(context)!.sosLocationSharingUnavailable);
+      return;
+    }
+    setState(() => _includeLocation = true);
+  }
+
+  Future<bool> _confirmContinueWithoutLocation(AppLocalizations strings) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.sosLocationSharingUnavailableTitle),
+        content: Text(strings.sosLocationSharingUnavailableDescription),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(strings.sosContinueWithoutLocation),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
   Future<void> _sendDraft(SosDraft draft) async {
     if (_sendingSms) return;
     _sendingSms = true;
@@ -283,10 +380,22 @@ class _SosScreenState extends ConsumerState<SosScreen> {
       final sim = await _chooseSim();
       if (sim == null) return;
       final queue = ref.read(sosDraftQueueControllerProvider.notifier);
-      await queue.setStatus(draft.id, SosDraftStatus.smsSending);
+      await queue.setSmsResult(
+        draft.id,
+        status: SosDraftStatus.smsSending,
+        attemptId: null,
+        confirmedParts: 0,
+        totalParts: 0,
+      );
       final sender = ref.read(nativeSmsSenderProvider);
       if (!await sender.requestPermission()) {
-        await queue.setStatus(draft.id, SosDraftStatus.smsFailed);
+        await queue.setSmsResult(
+          draft.id,
+          status: SosDraftStatus.smsFailed,
+          attemptId: null,
+          confirmedParts: 0,
+          totalParts: 0,
+        );
         if (mounted) _showNotice(strings.sosSmsPermissionDenied);
         return;
       }
@@ -297,16 +406,28 @@ class _SosScreenState extends ConsumerState<SosScreen> {
         body: draft.body,
         subscriptionId: sim.subscriptionId,
       );
-      await queue.setStatus(
+      final draftStatus = switch (result.status) {
+        NativeSmsSendStatus.sent => SosDraftStatus.smsSent,
+        NativeSmsSendStatus.partial => SosDraftStatus.smsPartial,
+        NativeSmsSendStatus.unknown => SosDraftStatus.smsUnknown,
+        NativeSmsSendStatus.permissionDenied ||
+        NativeSmsSendStatus.unavailable ||
+        NativeSmsSendStatus.failed => SosDraftStatus.smsFailed,
+      };
+      await queue.setSmsResult(
         draft.id,
-        result.acceptedByDevice
-            ? SosDraftStatus.smsSent
-            : SosDraftStatus.smsFailed,
+        status: draftStatus,
+        attemptId: result.attemptId,
+        confirmedParts: result.confirmedParts,
+        totalParts: result.totalParts,
       );
       if (!mounted) return;
       _showNotice(
-        result.acceptedByDevice
+        result.status == NativeSmsSendStatus.sent
             ? strings.sosSmsSentNotice
+            : result.status == NativeSmsSendStatus.partial ||
+                  result.status == NativeSmsSendStatus.unknown
+            ? strings.sosSmsUncertainNotice
             : strings.sosSmsFailedNotice,
       );
     } finally {
@@ -409,7 +530,13 @@ class _SosScreenState extends ConsumerState<SosScreen> {
     final strings = AppLocalizations.of(context)!;
     final confirmed = await _confirmationDialog(
       title: strings.sosRetrySmsTitle,
-      description: '${strings.sosRetrySmsDescription}\n\n${draft.body}',
+      description: [
+        strings.sosRetrySmsDescription,
+        if (draft.status == SosDraftStatus.smsPartial ||
+            draft.status == SosDraftStatus.smsUnknown)
+          strings.sosRetrySmsUncertainDescription,
+        draft.body,
+      ].join('\n\n'),
       confirmLabel: strings.sosSendSms,
     );
     if (confirmed && mounted) {
@@ -497,6 +624,13 @@ class _SosScreenState extends ConsumerState<SosScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
   }
+
+  Future<void> _openSosAppSettings() async {
+    final opened = await ref.read(sosBlePlatformProvider).openAppSettings();
+    if (!opened && mounted) {
+      _showNotice(AppLocalizations.of(context)!.sosBluetoothPermissionSettings);
+    }
+  }
 }
 
 final class _SmsSimSelection {
@@ -559,6 +693,106 @@ class _RecipientsCard extends StatelessWidget {
               label: Text(strings.sosManageContacts),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadinessSummary extends StatelessWidget {
+  const _ReadinessSummary({
+    required this.setupTitle,
+    required this.readyTitle,
+    required this.needsContactTitle,
+    required this.locationUnavailableTitle,
+    required this.hasRecipients,
+    required this.nearbySharingEnabled,
+    required this.locationSharingEnabled,
+    required this.locationAvailable,
+    required this.bleAvailable,
+    required this.queueBusy,
+    required this.ready,
+  });
+
+  final String setupTitle;
+  final String readyTitle;
+  final String needsContactTitle;
+  final String locationUnavailableTitle;
+  final bool hasRecipients;
+  final bool nearbySharingEnabled;
+  final bool locationSharingEnabled;
+  final bool locationAvailable;
+  final bool bleAvailable;
+  final bool queueBusy;
+  final bool ready;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    late final IconData icon;
+    late final String title;
+    late final String description;
+
+    if (queueBusy) {
+      icon = Icons.hourglass_top_outlined;
+      title = strings.sosQueueLoading;
+      description = strings.sosDraftCreatedWhenConfirmed;
+    } else if (!hasRecipients && !nearbySharingEnabled) {
+      icon = Icons.person_search_outlined;
+      title = needsContactTitle;
+      description = strings.sosNoRecipientsDescription;
+    } else if (locationSharingEnabled && !locationAvailable) {
+      icon = Icons.location_off_outlined;
+      title = locationUnavailableTitle;
+      description = strings.sosLocationSharingUnavailableDescription;
+    } else if (nearbySharingEnabled && !bleAvailable) {
+      icon = Icons.bluetooth_disabled_outlined;
+      title = strings.sosBluetoothUnavailable;
+      description = strings.sosBluetoothOperationFailed;
+    } else if (ready) {
+      icon = Icons.check_circle_outline;
+      title = readyTitle;
+      description = strings.sosHoldToOpen;
+    } else {
+      icon = Icons.info_outline;
+      title = needsContactTitle;
+      description = strings.sosNoRecipientsDescription;
+    }
+
+    final colors = Theme.of(context).colorScheme;
+    final displayTitle = '$setupTitle: $title';
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: '$displayTitle $description',
+      child: Card(
+        key: const Key('sos-readiness-summary'),
+        color: ready ? colors.primaryContainer : colors.surfaceContainerHighest,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                icon,
+                color: ready ? colors.primary : colors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(description),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -634,12 +868,53 @@ class _DisclosureCard extends StatelessWidget {
   );
 }
 
+class _BackgroundSosReceiverCard extends StatelessWidget {
+  const _BackgroundSosReceiverCard({
+    required this.state,
+    required this.onChanged,
+  });
+
+  final SosBleState state;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: state.backgroundListening,
+              onChanged: state.supported == true ? onChanged : null,
+              title: Text(strings.sosBluetoothBackgroundReceiveTitle),
+              subtitle: Text(strings.sosBluetoothBackgroundReceiveDescription),
+              secondary: const Icon(Icons.notifications_none_outlined),
+            ),
+            if (state.error == 'background_scan_failed') ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(strings.sosBluetoothOperationFailed),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _NearbySosCard extends StatelessWidget {
   const _NearbySosCard({
     required this.sharingEnabled,
     required this.onSharingChanged,
     required this.state,
     required this.onListeningChanged,
+    required this.onOpenAppSettings,
+    required this.onRelayChanged,
     required this.onSoundChanged,
     required this.onStopBroadcast,
     required this.onDismissEvent,
@@ -649,6 +924,8 @@ class _NearbySosCard extends StatelessWidget {
   final ValueChanged<bool> onSharingChanged;
   final SosBleState state;
   final ValueChanged<bool> onListeningChanged;
+  final VoidCallback onOpenAppSettings;
+  final ValueChanged<bool> onRelayChanged;
   final ValueChanged<bool> onSoundChanged;
   final VoidCallback onStopBroadcast;
   final ValueChanged<String> onDismissEvent;
@@ -686,6 +963,21 @@ class _NearbySosCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(strings.sosBluetoothPermissionRequired),
             ],
+            if (state.error == 'bluetooth_disabled') ...[
+              const SizedBox(height: 8),
+              Text(strings.sosBluetoothDisabled),
+            ],
+            if (state.error == 'permission_denied' ||
+                state.error == 'notification_denied' ||
+                state.error == 'bluetooth_disabled')
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onOpenAppSettings,
+                  icon: const Icon(Icons.settings_outlined),
+                  label: Text(strings.openAppSettings),
+                ),
+              ),
             if (state.error == 'scan_failed' ||
                 state.error == 'broadcast_failed' ||
                 state.error == 'broadcast_timeout' ||
@@ -704,6 +996,19 @@ class _NearbySosCard extends StatelessWidget {
               subtitle: Text(strings.sosBluetoothReceiveDescription),
               secondary: const Icon(Icons.notifications_active_outlined),
             ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: state.relayEnabled,
+              onChanged: state.supported == true ? onRelayChanged : null,
+              title: Text(strings.sosBluetoothRelayTitle),
+              subtitle: Text(strings.sosBluetoothRelayDescription),
+              secondary: const Icon(Icons.repeat),
+            ),
+            if (state.relayCount > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(strings.sosBluetoothRelayCount(state.relayCount)),
+              ),
             if (state.listening)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
@@ -728,6 +1033,24 @@ class _NearbySosCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (state.activeEvent case final event?) ...[
+                const SizedBox(height: 8),
+                Text(
+                  strings.sosBluetoothBroadcastFrameDetails,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(_eventDescription(context, strings, event, peer: false)),
+                if (sosBleGoogleMapsUrl(event) case final url?)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => _openMaps(url),
+                      icon: const Icon(Icons.open_in_new),
+                      label: Text(strings.sosBluetoothOpenMaps),
+                    ),
+                  ),
+              ],
             ],
             for (final event in state.nearbyEvents) ...[
               const SizedBox(height: 8),
@@ -735,15 +1058,35 @@ class _NearbySosCard extends StatelessWidget {
                 liveRegion: true,
                 child: Card(
                   color: Theme.of(context).colorScheme.errorContainer,
-                  child: ListTile(
-                    leading: const Icon(Icons.warning_amber_outlined),
-                    title: Text(strings.sosBluetoothNearbyAlert),
-                    subtitle: Text(_eventDescription(strings, event)),
-                    trailing: IconButton(
-                      tooltip: strings.sosBluetoothDismiss,
-                      onPressed: () => onDismissEvent(event.eventId),
-                      icon: const Icon(Icons.close),
-                    ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.warning_amber_outlined),
+                        title: Text(strings.sosBluetoothNearbyAlert),
+                        subtitle: Text(
+                          _eventDescription(
+                            context,
+                            strings,
+                            event,
+                            peer: true,
+                          ),
+                        ),
+                        trailing: IconButton(
+                          tooltip: strings.sosBluetoothDismiss,
+                          onPressed: () => onDismissEvent(event.eventId),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                      if (sosBleGoogleMapsUrl(event) case final url?)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () => _openMaps(url),
+                            icon: const Icon(Icons.open_in_new),
+                            label: Text(strings.sosBluetoothOpenMaps),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -754,11 +1097,16 @@ class _NearbySosCard extends StatelessWidget {
     );
   }
 
-  String _eventDescription(AppLocalizations strings, SosBleEvent event) {
+  String _eventDescription(
+    BuildContext context,
+    AppLocalizations strings,
+    SosBleEvent event, {
+    required bool peer,
+  }) {
     final location = event.hasLocation
         ? strings.sosBluetoothGridLocation(
-            event.latitude!.toStringAsFixed(2),
-            event.longitude!.toStringAsFixed(2),
+            event.latitude!.toStringAsFixed(6),
+            event.longitude!.toStringAsFixed(6),
           )
         : strings.sosBluetoothLocationUnavailable;
     final status = switch (event.locationStatus) {
@@ -767,7 +1115,32 @@ class _NearbySosCard extends StatelessWidget {
       SosBleLocationStatus.unavailable =>
         strings.sosBluetoothLocationUnavailable,
     };
-    return '${strings.sosBluetoothUnverified}\n$location. $status';
+    final battery = event.batteryPercent == null
+        ? strings.sosBluetoothUnknownValue
+        : strings.sosBluetoothBatteryValue(event.batteryPercent!);
+    final signal = event.rssi == null
+        ? strings.sosBluetoothUnknownValue
+        : strings.sosBluetoothRssiValue(event.rssi!);
+    return [
+      if (peer) strings.sosBluetoothUnverified,
+      location,
+      status,
+      strings.sosBluetoothEventId(event.eventId),
+      strings.sosBluetoothTimestamp(
+        _formatUtc(context, strings, event.createdAt),
+      ),
+      battery,
+      signal,
+      strings.sosBluetoothProtocol(event.protocolVersion, event.ttlMinutes),
+      strings.sosBluetoothRelayHops(event.hopCount),
+      if (sosBleGoogleMapsUrl(event) case final url?)
+        strings.sosBluetoothMapsLink(url),
+      strings.sosBluetoothApproximateNotice,
+    ].join('\n');
+  }
+
+  Future<void> _openMaps(String url) async {
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 }
 
@@ -793,6 +1166,8 @@ class _DraftCard extends StatelessWidget {
       SosDraftStatus.prepared => strings.sosStatusPrepared,
       SosDraftStatus.smsSending => strings.sosStatusSmsSending,
       SosDraftStatus.smsSent => strings.sosStatusSmsSent,
+      SosDraftStatus.smsPartial => strings.sosStatusSmsPartial,
+      SosDraftStatus.smsUnknown => strings.sosStatusSmsUnknown,
       SosDraftStatus.smsFailed => strings.sosStatusSmsFailed,
       SosDraftStatus.composerOpened => strings.sosStatusComposerOpened,
       SosDraftStatus.failedToOpen => strings.sosStatusFailedToOpen,
@@ -837,6 +1212,11 @@ class _DraftCard extends StatelessWidget {
             if (draft.status == SosDraftStatus.smsFailed) ...[
               const SizedBox(height: 8),
               Text(strings.sosSmsFailedNotice),
+            ],
+            if (draft.status == SosDraftStatus.smsPartial ||
+                draft.status == SosDraftStatus.smsUnknown) ...[
+              const SizedBox(height: 8),
+              Text(strings.sosSmsUncertainNotice),
             ],
             const SizedBox(height: 12),
             Wrap(

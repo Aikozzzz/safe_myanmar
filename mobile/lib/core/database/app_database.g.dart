@@ -1938,6 +1938,17 @@ class $CachedRouteResponsesTable extends CachedRouteResponses
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _contextAreaIdMeta = const VerificationMeta(
+    'contextAreaId',
+  );
+  @override
+  late final GeneratedColumn<String> contextAreaId = GeneratedColumn<String>(
+    'context_area_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _disasterTypeMeta = const VerificationMeta(
     'disasterType',
   );
@@ -1960,6 +1971,28 @@ class $CachedRouteResponsesTable extends CachedRouteResponses
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _scenarioMeta = const VerificationMeta(
+    'scenario',
+  );
+  @override
+  late final GeneratedColumn<String> scenario = GeneratedColumn<String>(
+    'scenario',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _searchRadiusMMeta = const VerificationMeta(
+    'searchRadiusM',
+  );
+  @override
+  late final GeneratedColumn<int> searchRadiusM = GeneratedColumn<int>(
+    'search_radius_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1969,8 +2002,11 @@ class $CachedRouteResponsesTable extends CachedRouteResponses
     originLatitudeE5,
     originLongitudeE5,
     shelterId,
+    contextAreaId,
     disasterType,
     routeProfile,
+    scenario,
+    searchRadiusM,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2038,6 +2074,15 @@ class $CachedRouteResponsesTable extends CachedRouteResponses
         shelterId.isAcceptableOrUnknown(data['shelter_id']!, _shelterIdMeta),
       );
     }
+    if (data.containsKey('context_area_id')) {
+      context.handle(
+        _contextAreaIdMeta,
+        contextAreaId.isAcceptableOrUnknown(
+          data['context_area_id']!,
+          _contextAreaIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('disaster_type')) {
       context.handle(
         _disasterTypeMeta,
@@ -2053,6 +2098,21 @@ class $CachedRouteResponsesTable extends CachedRouteResponses
         routeProfile.isAcceptableOrUnknown(
           data['route_profile']!,
           _routeProfileMeta,
+        ),
+      );
+    }
+    if (data.containsKey('scenario')) {
+      context.handle(
+        _scenarioMeta,
+        scenario.isAcceptableOrUnknown(data['scenario']!, _scenarioMeta),
+      );
+    }
+    if (data.containsKey('search_radius_m')) {
+      context.handle(
+        _searchRadiusMMeta,
+        searchRadiusM.isAcceptableOrUnknown(
+          data['search_radius_m']!,
+          _searchRadiusMMeta,
         ),
       );
     }
@@ -2093,6 +2153,10 @@ class $CachedRouteResponsesTable extends CachedRouteResponses
         DriftSqlType.string,
         data['${effectivePrefix}shelter_id'],
       ),
+      contextAreaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}context_area_id'],
+      ),
       disasterType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}disaster_type'],
@@ -2100,6 +2164,14 @@ class $CachedRouteResponsesTable extends CachedRouteResponses
       routeProfile: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}route_profile'],
+      ),
+      scenario: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scenario'],
+      ),
+      searchRadiusM: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}search_radius_m'],
       ),
     );
   }
@@ -2119,8 +2191,11 @@ class CachedRouteResponse extends DataClass
   final int? originLatitudeE5;
   final int? originLongitudeE5;
   final String? shelterId;
+  final String? contextAreaId;
   final String? disasterType;
   final String? routeProfile;
+  final String? scenario;
+  final int? searchRadiusM;
   const CachedRouteResponse({
     required this.id,
     required this.payload,
@@ -2129,8 +2204,11 @@ class CachedRouteResponse extends DataClass
     this.originLatitudeE5,
     this.originLongitudeE5,
     this.shelterId,
+    this.contextAreaId,
     this.disasterType,
     this.routeProfile,
+    this.scenario,
+    this.searchRadiusM,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2148,11 +2226,20 @@ class CachedRouteResponse extends DataClass
     if (!nullToAbsent || shelterId != null) {
       map['shelter_id'] = Variable<String>(shelterId);
     }
+    if (!nullToAbsent || contextAreaId != null) {
+      map['context_area_id'] = Variable<String>(contextAreaId);
+    }
     if (!nullToAbsent || disasterType != null) {
       map['disaster_type'] = Variable<String>(disasterType);
     }
     if (!nullToAbsent || routeProfile != null) {
       map['route_profile'] = Variable<String>(routeProfile);
+    }
+    if (!nullToAbsent || scenario != null) {
+      map['scenario'] = Variable<String>(scenario);
+    }
+    if (!nullToAbsent || searchRadiusM != null) {
+      map['search_radius_m'] = Variable<int>(searchRadiusM);
     }
     return map;
   }
@@ -2172,12 +2259,21 @@ class CachedRouteResponse extends DataClass
       shelterId: shelterId == null && nullToAbsent
           ? const Value.absent()
           : Value(shelterId),
+      contextAreaId: contextAreaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contextAreaId),
       disasterType: disasterType == null && nullToAbsent
           ? const Value.absent()
           : Value(disasterType),
       routeProfile: routeProfile == null && nullToAbsent
           ? const Value.absent()
           : Value(routeProfile),
+      scenario: scenario == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scenario),
+      searchRadiusM: searchRadiusM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(searchRadiusM),
     );
   }
 
@@ -2194,8 +2290,11 @@ class CachedRouteResponse extends DataClass
       originLatitudeE5: serializer.fromJson<int?>(json['originLatitudeE5']),
       originLongitudeE5: serializer.fromJson<int?>(json['originLongitudeE5']),
       shelterId: serializer.fromJson<String?>(json['shelterId']),
+      contextAreaId: serializer.fromJson<String?>(json['contextAreaId']),
       disasterType: serializer.fromJson<String?>(json['disasterType']),
       routeProfile: serializer.fromJson<String?>(json['routeProfile']),
+      scenario: serializer.fromJson<String?>(json['scenario']),
+      searchRadiusM: serializer.fromJson<int?>(json['searchRadiusM']),
     );
   }
   @override
@@ -2209,8 +2308,11 @@ class CachedRouteResponse extends DataClass
       'originLatitudeE5': serializer.toJson<int?>(originLatitudeE5),
       'originLongitudeE5': serializer.toJson<int?>(originLongitudeE5),
       'shelterId': serializer.toJson<String?>(shelterId),
+      'contextAreaId': serializer.toJson<String?>(contextAreaId),
       'disasterType': serializer.toJson<String?>(disasterType),
       'routeProfile': serializer.toJson<String?>(routeProfile),
+      'scenario': serializer.toJson<String?>(scenario),
+      'searchRadiusM': serializer.toJson<int?>(searchRadiusM),
     };
   }
 
@@ -2222,8 +2324,11 @@ class CachedRouteResponse extends DataClass
     Value<int?> originLatitudeE5 = const Value.absent(),
     Value<int?> originLongitudeE5 = const Value.absent(),
     Value<String?> shelterId = const Value.absent(),
+    Value<String?> contextAreaId = const Value.absent(),
     Value<String?> disasterType = const Value.absent(),
     Value<String?> routeProfile = const Value.absent(),
+    Value<String?> scenario = const Value.absent(),
+    Value<int?> searchRadiusM = const Value.absent(),
   }) => CachedRouteResponse(
     id: id ?? this.id,
     payload: payload ?? this.payload,
@@ -2236,8 +2341,15 @@ class CachedRouteResponse extends DataClass
         ? originLongitudeE5.value
         : this.originLongitudeE5,
     shelterId: shelterId.present ? shelterId.value : this.shelterId,
+    contextAreaId: contextAreaId.present
+        ? contextAreaId.value
+        : this.contextAreaId,
     disasterType: disasterType.present ? disasterType.value : this.disasterType,
     routeProfile: routeProfile.present ? routeProfile.value : this.routeProfile,
+    scenario: scenario.present ? scenario.value : this.scenario,
+    searchRadiusM: searchRadiusM.present
+        ? searchRadiusM.value
+        : this.searchRadiusM,
   );
   CachedRouteResponse copyWithCompanion(CachedRouteResponsesCompanion data) {
     return CachedRouteResponse(
@@ -2254,12 +2366,19 @@ class CachedRouteResponse extends DataClass
           ? data.originLongitudeE5.value
           : this.originLongitudeE5,
       shelterId: data.shelterId.present ? data.shelterId.value : this.shelterId,
+      contextAreaId: data.contextAreaId.present
+          ? data.contextAreaId.value
+          : this.contextAreaId,
       disasterType: data.disasterType.present
           ? data.disasterType.value
           : this.disasterType,
       routeProfile: data.routeProfile.present
           ? data.routeProfile.value
           : this.routeProfile,
+      scenario: data.scenario.present ? data.scenario.value : this.scenario,
+      searchRadiusM: data.searchRadiusM.present
+          ? data.searchRadiusM.value
+          : this.searchRadiusM,
     );
   }
 
@@ -2273,8 +2392,11 @@ class CachedRouteResponse extends DataClass
           ..write('originLatitudeE5: $originLatitudeE5, ')
           ..write('originLongitudeE5: $originLongitudeE5, ')
           ..write('shelterId: $shelterId, ')
+          ..write('contextAreaId: $contextAreaId, ')
           ..write('disasterType: $disasterType, ')
-          ..write('routeProfile: $routeProfile')
+          ..write('routeProfile: $routeProfile, ')
+          ..write('scenario: $scenario, ')
+          ..write('searchRadiusM: $searchRadiusM')
           ..write(')'))
         .toString();
   }
@@ -2288,8 +2410,11 @@ class CachedRouteResponse extends DataClass
     originLatitudeE5,
     originLongitudeE5,
     shelterId,
+    contextAreaId,
     disasterType,
     routeProfile,
+    scenario,
+    searchRadiusM,
   );
   @override
   bool operator ==(Object other) =>
@@ -2302,8 +2427,11 @@ class CachedRouteResponse extends DataClass
           other.originLatitudeE5 == this.originLatitudeE5 &&
           other.originLongitudeE5 == this.originLongitudeE5 &&
           other.shelterId == this.shelterId &&
+          other.contextAreaId == this.contextAreaId &&
           other.disasterType == this.disasterType &&
-          other.routeProfile == this.routeProfile);
+          other.routeProfile == this.routeProfile &&
+          other.scenario == this.scenario &&
+          other.searchRadiusM == this.searchRadiusM);
 }
 
 class CachedRouteResponsesCompanion
@@ -2315,8 +2443,11 @@ class CachedRouteResponsesCompanion
   final Value<int?> originLatitudeE5;
   final Value<int?> originLongitudeE5;
   final Value<String?> shelterId;
+  final Value<String?> contextAreaId;
   final Value<String?> disasterType;
   final Value<String?> routeProfile;
+  final Value<String?> scenario;
+  final Value<int?> searchRadiusM;
   const CachedRouteResponsesCompanion({
     this.id = const Value.absent(),
     this.payload = const Value.absent(),
@@ -2325,8 +2456,11 @@ class CachedRouteResponsesCompanion
     this.originLatitudeE5 = const Value.absent(),
     this.originLongitudeE5 = const Value.absent(),
     this.shelterId = const Value.absent(),
+    this.contextAreaId = const Value.absent(),
     this.disasterType = const Value.absent(),
     this.routeProfile = const Value.absent(),
+    this.scenario = const Value.absent(),
+    this.searchRadiusM = const Value.absent(),
   });
   CachedRouteResponsesCompanion.insert({
     this.id = const Value.absent(),
@@ -2336,8 +2470,11 @@ class CachedRouteResponsesCompanion
     this.originLatitudeE5 = const Value.absent(),
     this.originLongitudeE5 = const Value.absent(),
     this.shelterId = const Value.absent(),
+    this.contextAreaId = const Value.absent(),
     this.disasterType = const Value.absent(),
     this.routeProfile = const Value.absent(),
+    this.scenario = const Value.absent(),
+    this.searchRadiusM = const Value.absent(),
   }) : payload = Value(payload),
        generatedAt = Value(generatedAt),
        cachedAt = Value(cachedAt);
@@ -2349,8 +2486,11 @@ class CachedRouteResponsesCompanion
     Expression<int>? originLatitudeE5,
     Expression<int>? originLongitudeE5,
     Expression<String>? shelterId,
+    Expression<String>? contextAreaId,
     Expression<String>? disasterType,
     Expression<String>? routeProfile,
+    Expression<String>? scenario,
+    Expression<int>? searchRadiusM,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2360,8 +2500,11 @@ class CachedRouteResponsesCompanion
       if (originLatitudeE5 != null) 'origin_latitude_e5': originLatitudeE5,
       if (originLongitudeE5 != null) 'origin_longitude_e5': originLongitudeE5,
       if (shelterId != null) 'shelter_id': shelterId,
+      if (contextAreaId != null) 'context_area_id': contextAreaId,
       if (disasterType != null) 'disaster_type': disasterType,
       if (routeProfile != null) 'route_profile': routeProfile,
+      if (scenario != null) 'scenario': scenario,
+      if (searchRadiusM != null) 'search_radius_m': searchRadiusM,
     });
   }
 
@@ -2373,8 +2516,11 @@ class CachedRouteResponsesCompanion
     Value<int?>? originLatitudeE5,
     Value<int?>? originLongitudeE5,
     Value<String?>? shelterId,
+    Value<String?>? contextAreaId,
     Value<String?>? disasterType,
     Value<String?>? routeProfile,
+    Value<String?>? scenario,
+    Value<int?>? searchRadiusM,
   }) {
     return CachedRouteResponsesCompanion(
       id: id ?? this.id,
@@ -2384,8 +2530,11 @@ class CachedRouteResponsesCompanion
       originLatitudeE5: originLatitudeE5 ?? this.originLatitudeE5,
       originLongitudeE5: originLongitudeE5 ?? this.originLongitudeE5,
       shelterId: shelterId ?? this.shelterId,
+      contextAreaId: contextAreaId ?? this.contextAreaId,
       disasterType: disasterType ?? this.disasterType,
       routeProfile: routeProfile ?? this.routeProfile,
+      scenario: scenario ?? this.scenario,
+      searchRadiusM: searchRadiusM ?? this.searchRadiusM,
     );
   }
 
@@ -2413,11 +2562,20 @@ class CachedRouteResponsesCompanion
     if (shelterId.present) {
       map['shelter_id'] = Variable<String>(shelterId.value);
     }
+    if (contextAreaId.present) {
+      map['context_area_id'] = Variable<String>(contextAreaId.value);
+    }
     if (disasterType.present) {
       map['disaster_type'] = Variable<String>(disasterType.value);
     }
     if (routeProfile.present) {
       map['route_profile'] = Variable<String>(routeProfile.value);
+    }
+    if (scenario.present) {
+      map['scenario'] = Variable<String>(scenario.value);
+    }
+    if (searchRadiusM.present) {
+      map['search_radius_m'] = Variable<int>(searchRadiusM.value);
     }
     return map;
   }
@@ -2432,8 +2590,11 @@ class CachedRouteResponsesCompanion
           ..write('originLatitudeE5: $originLatitudeE5, ')
           ..write('originLongitudeE5: $originLongitudeE5, ')
           ..write('shelterId: $shelterId, ')
+          ..write('contextAreaId: $contextAreaId, ')
           ..write('disasterType: $disasterType, ')
-          ..write('routeProfile: $routeProfile')
+          ..write('routeProfile: $routeProfile, ')
+          ..write('scenario: $scenario, ')
+          ..write('searchRadiusM: $searchRadiusM')
           ..write(')'))
         .toString();
   }
@@ -4891,8 +5052,11 @@ typedef $$CachedRouteResponsesTableCreateCompanionBuilder =
       Value<int?> originLatitudeE5,
       Value<int?> originLongitudeE5,
       Value<String?> shelterId,
+      Value<String?> contextAreaId,
       Value<String?> disasterType,
       Value<String?> routeProfile,
+      Value<String?> scenario,
+      Value<int?> searchRadiusM,
     });
 typedef $$CachedRouteResponsesTableUpdateCompanionBuilder =
     CachedRouteResponsesCompanion Function({
@@ -4903,8 +5067,11 @@ typedef $$CachedRouteResponsesTableUpdateCompanionBuilder =
       Value<int?> originLatitudeE5,
       Value<int?> originLongitudeE5,
       Value<String?> shelterId,
+      Value<String?> contextAreaId,
       Value<String?> disasterType,
       Value<String?> routeProfile,
+      Value<String?> scenario,
+      Value<int?> searchRadiusM,
     });
 
 class $$CachedRouteResponsesTableFilterComposer
@@ -4951,6 +5118,11 @@ class $$CachedRouteResponsesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get contextAreaId => $composableBuilder(
+    column: $table.contextAreaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get disasterType => $composableBuilder(
     column: $table.disasterType,
     builder: (column) => ColumnFilters(column),
@@ -4958,6 +5130,16 @@ class $$CachedRouteResponsesTableFilterComposer
 
   ColumnFilters<String> get routeProfile => $composableBuilder(
     column: $table.routeProfile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scenario => $composableBuilder(
+    column: $table.scenario,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get searchRadiusM => $composableBuilder(
+    column: $table.searchRadiusM,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5006,6 +5188,11 @@ class $$CachedRouteResponsesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get contextAreaId => $composableBuilder(
+    column: $table.contextAreaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get disasterType => $composableBuilder(
     column: $table.disasterType,
     builder: (column) => ColumnOrderings(column),
@@ -5013,6 +5200,16 @@ class $$CachedRouteResponsesTableOrderingComposer
 
   ColumnOrderings<String> get routeProfile => $composableBuilder(
     column: $table.routeProfile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scenario => $composableBuilder(
+    column: $table.scenario,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get searchRadiusM => $composableBuilder(
+    column: $table.searchRadiusM,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -5053,6 +5250,11 @@ class $$CachedRouteResponsesTableAnnotationComposer
   GeneratedColumn<String> get shelterId =>
       $composableBuilder(column: $table.shelterId, builder: (column) => column);
 
+  GeneratedColumn<String> get contextAreaId => $composableBuilder(
+    column: $table.contextAreaId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get disasterType => $composableBuilder(
     column: $table.disasterType,
     builder: (column) => column,
@@ -5060,6 +5262,14 @@ class $$CachedRouteResponsesTableAnnotationComposer
 
   GeneratedColumn<String> get routeProfile => $composableBuilder(
     column: $table.routeProfile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get scenario =>
+      $composableBuilder(column: $table.scenario, builder: (column) => column);
+
+  GeneratedColumn<int> get searchRadiusM => $composableBuilder(
+    column: $table.searchRadiusM,
     builder: (column) => column,
   );
 }
@@ -5114,8 +5324,11 @@ class $$CachedRouteResponsesTableTableManager
                 Value<int?> originLatitudeE5 = const Value.absent(),
                 Value<int?> originLongitudeE5 = const Value.absent(),
                 Value<String?> shelterId = const Value.absent(),
+                Value<String?> contextAreaId = const Value.absent(),
                 Value<String?> disasterType = const Value.absent(),
                 Value<String?> routeProfile = const Value.absent(),
+                Value<String?> scenario = const Value.absent(),
+                Value<int?> searchRadiusM = const Value.absent(),
               }) => CachedRouteResponsesCompanion(
                 id: id,
                 payload: payload,
@@ -5124,8 +5337,11 @@ class $$CachedRouteResponsesTableTableManager
                 originLatitudeE5: originLatitudeE5,
                 originLongitudeE5: originLongitudeE5,
                 shelterId: shelterId,
+                contextAreaId: contextAreaId,
                 disasterType: disasterType,
                 routeProfile: routeProfile,
+                scenario: scenario,
+                searchRadiusM: searchRadiusM,
               ),
           createCompanionCallback:
               ({
@@ -5136,8 +5352,11 @@ class $$CachedRouteResponsesTableTableManager
                 Value<int?> originLatitudeE5 = const Value.absent(),
                 Value<int?> originLongitudeE5 = const Value.absent(),
                 Value<String?> shelterId = const Value.absent(),
+                Value<String?> contextAreaId = const Value.absent(),
                 Value<String?> disasterType = const Value.absent(),
                 Value<String?> routeProfile = const Value.absent(),
+                Value<String?> scenario = const Value.absent(),
+                Value<int?> searchRadiusM = const Value.absent(),
               }) => CachedRouteResponsesCompanion.insert(
                 id: id,
                 payload: payload,
@@ -5146,8 +5365,11 @@ class $$CachedRouteResponsesTableTableManager
                 originLatitudeE5: originLatitudeE5,
                 originLongitudeE5: originLongitudeE5,
                 shelterId: shelterId,
+                contextAreaId: contextAreaId,
                 disasterType: disasterType,
                 routeProfile: routeProfile,
+                scenario: scenario,
+                searchRadiusM: searchRadiusM,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

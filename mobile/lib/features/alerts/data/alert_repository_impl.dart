@@ -48,7 +48,7 @@ final class AlertRepositoryImpl implements CachedAlertRepository {
     try {
       await _localSource.replaceSnapshot(snapshot, _now().toUtc());
     } catch (_) {
-      throw const AlertStorageException();
+      // A fresh remote snapshot remains usable when optional local caching fails.
     }
     return snapshot;
   }

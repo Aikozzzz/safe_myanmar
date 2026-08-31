@@ -35,7 +35,7 @@ official emergency or medical services when available.
 - Current hazard records include source and retrieval timestamps. Route
   suggestions remain unavailable unless verified destinations and a directions
   provider are configured; no route is presented as guaranteed safe.
-- Drift schema v3 for earthquake, shelter, hazard, and route caches plus
+- Drift schema v6 for earthquake, shelter, hazard, and route caches plus
   versioned, source-backed emergency Guide content.
 - Device-local profile and up to ten emergency contacts in Android secure
   storage. Contacts must be explicitly selected for SOS use.
@@ -44,6 +44,15 @@ official emergency or medical services when available.
   confirmation path. Android direct SMS sending is available after explicit
   confirmation and runtime SMS permission; device acceptance is recorded, but
   carrier delivery is not guaranteed or verified.
+- Explicit opt-in Android background SOS receiving. A connected-device
+  foreground service validates, deduplicates, encrypts, and retains temporary
+  BLE frames for offline display, replaces older frames from the same sender,
+  and sends an unverified alert notification. Foreground receiving and relay
+  remain session-scoped opt-ins; background receiving never relays or uploads
+  frames.
+- Nearby SOS broadcasts use a daily rotating sender token and require explicit
+  per-SOS location-sharing consent. The Map tab can display and select all
+  retained located SOS sources without treating peer data as verified.
 - Bilingual English/Myanmar offline Guide articles with source, review date,
   content version, translation warning, category filtering, and search.
 - A deterministic offline intent classifier and structured SOS text extraction.
@@ -93,6 +102,9 @@ use OpenStreetMap/Overpass building and tree features for earthquake criteria
 and OpenTopoData terrain elevation for flood criteria. Stale or geometry-less
 records are excluded. `ENABLE_SIMULATION_DATA=true` remains an explicitly
 separate development mode and is rejected in production.
+`ENABLE_SIMULATION_ANALYSIS=true` can be enabled outside production to augment
+real context-area analysis with clearly labeled fictional hazard geometry; it
+does not alter the hazard or shelter lists.
 
 ## Prerequisites
 
@@ -137,10 +149,15 @@ POST /api/v1/context-areas
 POST /api/v1/route-suggestions
 ```
 
-The last three endpoints return `404 simulation_data_disabled` unless runtime
-simulation is explicitly enabled. Route suggestions additionally require the
-backend-only Mapbox Directions token. See the linked API references for exact
-schemas, validation, and safe error envelopes.
+With the validated navigation snapshot, the shelter, hazard, and context-area
+endpoints use collected data. They return `404` only when neither a navigation
+snapshot nor simulation mode is available. `ENABLE_SIMULATION_ANALYSIS=true`
+augments context-area analysis only and does not change the shelter or hazard
+lists. Route suggestions additionally require the backend-only Mapbox Directions
+token. The runtime accepts the validated snapshot for up to 30 days after its
+retrieval timestamp; a missing, invalid, or older snapshot keeps
+`/health/ready` unavailable with a safe navigation-data error. See the linked
+API references for exact schemas, validation, and safe error envelopes.
 
 To run the API in Docker instead:
 
@@ -150,6 +167,10 @@ docker compose up -d db
 docker compose run --rm api alembic upgrade head
 docker compose up api
 ```
+
+The API image is built from the repository root and packages the validated
+Yangon snapshot. Do not remove that snapshot from the build context unless
+`NAVIGATION_DATA_PATH` points to another packaged snapshot.
 
 ## Mobile Setup
 
@@ -192,6 +213,7 @@ Backend values are read from `backend/.env` when the API starts in `backend/`.
 | `REFRESH_MINIMUM_SECONDS` | FastAPI | Defaults to `60` |
 | `CURRENT_MAX_AGE_SECONDS` | FastAPI | Defaults to `300` |
 | `ENABLE_SIMULATION_DATA` | FastAPI | Defaults to `false`; must remain false in production |
+| `ENABLE_SIMULATION_ANALYSIS` | FastAPI | Defaults to `false`; development-only backend analysis augmentation; must remain false in production |
 | `NAVIGATION_DATA_PATH` | FastAPI | Defaults to the validated Yangon snapshot directory |
 | `OVERPASS_API_URL` | FastAPI | OpenStreetMap building/tree lookup used by earthquake analysis |
 | `ELEVATION_API_URL` | FastAPI | OpenTopoData elevation lookup used by flood analysis |
@@ -342,18 +364,22 @@ SafeMyanmar/
 - Live provider coverage remains USGS earthquakes only. There are no official
   Myanmar warnings, evacuation orders, impact/severity classification, push
   notifications, or additional live disaster providers.
-- Context-aware navigation currently generates deterministic fictional
-  lower-exposure area candidates. Earthquake candidates compare simulated
-  building/tree exposure outdoors after shaking; flood candidates compare
-  simulated elevation and flood polygons. These are not verified field
-  conditions, official shelters, evacuation orders, or guaranteed safe routes.
+- Context-aware navigation defaults to the validated collected navigation
+  snapshot. Earthquake analysis can compare mapped building/tree exposure
+  outdoors after shaking; flood analysis can compare terrain elevation and
+  current hazard polygons. The separate simulation mode generates fictional
+  candidates, while `ENABLE_SIMULATION_ANALYSIS` can add fictional hazard
+  geometry to real context analysis for development evaluation only. None of
+  these outputs are verified field conditions, official shelters, evacuation
+  orders, or guaranteed safe routes.
 - The app has no authentication, cloud profile synchronization, rescue-team
   dashboard, damage reporting, official rescue-service integration, Rescue
   Beacon Mode, iOS Bluetooth support, or background location tracking.
 - Android BLE SOS sharing is limited to nearby SafeMyanmar users who have opted
-  into receiving peer alerts. It broadcasts a temporary event ID, UTC timestamp,
-  approximately 1 km grid, location status, and battery value for up to ten
-  minutes. Peer events are unverified and do not confirm delivery or rescue.
+   into receiving peer alerts. It broadcasts a temporary event ID, UTC timestamp,
+   fixed-point coordinates when available, location status, and battery value for up to ten
+   minutes. The active sender frame is shown locally with its decoded details;
+   peer events are unverified and do not confirm delivery or rescue.
 - SOS remains a local draft and transport handoff workflow. SMS is reviewed and
   sent in an external app; optional Android BLE sharing broadcasts limited,
   unverified peer data for ten minutes. SafeMyanmar has no sent, delivered,

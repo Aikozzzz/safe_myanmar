@@ -52,9 +52,8 @@ void main() {
       tester.getSemantics(find.text('Offline verified-content retrieval')),
       matchesSemantics(label: 'Offline verified-content retrieval'),
     );
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
-    await tester.pumpAndSettle();
     final search = find.byTooltip('Search');
+    await _revealInGuide(tester, search);
     expect(search, findsOneWidget);
     expect(tester.getSize(search).height, greaterThanOrEqualTo(48));
   });
@@ -97,4 +96,24 @@ void main() {
     expect(tester.getSize(send).width, greaterThanOrEqualTo(48));
     expect(tester.getSize(send).height, greaterThanOrEqualTo(48));
   });
+}
+
+Future<void> _revealInGuide(WidgetTester tester, Finder target) async {
+  final scrollable = find.byType(Scrollable).first;
+  final state = tester.state<ScrollableState>(scrollable);
+
+  for (var attempt = 0; attempt < 20 && target.evaluate().isEmpty; attempt++) {
+    final position = state.position;
+    if (position.pixels >= position.maxScrollExtent) {
+      break;
+    }
+    position.jumpTo(
+      (position.pixels + 240).clamp(0, position.maxScrollExtent).toDouble(),
+    );
+    await tester.pump();
+  }
+
+  expect(target, findsOneWidget);
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
 }

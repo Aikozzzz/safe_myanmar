@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
@@ -158,8 +159,14 @@ internal class GemmaRewriteRuntime(
             // Run the blocking API on NativeAiBridge's background dispatcher.
             // The LiteRT-LM Flow overload currently has an incompatible
             // callbackFlow ABI on Android and can crash after generation.
-            val message = conversation.sendMessage(prompt)
-            val text = conversation.renderMessageIntoString(message).trim()
+            val message = conversation.sendMessage(
+                prompt,
+                maxOutputToken = MAX_GENERATION_TOKENS,
+            )
+            val text = message.contents.contents
+                .filterIsInstance<Content.Text>()
+                .joinToString("\n") { it.text }
+                .trim()
             if (text.isEmpty() || text.length > MAX_OUTPUT) return error(RUNTIME_ERROR)
             success(mapOf("text" to text, "tier" to 3))
         } catch (_: Throwable) {
@@ -248,6 +255,7 @@ internal class GemmaRewriteRuntime(
         private const val MAX_CONTEXT = 28_000
         private const val MAX_INTENT = 64
         private const val MAX_OUTPUT = 2_000
+        private const val MAX_GENERATION_TOKENS = 384
         private const val MAX_MODEL_TOKENS = 2_048
         private const val MIN_TOTAL_MEMORY = 2_684_354_560L
         private const val MIN_FREE_MEMORY = 1_342_177_280L

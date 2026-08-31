@@ -1,5 +1,6 @@
 package org.safemyanmar.mobile
 
+import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -13,6 +14,12 @@ class MainActivity : FlutterActivity() {
     private var sosBleBridge: SosBleBridge? = null
     private var smsBridge: NativeSmsBridge? = null
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        sosBleBridge?.onNewIntent(intent)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         aiBridge = NativeAiBridge(applicationContext).also { bridge ->
@@ -24,6 +31,10 @@ class MainActivity : FlutterActivity() {
                 .setMethodCallHandler(bridge)
             EventChannel(flutterEngine.dartExecutor.binaryMessenger, SosBleBridge.EVENT_CHANNEL_NAME)
                 .setStreamHandler(bridge)
+            EventChannel(
+                flutterEngine.dartExecutor.binaryMessenger,
+                SosBleBridge.NOTIFICATION_EVENT_CHANNEL_NAME,
+            ).setStreamHandler(bridge.notificationEventStreamHandler)
         }
         smsBridge = NativeSmsBridge(this).also { bridge ->
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NativeSmsBridge.CHANNEL_NAME)
@@ -52,5 +63,9 @@ class MainActivity : FlutterActivity() {
         smsBridge?.close()
         smsBridge = null
         super.onDestroy()
+    }
+
+    companion object {
+        const val EXTRA_SOS_EVENT_ID = "sos_event_id"
     }
 }

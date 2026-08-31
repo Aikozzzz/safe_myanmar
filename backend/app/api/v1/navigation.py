@@ -30,6 +30,9 @@ RATE_LIMIT_REQUESTS = 30
 RATE_LIMIT_WINDOW_SECONDS = 60.0
 MAX_RATE_LIMIT_CLIENTS = 1024
 MAX_CONCURRENT_MAPBOX_CALLS = 4
+CONTEXT_RATE_LIMIT_REQUESTS = 10
+CONTEXT_RATE_LIMIT_WINDOW_SECONDS = 60.0
+MAX_CONCURRENT_CONTEXT_CALLS = 2
 
 
 class RouteRateLimitExceeded(Exception):
@@ -91,12 +94,35 @@ class SimulationRouteGuard:
             self._provider_slots.release()
 
 
+class ContextAnalysisGuard(SimulationRouteGuard):
+    def __init__(
+        self,
+        *,
+        requests_per_window: int = CONTEXT_RATE_LIMIT_REQUESTS,
+        window_seconds: float = CONTEXT_RATE_LIMIT_WINDOW_SECONDS,
+        max_clients: int = MAX_RATE_LIMIT_CLIENTS,
+        max_concurrent_calls: int = MAX_CONCURRENT_CONTEXT_CALLS,
+        clock: Callable[[], float] | None = None,
+    ) -> None:
+        super().__init__(
+            requests_per_window=requests_per_window,
+            window_seconds=window_seconds,
+            max_clients=max_clients,
+            max_concurrent_calls=max_concurrent_calls,
+            clock=clock,
+        )
+
+
 def get_navigation_service(request: Request) -> NavigationService:
     return request.app.state.navigation_service
 
 
 def get_simulation_route_guard(request: Request) -> SimulationRouteGuard:
     return request.app.state.simulation_route_guard
+
+
+def get_context_analysis_guard(request: Request) -> ContextAnalysisGuard:
+    return request.app.state.context_analysis_guard
 
 
 def enforce_route_rate_limit(
@@ -112,6 +138,23 @@ def enforce_route_rate_limit(
             "route_rate_limit_exceeded",
             "Too many route requests. Try again shortly.",
             headers={"Retry-After": str(int(RATE_LIMIT_WINDOW_SECONDS))},
+        ) from error
+    return guard
+
+
+def enforce_context_rate_limit(
+    request: Request,
+    guard: ContextAnalysisGuard = Depends(get_context_analysis_guard),
+) -> ContextAnalysisGuard:
+    client_host = request.client.host if request.client is not None else "unknown"
+    try:
+        guard.record_request(client_host)
+    except RouteRateLimitExceeded as error:
+        raise ApiError(
+            429,
+            "context_rate_limit_exceeded",
+            "Too many context-analysis requests. Try again shortly.",
+            headers={"Retry-After": str(int(CONTEXT_RATE_LIMIT_WINDOW_SECONDS))},
         ) from error
     return guard
 
@@ -134,9 +177,18 @@ def list_hazards(
 def find_context_areas(
     context_request: ContextAreaRequest,
     service: NavigationService = Depends(get_navigation_service),
+    guard: ContextAnalysisGuard = Depends(enforce_context_rate_limit),
 ) -> ContextAreaListResponse:
     try:
-        return service.find_context_areas(context_request)
+        with guard.provider_slot():
+            return service.find_context_areas(context_request)
+    except RouteCapacityExceeded as error:
+        raise ApiError(
+            503,
+            "context_analysis_busy",
+            "Context analysis is busy. Try again shortly.",
+            headers={"Retry-After": "1"},
+        ) from error
     except ContextAnalysisUnavailable as error:
         raise ApiError(
             503,

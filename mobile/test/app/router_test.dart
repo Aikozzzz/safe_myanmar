@@ -30,7 +30,7 @@ void main() {
     expect(find.byType(AppShell), findsOneWidget);
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     for (final label in ['Home', 'Map', 'SOS', 'Guide', 'More']) {
-      expect(find.text(label), findsOneWidget);
+      expect(_navigationLabel(label), findsOneWidget);
     }
     expect(find.text('View earthquake information'), findsOneWidget);
   });
@@ -59,7 +59,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Map'));
+    await tester.tap(_navigationLabel('Map'));
     await tester.pumpAndSettle();
     expect(routerLocation(router), '/map');
     expect(find.text('Location access is off'), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
     await tester.scrollUntilVisible(locationAction, 200);
     expect(locationAction, findsOneWidget);
 
-    await tester.tap(find.text('SOS'));
+    await tester.tap(_navigationLabel('SOS'));
     await tester.pumpAndSettle();
     expect(routerLocation(router), '/sos');
     expect(find.byType(SosScreen), findsOneWidget);
@@ -75,12 +75,12 @@ void main() {
     expect(draftRepository.writes, 0);
     expect(composer.calls, 0);
 
-    await tester.tap(find.text('Guide'));
+    await tester.tap(_navigationLabel('Guide'));
     await tester.pumpAndSettle();
     expect(routerLocation(router), '/guide');
     expect(find.text('Offline verified-content retrieval'), findsOneWidget);
 
-    await tester.tap(find.text('More'));
+    await tester.tap(_navigationLabel('More'));
     await tester.pumpAndSettle();
     expect(routerLocation(router), '/more');
     expect(find.text('Display name not set'), findsNWidgets(2));
@@ -101,9 +101,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.widgetWithText(FilledButton, 'View earthquake information'),
-    );
+    await tester.tap(find.byKey(const ValueKey('home-alerts-card')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -292,6 +290,9 @@ void main() {
     expect(routerLocation(router), '/map');
   });
 }
+
+Finder _navigationLabel(String label) =>
+    find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
 
 String routerLocation(GoRouter router) =>
     router.routerDelegate.currentConfiguration.uri.toString();

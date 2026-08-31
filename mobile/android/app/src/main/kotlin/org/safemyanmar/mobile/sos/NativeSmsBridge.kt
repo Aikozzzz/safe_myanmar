@@ -53,7 +53,7 @@ class NativeSmsBridge(private val activity: Activity) :
     override fun close() {
         pendingPermissionResult?.success(false)
         pendingPermissionResult = null
-        pendingSend?.complete("failed")
+        pendingSend?.complete("unknown")
         pendingSend = null
     }
 
@@ -177,10 +177,15 @@ class NativeSmsBridge(private val activity: Activity) :
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 val current = pendingSend ?: return
-                current.record(resultCode == Activity.RESULT_OK)
+                current.record(
+                    resultCode == Activity.RESULT_OK,
+                    intent.getIntExtra("recipient_index", -1),
+                    intent.getIntExtra("part_index", -1),
+                )
             }
         }
         val filter = IntentFilter(action)
+        var pending: PendingSend? = null
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 activity.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
@@ -189,20 +194,25 @@ class NativeSmsBridge(private val activity: Activity) :
                 activity.registerReceiver(receiver, filter)
             }
             val totalParts = recipients.size * parts.size
-            val pending = PendingSend(
+            val current = PendingSend(
                 receiver = receiver,
                 expected = totalParts,
+                attemptId = token,
                 result = result,
             )
-            pendingSend = pending
+            pending = current
+            pendingSend = current
             var requestCode = 0
-            for (recipient in recipients) {
+            for ((recipientIndex, recipient) in recipients.withIndex()) {
                 val sentIntents = ArrayList<PendingIntent>(parts.size)
-                parts.forEach {
+                parts.forEachIndexed { partIndex, _ ->
                     val pendingIntent = PendingIntent.getBroadcast(
                         activity,
                         PERMISSION_REQUEST_CODE + requestCode++,
-                        Intent(action).setPackage(activity.packageName),
+                        Intent(action)
+                            .setPackage(activity.packageName)
+                            .putExtra("recipient_index", recipientIndex)
+                            .putExtra("part_index", partIndex),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     )
                     sentIntents += pendingIntent
@@ -215,15 +225,20 @@ class NativeSmsBridge(private val activity: Activity) :
                     smsManager.sendMultipartTextMessage(recipient, null, parts, sentIntents, null)
                 }
             }
-            pending.timeout()
+            current.timeout()
         } catch (error: SecurityException) {
-            unregister(receiver)
-            pendingSend = null
-            result.success(mapOf("status" to "permission_denied"))
+            pending?.complete("permission_denied")
+                ?: run {
+                    unregister(receiver)
+                    result.success(mapOf("status" to "permission_denied"))
+                }
         } catch (_: Throwable) {
-            unregister(receiver)
-            pendingSend = null
-            result.success(mapOf("status" to "failed"))
+            pending?.let { current ->
+                current.complete(if (current.confirmedParts > 0) "partial" else "failed")
+            } ?: run {
+                unregister(receiver)
+                result.success(mapOf("status" to "failed"))
+            }
         }
     }
 
@@ -238,23 +253,40 @@ class NativeSmsBridge(private val activity: Activity) :
     private inner class PendingSend(
         private val receiver: BroadcastReceiver,
         private val expected: Int,
+        private val attemptId: String,
         private val result: MethodChannel.Result,
     ) {
         private var remaining = expected
-        private var failed = false
+        var confirmedParts = 0
+            private set
+        private var failedParts = 0
         private var completed = false
         private var timeoutRunnable: Runnable? = null
 
-        fun record(success: Boolean) {
+        fun record(success: Boolean, recipientIndex: Int, partIndex: Int) {
             if (completed) return
-            failed = failed || !success
+            if (success) {
+                confirmedParts++
+            } else {
+                failedParts++
+            }
             remaining--
-            if (remaining <= 0) complete(if (failed) "failed" else "sent")
+            if (remaining <= 0) {
+                complete(
+                    when {
+                        failedParts == 0 -> "sent"
+                        confirmedParts > 0 -> "partial"
+                        else -> "failed"
+                    },
+                )
+            }
         }
 
         fun timeout() {
             timeoutRunnable = Runnable {
-                if (!completed) complete("failed")
+                if (!completed) {
+                    complete(if (confirmedParts > 0) "partial" else "unknown")
+                }
             }
             handler.postDelayed(timeoutRunnable!!, SEND_TIMEOUT_MS)
         }
@@ -265,7 +297,14 @@ class NativeSmsBridge(private val activity: Activity) :
             timeoutRunnable?.let(handler::removeCallbacks)
             unregister(receiver)
             if (pendingSend === this) pendingSend = null
-            result.success(mapOf("status" to status))
+            result.success(
+                mapOf(
+                    "status" to status,
+                    "attempt_id" to attemptId,
+                    "confirmed_parts" to confirmedParts,
+                    "total_parts" to expected,
+                ),
+            )
         }
     }
 

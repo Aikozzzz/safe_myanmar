@@ -14,18 +14,24 @@ import 'package:mobile/core/network/mapbox_public_access_token.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 
 import '../../../support/fake_location_repository.dart';
+import '../../../support/fake_location_permission_prompt_store.dart';
 
 void main() {
   late FakeLocationRepository repository;
+  late FakeLocationPermissionPromptStore promptStore;
 
   setUp(() {
     repository = FakeLocationRepository()..currentLocation = preciseLocation;
+    promptStore = FakeLocationPermissionPromptStore();
   });
 
   Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [locationRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          locationRepositoryProvider.overrideWithValue(repository),
+          locationPermissionPromptStoreProvider.overrideWithValue(promptStore),
+        ],
         child: MaterialApp(
           theme: SafeTheme.light(),
           locale: const Locale('en'),
@@ -99,6 +105,7 @@ void main() {
       ProviderScope(
         overrides: [
           locationRepositoryProvider.overrideWithValue(repository),
+          locationPermissionPromptStoreProvider.overrideWithValue(promptStore),
           mapboxPublicAccessTokenProvider.overrideWithValue(
             MapboxPublicAccessToken.fromRaw(
               'pk.${List.filled(20, 'a').join()}.${List.filled(20, 'b').join()}',
@@ -184,8 +191,14 @@ void main() {
     await pumpScreen(tester);
     await requestLocation(tester);
 
+    expect(find.text('Allow location access?'), findsOneWidget);
+    expect(find.text('Allow Location'), findsOneWidget);
+    expect(find.text('Not Now'), findsOneWidget);
+    expect(repository.permissionRequests, 0);
+    await tester.tap(find.text('Not Now'));
+    await tester.pumpAndSettle();
     expect(find.text('Location permission denied'), findsOneWidget);
-    expect(find.text('Try location again'), findsOneWidget);
+    expect(find.text('Open app settings'), findsOneWidget);
   });
 
   testWidgets('permanent denial offers app settings without another prompt', (
@@ -251,6 +264,54 @@ void main() {
 
     expect(find.text('Location temporarily unavailable'), findsOneWidget);
     expect(find.text('Try location again'), findsOneWidget);
+  });
+
+  testWidgets('location details show accuracy, coordinates, and update time', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: SafeTheme.light(),
+        locale: const Locale('en'),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: LocationDetailsSheet(
+            location: preciseLocation,
+            isLastKnown: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Your location details'), findsOneWidget);
+    expect(find.text('Access precision'), findsOneWidget);
+    expect(find.text('Precise location available'), findsOneWidget);
+    expect(find.text('Coordinates'), findsOneWidget);
+    expect(find.text('Location: 16.840900, 96.173500'), findsOneWidget);
+    expect(find.text('Last update'), findsOneWidget);
+    expect(
+      find.text('Location time: Jul 23, 2026 01:02:03 UTC'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('restores granted location after a previous opt-in', (
+    tester,
+  ) async {
+    promptStore.optedIn = true;
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Precise location available'), findsOneWidget);
+    expect(find.text('Use my location'), findsNothing);
+    expect(repository.permissionRequests, 0);
+    expect(repository.currentLocationRequests, 1);
   });
 }
 

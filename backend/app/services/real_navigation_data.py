@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,12 @@ from app.schemas.navigation import (
     ShelterListResponse,
 )
 
+DEFAULT_SNAPSHOT_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
+
+
+class NavigationSnapshotStale(ValueError):
+    """Raised when a validated snapshot is too old for runtime use."""
+
 
 @dataclass(frozen=True)
 class YangonNavigationData:
@@ -23,11 +29,30 @@ class YangonNavigationData:
     uncertainty_notice: str
 
     @classmethod
-    def load(cls, directory: Path) -> "YangonNavigationData":
+    def load(
+        cls,
+        directory: Path,
+        *,
+        now: datetime | None = None,
+        max_age_seconds: int = DEFAULT_SNAPSHOT_MAX_AGE_SECONDS,
+    ) -> "YangonNavigationData":
         manifest = _read_json(directory / "manifest.json")
+        if not isinstance(manifest, dict):
+            raise ValueError("Navigation snapshot manifest must be an object.")
         if manifest.get("validation_status") != "passed":
             raise ValueError("The navigation data snapshot did not pass validation.")
         retrieved_at = _timestamp(manifest["retrieved_at"])
+        current_time = now or datetime.now(UTC)
+        if current_time.tzinfo is None or current_time.utcoffset() is None:
+            raise ValueError("Snapshot age checks require a timezone-aware clock.")
+        if not isinstance(max_age_seconds, int) or isinstance(max_age_seconds, bool):
+            raise ValueError("Snapshot max age must be an integer number of seconds.")
+        if max_age_seconds < 0:
+            raise ValueError("Snapshot max age must not be negative.")
+        if current_time.astimezone(UTC) - retrieved_at > timedelta(
+            seconds=max_age_seconds
+        ):
+            raise NavigationSnapshotStale
         hazards = _load_hazards(directory / "hazards.json", retrieved_at)
         shelters = _load_shelters(directory / "shelters.json", retrieved_at)
         return cls(
@@ -73,6 +98,8 @@ def _load_shelters(path: Path, data_at: datetime) -> tuple[Shelter, ...]:
     for record in records:
         if not isinstance(record, dict):
             raise ValueError("Shelter record must be an object.")
+        if record.get("is_stale") is not False:
+            continue
         shelters.append(
             Shelter(
                 id=_string(record["id"]),

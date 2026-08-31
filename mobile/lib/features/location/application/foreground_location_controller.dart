@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/location_permission_prompt_store.dart';
 import '../domain/location_repository.dart';
 import 'foreground_location_state.dart';
 import 'providers.dart';
@@ -7,24 +8,40 @@ import 'providers.dart';
 final class ForegroundLocationController
     extends Notifier<ForegroundLocationState> {
   late LocationRepository _repository;
+  late LocationPermissionPromptStore _promptStore;
   Future<void>? _activeRequest;
 
   @override
   ForegroundLocationState build() {
     _repository = ref.watch(locationRepositoryProvider);
+    _promptStore = ref.watch(locationPermissionPromptStoreProvider);
     return const ForegroundLocationState.notRequested();
   }
 
-  Future<void> requestLocation() {
+  Future<void> requestLocation({bool confirmed = false}) {
     final activeRequest = _activeRequest;
     if (activeRequest != null) return activeRequest;
 
     late Future<void> request;
-    request = _requestLocation().whenComplete(() {
+    request = _requestLocation(allowSystemPrompt: confirmed).whenComplete(() {
       if (identical(_activeRequest, request)) _activeRequest = null;
     });
     _activeRequest = request;
     return request;
+  }
+
+  Future<void> restoreGrantedLocation() async {
+    final inFlight = _activeRequest;
+    if (inFlight != null) return inFlight;
+    if (!_canRestore(state.phase)) return;
+    if (!await _hasOptedIn()) return;
+    return _activeRequest ?? requestLocation();
+  }
+
+  void dismissPermissionExplanation() {
+    if (state.phase == ForegroundLocationPhase.permissionExplanationRequired) {
+      state = const ForegroundLocationState.denied();
+    }
   }
 
   Future<bool> openAppSettings() async {
@@ -47,16 +64,64 @@ final class ForegroundLocationController
     }
   }
 
-  Future<void> _requestLocation() async {
+  Future<void> refreshPermission() async {
+    try {
+      final permission = await _repository.checkPermission();
+      switch (permission) {
+        case ForegroundLocationPermission.granted:
+          if (state.location != null) return;
+          if (await _hasOptedIn()) {
+            await restoreGrantedLocation();
+            return;
+          }
+          if (state.phase == ForegroundLocationPhase.denied ||
+              state.phase == ForegroundLocationPhase.permanentlyDenied) {
+            state = const ForegroundLocationState.notRequested();
+          }
+        case ForegroundLocationPermission.denied:
+          if (state.location != null ||
+              state.phase == ForegroundLocationPhase.preciseAvailable ||
+              state.phase == ForegroundLocationPhase.approximateAvailable ||
+              state.phase ==
+                  ForegroundLocationPhase.liveUnavailableWithLastKnown) {
+            state = const ForegroundLocationState.denied();
+          }
+        case ForegroundLocationPermission.permanentlyDenied:
+          if (state.location != null ||
+              state.phase != ForegroundLocationPhase.notRequested) {
+            state = const ForegroundLocationState.permanentlyDenied();
+          }
+        case ForegroundLocationPermission.unableToDetermine:
+          if (state.location != null) {
+            state = const ForegroundLocationState.recoverableError();
+          }
+      }
+    } on Object {
+      // Permission refresh is best effort and never shows a system prompt.
+    }
+  }
+
+  Future<void> _requestLocation({required bool allowSystemPrompt}) async {
     state = const ForegroundLocationState.requesting();
     try {
       if (!await _repository.isLocationServiceEnabled()) {
-        state = const ForegroundLocationState.serviceDisabled();
+        await _useLastKnownLocation();
         return;
       }
 
       var permission = await _repository.checkPermission();
       if (permission == ForegroundLocationPermission.denied) {
+        if (!allowSystemPrompt) {
+          final shown = await _hasShownExplanation();
+          if (!shown) {
+            await _markExplanationShown();
+            state =
+                const ForegroundLocationState.permissionExplanationRequired();
+          } else {
+            state = const ForegroundLocationState.denied();
+          }
+          return;
+        }
         permission = await _repository.requestPermission();
       }
       switch (permission) {
@@ -70,7 +135,7 @@ final class ForegroundLocationController
           state = const ForegroundLocationState.recoverableError();
           return;
         case ForegroundLocationPermission.granted:
-          break;
+          await _markOptedIn();
       }
 
       try {
@@ -81,6 +146,44 @@ final class ForegroundLocationController
       }
     } catch (_) {
       state = const ForegroundLocationState.recoverableError();
+    }
+  }
+
+  bool _canRestore(ForegroundLocationPhase phase) {
+    return phase == ForegroundLocationPhase.notRequested ||
+        phase == ForegroundLocationPhase.denied ||
+        phase == ForegroundLocationPhase.permanentlyDenied;
+  }
+
+  Future<bool> _hasShownExplanation() async {
+    try {
+      return await _promptStore.hasShownExplanation();
+    } on Object {
+      return false;
+    }
+  }
+
+  Future<void> _markExplanationShown() async {
+    try {
+      await _promptStore.markExplanationShown();
+    } on Object {
+      // The in-memory state still prevents a repeated prompt this session.
+    }
+  }
+
+  Future<bool> _hasOptedIn() async {
+    try {
+      return await _promptStore.hasOptedIn();
+    } on Object {
+      return false;
+    }
+  }
+
+  Future<void> _markOptedIn() async {
+    try {
+      await _promptStore.markOptedIn();
+    } on Object {
+      // Restore on a later launch is best effort.
     }
   }
 

@@ -47,6 +47,7 @@ flutter {
 dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.27.0")
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.0")
+    testImplementation("junit:junit:4.13.2")
 }
 
 val verifyDebugMergedManifest by tasks.registering {

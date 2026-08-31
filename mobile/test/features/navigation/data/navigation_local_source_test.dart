@@ -11,40 +11,37 @@ import 'package:mobile/features/navigation/domain/navigation_models.dart';
 import '../../../support/navigation_fixtures.dart';
 
 void main() {
-  test(
-    'v1 to v2 migration preserves alerts and creates navigation caches',
-    () async {
-      final directory = await Directory.systemTemp.createTemp(
-        'safe-myanmar-navigation-migration-',
-      );
-      addTearDown(() => directory.delete(recursive: true));
-      final file = File('${directory.path}${Platform.pathSeparator}v1.sqlite');
-      final database = AppDatabase(
-        NativeDatabase(
-          file,
-          setup: (raw) {
-            raw.execute(_v1EarthquakesSql);
-            raw.execute(_v1MetadataSql);
-            raw.execute(_v1AlertInsertSql);
-            raw.execute(_v1MetadataInsertSql);
-            raw.execute('PRAGMA user_version = 1');
-          },
-        ),
-      );
-      addTearDown(database.close);
+  test('v1 migration preserves alerts and creates navigation caches', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'safe-myanmar-navigation-migration-',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}${Platform.pathSeparator}v1.sqlite');
+    final database = AppDatabase(
+      NativeDatabase(
+        file,
+        setup: (raw) {
+          raw.execute(_v1EarthquakesSql);
+          raw.execute(_v1MetadataSql);
+          raw.execute(_v1AlertInsertSql);
+          raw.execute(_v1MetadataInsertSql);
+          raw.execute('PRAGMA user_version = 1');
+        },
+      ),
+    );
+    addTearDown(database.close);
 
-      final alert = await DriftAlertLocalSource(
-        database,
-      ).getById('usgs:preserved');
-      final navigation = DriftNavigationLocalSource(database);
+    final alert = await DriftAlertLocalSource(
+      database,
+    ).getById('usgs:preserved');
+    final navigation = DriftNavigationLocalSource(database);
 
-      expect(alert?.title, 'Preserved v1 alert');
-      expect(await navigation.readShelters(), isNull);
-      expect(await navigation.readHazards(), isNull);
-      expect(await navigation.readRoutes(routeRequest), isNull);
-      expect(database.schemaVersion, 5);
-    },
-  );
+    expect(alert?.title, 'Preserved v1 alert');
+    expect(await navigation.readShelters(), isNull);
+    expect(await navigation.readHazards(), isNull);
+    expect(await navigation.readRoutes(routeRequest), isNull);
+    expect(database.schemaVersion, 6);
+  });
 
   test('keeps only the latest envelope for each navigation resource', () async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -199,6 +196,27 @@ void main() {
           shelterId: 'simulation-shelter-1',
           disasterType: DisasterType.earthquake,
           profile: RouteProfile.driving,
+        ),
+        const RouteSuggestionRequest(
+          origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
+          shelterId: 'simulation-shelter-1',
+          contextAreaId: 'context-area-1',
+          disasterType: DisasterType.earthquake,
+          profile: RouteProfile.walking,
+        ),
+        const RouteSuggestionRequest(
+          origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
+          shelterId: 'simulation-shelter-1',
+          disasterType: DisasterType.earthquake,
+          profile: RouteProfile.walking,
+          scenario: ContextScenario.outdoorsAfterShaking,
+        ),
+        const RouteSuggestionRequest(
+          origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
+          shelterId: 'simulation-shelter-1',
+          disasterType: DisasterType.earthquake,
+          profile: RouteProfile.walking,
+          searchRadiusM: 2000,
         ),
       ];
 

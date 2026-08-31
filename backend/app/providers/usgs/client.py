@@ -1,8 +1,12 @@
+import json
 from collections.abc import Callable
 from datetime import UTC, datetime
 from types import TracebackType
 
 import httpx
+
+MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+RESPONSE_CHUNK_BYTES = 64 * 1024
 
 
 class ProviderClientError(Exception):
@@ -29,18 +33,35 @@ class UsgsClient:
 
     def fetch(self) -> tuple[dict[str, object], datetime]:
         try:
-            response = self._http_client.get(
-                self._feed_url, timeout=self._timeout_seconds
-            )
-            response.raise_for_status()
+            with self._http_client.stream(
+                "GET", self._feed_url, timeout=self._timeout_seconds
+            ) as response:
+                response.raise_for_status()
+                content_length = response.headers.get("content-length")
+                if content_length is not None and int(content_length) < 0:
+                    raise ProviderClientError("invalid_provider_payload")
+                if (
+                    content_length is not None
+                    and int(content_length) > MAX_RESPONSE_BYTES
+                ):
+                    raise ProviderClientError("provider_response_too_large")
+                content = bytearray()
+                for chunk in response.iter_bytes(chunk_size=RESPONSE_CHUNK_BYTES):
+                    if len(content) + len(chunk) > MAX_RESPONSE_BYTES:
+                        raise ProviderClientError("provider_response_too_large")
+                    content.extend(chunk)
+        except ProviderClientError:
+            raise
         except httpx.TimeoutException as error:
             raise ProviderClientError("provider_timeout") from error
         except (httpx.RequestError, httpx.HTTPStatusError) as error:
             raise ProviderClientError("provider_unavailable") from error
+        except (TypeError, ValueError) as error:
+            raise ProviderClientError("invalid_provider_payload") from error
 
         try:
-            payload = response.json()
-        except ValueError as error:
+            payload = json.loads(bytes(content))
+        except (RecursionError, TypeError, ValueError) as error:
             raise ProviderClientError("invalid_provider_payload") from error
         if not isinstance(payload, dict):
             raise ProviderClientError("invalid_provider_payload")

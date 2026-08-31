@@ -136,11 +136,53 @@ abstract class AppLocalizations {
   /// **'SafeMyanmar'**
   String get homeTitle;
 
+  /// No description provided for @homeWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency response at a glance'**
+  String get homeWelcomeTitle;
+
   /// No description provided for @homeDescription.
   ///
   /// In en, this message translates to:
   /// **'Emergency information and tools based on currently available information.'**
   String get homeDescription;
+
+  /// No description provided for @homeSafetyCenterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety Center'**
+  String get homeSafetyCenterTitle;
+
+  /// No description provided for @homeSafetyCenterDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review available information and open key safety tools.'**
+  String get homeSafetyCenterDescription;
+
+  /// No description provided for @homeOpenMapAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Map'**
+  String get homeOpenMapAction;
+
+  /// No description provided for @homeOpenSosAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open SOS setup'**
+  String get homeOpenSosAction;
+
+  /// No description provided for @homeOpenGuideAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Guide'**
+  String get homeOpenGuideAction;
+
+  /// No description provided for @homeEarthquakeCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Live earthquake information'**
+  String get homeEarthquakeCardTitle;
 
   /// No description provided for @viewEarthquakeInformation.
   ///
@@ -160,11 +202,71 @@ abstract class AppLocalizations {
   /// **'Your location'**
   String get locationHeading;
 
+  /// No description provided for @locationMapAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show my location details'**
+  String get locationMapAction;
+
+  /// No description provided for @locationDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location details'**
+  String get locationDetailsTitle;
+
+  /// No description provided for @locationDetailsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the location currently available on this device.'**
+  String get locationDetailsDescription;
+
+  /// No description provided for @locationDetailsAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Access precision'**
+  String get locationDetailsAccuracy;
+
+  /// No description provided for @locationDetailsCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'Coordinates'**
+  String get locationDetailsCoordinates;
+
+  /// No description provided for @locationDetailsUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update'**
+  String get locationDetailsUpdated;
+
   /// No description provided for @locationNotRequestedTitle.
   ///
   /// In en, this message translates to:
   /// **'Location access is off'**
   String get locationNotRequestedTitle;
+
+  /// No description provided for @locationPermissionExplanationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access?'**
+  String get locationPermissionExplanationTitle;
+
+  /// No description provided for @locationPermissionExplanationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location helps us provide nearby results and location-based features. It will only be used when needed.'**
+  String get locationPermissionExplanationDescription;
+
+  /// No description provided for @allowLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Location'**
+  String get allowLocation;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Now'**
+  String get notNow;
 
   /// No description provided for @locationExplanation.
   ///
@@ -175,7 +277,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationPrivacyDescription.
   ///
   /// In en, this message translates to:
-  /// **'Before you choose Use my location, SafeMyanmar does not request device location or construct the map. Shelter refresh and Mapbox telemetry may use the network without device location. SafeMyanmar does not keep a location history or request background location.'**
+  /// **'Before you choose Use my location, SafeMyanmar does not request device location or construct the map. After you choose it, later launches reuse that permission while it remains granted. Shelter refresh and Mapbox telemetry may use the network without device location. SafeMyanmar does not keep a location history or request background location.'**
   String get locationPrivacyDescription;
 
   /// No description provided for @useMyLocation.
@@ -427,8 +529,50 @@ abstract class AppLocalizations {
   /// No description provided for @mapContentSemantics.
   ///
   /// In en, this message translates to:
-  /// **'Interactive map showing current or last-known location, mapped shelters, relevant hazards, and route options. The selected route uses a wider line.'**
+  /// **'Interactive map showing current or last-known location, mapped shelters, relevant hazards, and route options. Tap the location button or your location marker for details. The selected route uses a wider line.'**
   String get mapContentSemantics;
+
+  /// No description provided for @mapLegendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Map legend'**
+  String get mapLegendTitle;
+
+  /// No description provided for @mapLegendLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location'**
+  String get mapLegendLocation;
+
+  /// No description provided for @mapLegendShelter.
+  ///
+  /// In en, this message translates to:
+  /// **'Mapped shelter'**
+  String get mapLegendShelter;
+
+  /// No description provided for @mapLegendHazard.
+  ///
+  /// In en, this message translates to:
+  /// **'Mapped hazard'**
+  String get mapLegendHazard;
+
+  /// No description provided for @mapLegendContextArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested area'**
+  String get mapLegendContextArea;
+
+  /// No description provided for @mapLegendRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested route'**
+  String get mapLegendRoute;
+
+  /// No description provided for @mapLegendNearbySos.
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified nearby SOS'**
+  String get mapLegendNearbySos;
 
   /// No description provided for @chooseShelter.
   ///
@@ -448,6 +592,18 @@ abstract class AppLocalizations {
   /// **'No cached shelter details are available.'**
   String get shelterListEmpty;
 
+  /// No description provided for @hazardSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hazard summary'**
+  String get hazardSummaryTitle;
+
+  /// No description provided for @hazardSummaryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review mapped hazards with their source and data time. Information may be incomplete or stale.'**
+  String get hazardSummaryDescription;
+
   /// No description provided for @contextAreasHeading.
   ///
   /// In en, this message translates to:
@@ -459,6 +615,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Suggestions compare currently available mapped environment data. They are not official shelters or guarantees.'**
   String get contextAreasDescription;
+
+  /// No description provided for @contextSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Context summary'**
+  String get contextSummaryTitle;
+
+  /// No description provided for @contextSummaryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions use available mapped data; they are not official shelters or guarantees.'**
+  String get contextSummaryDescription;
+
+  /// No description provided for @contextSummaryNoMappedHazards.
+  ///
+  /// In en, this message translates to:
+  /// **'No mapped hazards found. This does not confirm the area is safe.'**
+  String get contextSummaryNoMappedHazards;
 
   /// No description provided for @analyzeContext.
   ///
@@ -529,19 +703,19 @@ abstract class AppLocalizations {
   /// No description provided for @sosBluetoothShareDescription.
   ///
   /// In en, this message translates to:
-  /// **'Broadcast a temporary ID, timestamp, approximate grid, location status, and battery level to nearby SafeMyanmar users for 10 minutes.'**
+  /// **'Broadcast a temporary ID, timestamp, exact coordinates when available, location status, and battery level to nearby SafeMyanmar users for 10 minutes.'**
   String get sosBluetoothShareDescription;
 
   /// No description provided for @sosBluetoothFields.
   ///
   /// In en, this message translates to:
-  /// **'Shared: temporary event ID, UTC timestamp, approximately 1 km grid, location status, and battery level.'**
+  /// **'Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, and battery level.'**
   String get sosBluetoothFields;
 
   /// No description provided for @sosBluetoothTenMinuteLimit.
   ///
   /// In en, this message translates to:
-  /// **'The broadcast stops automatically after 10 minutes. Exact coordinates, name, contacts, and message are not broadcast.'**
+  /// **'The broadcast stops automatically after 10 minutes. Names, contacts, and message text are not broadcast.'**
   String get sosBluetoothTenMinuteLimit;
 
   /// No description provided for @sosBluetoothUnavailable.
@@ -556,6 +730,18 @@ abstract class AppLocalizations {
   /// **'Nearby-device and notification permissions are required before Bluetooth SOS can be used.'**
   String get sosBluetoothPermissionRequired;
 
+  /// No description provided for @sosBluetoothPermissionSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Bluetooth and notification permissions in app settings.'**
+  String get sosBluetoothPermissionSettings;
+
+  /// No description provided for @sosBluetoothDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth is turned off. Turn it on and try again.'**
+  String get sosBluetoothDisabled;
+
   /// No description provided for @sosBluetoothReceiveTitle.
   ///
   /// In en, this message translates to:
@@ -567,6 +753,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Listen while this screen is open. Received events are unverified and do not confirm rescue response.'**
   String get sosBluetoothReceiveDescription;
+
+  /// No description provided for @sosBluetoothBackgroundReceiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive SOS alerts in the background'**
+  String get sosBluetoothBackgroundReceiveTitle;
+
+  /// No description provided for @sosBluetoothBackgroundReceiveDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep an Android receiver active when SafeMyanmar is not open. It uses a persistent notification, stores only validated temporary frames, and does not relay them.'**
+  String get sosBluetoothBackgroundReceiveDescription;
+
+  /// No description provided for @sosBluetoothRelayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Relay nearby SOS alerts once'**
+  String get sosBluetoothRelayTitle;
+
+  /// No description provided for @sosBluetoothRelayDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Explicitly allow this device to rebroadcast each valid nearby SOS frame one time over Bluetooth only. Nothing is uploaded.'**
+  String get sosBluetoothRelayDescription;
+
+  /// No description provided for @sosBluetoothRelayCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Relayed frames this session: {count}'**
+  String sosBluetoothRelayCount(int count);
 
   /// No description provided for @sosBluetoothSoundTitle.
   ///
@@ -585,6 +801,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bluetooth SOS is broadcasting limited data.'**
   String get sosBluetoothBroadcasting;
+
+  /// No description provided for @sosBluetoothBroadcastFrameDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast frame details'**
+  String get sosBluetoothBroadcastFrameDetails;
 
   /// No description provided for @sosBluetoothStop.
   ///
@@ -613,7 +835,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosBluetoothGridLocation.
   ///
   /// In en, this message translates to:
-  /// **'Approximate grid: {latitude}, {longitude}'**
+  /// **'Coordinates: {latitude}, {longitude}'**
   String sosBluetoothGridLocation(String latitude, String longitude);
 
   /// No description provided for @sosBluetoothCurrentLocation.
@@ -633,6 +855,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location was unavailable.'**
   String get sosBluetoothLocationUnavailable;
+
+  /// No description provided for @sosBluetoothUnknownValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get sosBluetoothUnknownValue;
+
+  /// No description provided for @sosBluetoothEventId.
+  ///
+  /// In en, this message translates to:
+  /// **'Event ID: {id}'**
+  String sosBluetoothEventId(String id);
+
+  /// No description provided for @sosBluetoothTimestamp.
+  ///
+  /// In en, this message translates to:
+  /// **'UTC time: {time}'**
+  String sosBluetoothTimestamp(String time);
+
+  /// No description provided for @sosBluetoothBatteryValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery: {value}%'**
+  String sosBluetoothBatteryValue(int value);
+
+  /// No description provided for @sosBluetoothRssiValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Signal: {value} dBm; proximity is approximate'**
+  String sosBluetoothRssiValue(int value);
+
+  /// No description provided for @sosBluetoothProtocol.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol: v{version}; TTL: {ttl} minutes'**
+  String sosBluetoothProtocol(int version, int ttl);
+
+  /// No description provided for @sosBluetoothRelayHops.
+  ///
+  /// In en, this message translates to:
+  /// **'Relay hops: {count}'**
+  String sosBluetoothRelayHops(int count);
+
+  /// No description provided for @sosBluetoothApproximateNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Coordinates are supplied by the peer device and are unverified.'**
+  String get sosBluetoothApproximateNotice;
+
+  /// No description provided for @sosBluetoothMapsLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Maps: {url}'**
+  String sosBluetoothMapsLink(String url);
+
+  /// No description provided for @sosBluetoothOpenMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Google Maps'**
+  String get sosBluetoothOpenMaps;
+
+  /// No description provided for @sosBluetoothShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all SOS markers'**
+  String get sosBluetoothShowAll;
+
+  /// No description provided for @sosBluetoothMapEventsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby SOS sources'**
+  String get sosBluetoothMapEventsHeading;
+
+  /// No description provided for @sosBluetoothSourceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SOS source {index}'**
+  String sosBluetoothSourceLabel(Object index);
+
+  /// No description provided for @sosBluetoothSelectedEventHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected SOS details'**
+  String get sosBluetoothSelectedEventHeading;
+
+  /// No description provided for @sosBluetoothSelectEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Select nearby SOS {index}'**
+  String sosBluetoothSelectEvent(int index);
 
   /// No description provided for @sosBluetoothBroadcastStarted.
   ///
@@ -856,6 +1168,36 @@ abstract class AppLocalizations {
   /// **'Prepare an emergency SMS for people you selected. Opening this screen does not prepare or send anything.'**
   String get sosIntroduction;
 
+  /// No description provided for @sosSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SOS setup'**
+  String get sosSetupTitle;
+
+  /// No description provided for @sosSetupDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review contacts, optional message, location sharing, and the exact message before confirming.'**
+  String get sosSetupDescription;
+
+  /// No description provided for @sosReadinessReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to review'**
+  String get sosReadinessReady;
+
+  /// No description provided for @sosReadinessNeedsContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an emergency contact first'**
+  String get sosReadinessNeedsContact;
+
+  /// No description provided for @sosReadinessLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable; continue without coordinates'**
+  String get sosReadinessLocationUnavailable;
+
   /// No description provided for @sosRecipientsHeading.
   ///
   /// In en, this message translates to:
@@ -974,6 +1316,42 @@ abstract class AppLocalizations {
   /// **'For example: I need help leaving this area.'**
   String get sosOptionalMessageHint;
 
+  /// No description provided for @sosLocationSharingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Include location in this SOS'**
+  String get sosLocationSharingTitle;
+
+  /// No description provided for @sosLocationSharingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is not shared unless you enable it for this SOS. Your existing location permission will be reused.'**
+  String get sosLocationSharingDescription;
+
+  /// No description provided for @sosLocationSharingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location could not be obtained. This SOS will not include coordinates.'**
+  String get sosLocationSharingUnavailable;
+
+  /// No description provided for @sosLocationSharingUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable'**
+  String get sosLocationSharingUnavailableTitle;
+
+  /// No description provided for @sosLocationSharingUnavailableDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The SOS can still be prepared without coordinates. Continue without sharing a location?'**
+  String get sosLocationSharingUnavailableDescription;
+
+  /// No description provided for @sosContinueWithoutLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue without location'**
+  String get sosContinueWithoutLocation;
+
   /// No description provided for @sosComposerDisclosure.
   ///
   /// In en, this message translates to:
@@ -1082,6 +1460,12 @@ abstract class AppLocalizations {
   /// **'SafeMyanmar will send this saved message directly through Android SMS. Device acceptance does not guarantee carrier delivery.'**
   String get sosRetrySmsDescription;
 
+  /// No description provided for @sosRetrySmsUncertainDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The previous SMS attempt has a partial or unknown result. Retrying can create duplicate messages, so continue only if that risk is acceptable.'**
+  String get sosRetrySmsUncertainDescription;
+
   /// No description provided for @sosNotNow.
   ///
   /// In en, this message translates to:
@@ -1123,6 +1507,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The device could not accept the SMS. Check SIM/service and SMS permission, then retry the draft.'**
   String get sosSmsFailedNotice;
+
+  /// No description provided for @sosSmsUncertainNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMS result was partial or unknown. Some messages may have been accepted; retrying can create duplicates.'**
+  String get sosSmsUncertainNotice;
 
   /// No description provided for @sosSimUnavailable.
   ///
@@ -1195,6 +1585,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SMS accepted by device; delivery unconfirmed'**
   String get sosStatusSmsSent;
+
+  /// No description provided for @sosStatusSmsPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS partially accepted; delivery unconfirmed'**
+  String get sosStatusSmsPartial;
+
+  /// No description provided for @sosStatusSmsUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS result unknown; retry may duplicate'**
+  String get sosStatusSmsUnknown;
 
   /// No description provided for @sosStatusSmsFailed.
   ///
@@ -1405,6 +1807,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Offline verified-content retrieval'**
   String get guideOfflineVerifiedLabel;
+
+  /// No description provided for @guideQuickActionsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick actions'**
+  String get guideQuickActionsHeading;
+
+  /// No description provided for @guideActionEarthquake.
+  ///
+  /// In en, this message translates to:
+  /// **'Earthquake'**
+  String get guideActionEarthquake;
+
+  /// No description provided for @guideActionFlood.
+  ///
+  /// In en, this message translates to:
+  /// **'Flood'**
+  String get guideActionFlood;
+
+  /// No description provided for @guideActionFire.
+  ///
+  /// In en, this message translates to:
+  /// **'Fire'**
+  String get guideActionFire;
+
+  /// No description provided for @guideActionFirstAid.
+  ///
+  /// In en, this message translates to:
+  /// **'First aid'**
+  String get guideActionFirstAid;
+
+  /// No description provided for @guideActionMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Map'**
+  String get guideActionMap;
+
+  /// No description provided for @guideActionSos.
+  ///
+  /// In en, this message translates to:
+  /// **'Open SOS'**
+  String get guideActionSos;
+
+  /// No description provided for @guideNextStepsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Next steps'**
+  String get guideNextStepsHeading;
+
+  /// No description provided for @guideNextStepMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Map'**
+  String get guideNextStepMap;
+
+  /// No description provided for @guideNextStepSos.
+  ///
+  /// In en, this message translates to:
+  /// **'Review SOS'**
+  String get guideNextStepSos;
+
+  /// No description provided for @guideNextStepAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask assistant'**
+  String get guideNextStepAssistant;
 
   /// No description provided for @guideAskAssistant.
   ///
