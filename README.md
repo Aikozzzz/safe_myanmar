@@ -229,6 +229,24 @@ physical device, run `adb reverse tcp:8000 tcp:8000` and use
 `http://127.0.0.1:8000`; otherwise use a reachable HTTPS endpoint. Device
 `localhost` does not refer to the development computer without `adb reverse`.
 
+### Language selection
+
+The More tab provides an explicit English/မြန်မာ selector. SafeMyanmar stores
+only `en` or `my` in the separate Android secure-storage key
+`app_language_v1`; it does not alter the encrypted profile payload or require
+location, network access, or a fresh cache. The selected locale is restored on
+restart, while missing, invalid, or unreadable values safely use English.
+
+The Burmese locale covers app-owned UI, reviewed offline Guide content,
+deterministic assistant replies, and SOS/map controls. Optional Gemma requests
+include the selected language, but output is accepted only when it passes the
+language and safety checks. Critical medical, trapped-person, SOS, and route
+decisions remain deterministic and reviewed. Live provider names, place names,
+alert text, map-derived names, and other unreviewed fields remain source text;
+the Burmese UI identifies that boundary instead of silently translating it.
+Changing language never rewrites cached alert/navigation data or a previously
+confirmed SOS draft body.
+
 ### Test an already-installed app over wireless ADB
 
 The repository includes a PowerShell launcher that starts the backend, starts

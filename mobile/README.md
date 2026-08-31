@@ -55,6 +55,30 @@ with `--dart-define`. The backend must separately receive
 is never sent to Flutter, and an unset or invalid value leaves routing
 unavailable while map and cached navigation screens remain usable.
 
+## Language And Reviewed Content
+
+Open **More > Language** to choose English or မြန်မာ. The explicit choice is
+stored as only `en` or `my` in Android secure storage under the separate
+`app_language_v1` key. It does not change the encrypted profile payload,
+request location, require network access, or invalidate cached alerts,
+navigation data, Guide records, or existing SOS draft bodies. Missing,
+invalid, or temporarily unreadable preferences fall back to English; a failed
+write keeps the previously active language and exposes a retry action.
+
+The Burmese locale covers app-owned chrome, safety labels, reviewed Guide
+titles/answers, deterministic assistant responses, and SOS/map controls.
+Guide Burmese text is reviewed content stored with the article version. The
+optional Gemma path receives the selected language and is discarded when its
+output is empty, unsafe, English-only, or not reliably Burmese; deterministic
+reviewed content remains the fallback. Gemma is never used to decide critical
+medical, trapped-person, SOS, or route actions.
+
+Live provider names, places, alert descriptions, map-derived candidate names,
+and other unreviewed dynamic fields remain in their original form. Burmese
+screens identify that boundary instead of silently machine-translating
+safety-critical provider text. Proper names, URLs, phone numbers, coordinates,
+and model identifiers are preserved.
+
 ## Permissions And Privacy
 
 - The app manifest declares Internet, coarse/fine location, Android BLE
@@ -140,9 +164,12 @@ unavailable while map and cached navigation screens remain usable.
   network failure. Alert data older than the backend freshness threshold is
   shown as stale.
 - Guide articles are versioned, source-backed English/Myanmar records seeded in
-  Drift and remain searchable offline.
+  Drift and remain searchable offline. The selected locale determines which
+  reviewed title and answer is shown.
 - The deterministic assistant remains available offline and returns only
-  approved article content or explicit navigation/SOS actions.
+  approved article content or explicit navigation/SOS actions. Burmese
+  questions use Burmese aliases and reviewed Burmese answers; unsupported or
+  rejected generated output falls back to localized safe copy.
 - Secure profile, contacts, and SOS drafts remain local and available without a
   network, subject to platform secure-storage availability.
 - Map tiles, fresh navigation data, live earthquake refresh, and Mapbox route

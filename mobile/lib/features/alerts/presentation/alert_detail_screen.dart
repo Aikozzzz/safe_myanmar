@@ -109,6 +109,7 @@ class _DetailContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     final reviewStatus = earthquake.reviewStatus;
 
     return ListView(
@@ -129,6 +130,11 @@ class _DetailContent extends ConsumerWidget {
           icon: Icons.place_outlined,
           text: strings.locationValue(earthquake.place),
         ),
+        if (burmese)
+          _DetailRow(
+            icon: Icons.translate_outlined,
+            text: strings.originalSourceTextNotice,
+          ),
         _DetailRow(
           icon: Icons.vertical_align_bottom,
           text: strings.depthValue(formatDecimal(context, earthquake.depthKm)),

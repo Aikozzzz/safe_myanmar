@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/sos/application/providers.dart';
 import '../features/location/application/providers.dart';
+import '../features/settings/application/providers.dart';
 import '../l10n/app_localizations.dart';
 import 'router.dart';
 import 'theme/safe_theme.dart';
@@ -60,6 +61,7 @@ class _SafeMyanmarAppState extends ConsumerState<SafeMyanmarApp>
 
   @override
   Widget build(BuildContext context) {
+    final language = ref.watch(languagePreferenceControllerProvider).language;
     ref.listen(sosBleControllerProvider, (previous, next) {
       final eventId = next.focusedEventId;
       if (eventId != null &&
@@ -77,6 +79,7 @@ class _SafeMyanmarAppState extends ConsumerState<SafeMyanmarApp>
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale(language.code),
       theme: SafeTheme.light(),
       darkTheme: SafeTheme.dark(),
       themeMode: ThemeMode.system,

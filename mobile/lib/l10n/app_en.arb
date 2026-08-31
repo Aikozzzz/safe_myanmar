@@ -418,6 +418,13 @@
   "sosChooseSimDescription": "Select which active SIM should send this SOS message.",
   "sosRememberSim": "Remember my preferred SIM",
   "sosSendUsingSim": "Send using SIM",
+  "sosSimLabel": "SIM {slot}: {label}",
+  "@sosSimLabel": {
+    "placeholders": {
+      "slot": {"type": "int"},
+      "label": {"type": "String"}
+    }
+  },
   "sosMaximumDrafts": "The secure SOS queue already has 5 drafts. Remove one before preparing another.",
   "sosDraftQueueHeading": "SOS drafts and history",
   "sosDraftQueueEmpty": "No SOS drafts have been prepared on this device.",
@@ -582,6 +589,16 @@
   "assistantDraftBattery": "Battery: {value}%",
   "@assistantDraftBattery": {"placeholders": {"value": {"type": "int"}}},
   "moreTitle": "More",
+  "languageSettingsTitle": "Language",
+  "languageSettingsDescription": "Choose the language for app-owned screens and reviewed offline guidance.",
+  "languageEnglish": "English",
+  "languageBurmese": "မြန်မာ",
+  "languageSaving": "Saving language preference",
+  "languageReadErrorTitle": "Language preference temporarily unavailable",
+  "languageReadErrorDescription": "SafeMyanmar could not read your saved language choice. English is active. Try again.",
+  "languageWriteErrorTitle": "Language preference was not saved",
+  "languageWriteErrorDescription": "SafeMyanmar could not save your language choice. The previous language remains active. Try again.",
+  "originalSourceTextNotice": "Some source-provided names and live alert text are shown in the original language.",
   "profileOverviewTitle": "Your local profile",
   "profileNotSet": "Display name not set",
   "profileLocalOnlyLabel": "Stored on this device",

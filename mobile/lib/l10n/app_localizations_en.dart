@@ -940,6 +940,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosSendUsingSim => 'Send using SIM';
 
   @override
+  String sosSimLabel(int slot, String label) => 'SIM $slot: $label';
+
+  @override
   String get sosMaximumDrafts =>
       'The secure SOS queue already has 5 drafts. Remove one before preparing another.';
 
@@ -1397,6 +1400,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String assistantDraftBattery(int value) {
     return 'Battery: $value%';
   }
+
+  @override
+  String get languageSettingsTitle => 'Language';
+
+  @override
+  String get languageSettingsDescription =>
+      'Choose the language for app-owned screens and reviewed offline guidance.';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageBurmese => 'မြန်မာ';
+
+  @override
+  String get languageSaving => 'Saving language preference';
+
+  @override
+  String get languageReadErrorTitle =>
+      'Language preference temporarily unavailable';
+
+  @override
+  String get languageReadErrorDescription =>
+      'SafeMyanmar could not read your saved language choice. English is active. Try again.';
+
+  @override
+  String get languageWriteErrorTitle => 'Language preference was not saved';
+
+  @override
+  String get languageWriteErrorDescription =>
+      'SafeMyanmar could not save your language choice. The previous language remains active. Try again.';
+
+  @override
+  String get originalSourceTextNotice =>
+      'Some source-provided names and live alert text are shown in the original language.';
 
   @override
   String get moreTitle => 'More';

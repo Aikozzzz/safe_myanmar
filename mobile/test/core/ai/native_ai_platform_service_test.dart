@@ -82,6 +82,7 @@ void main() {
       source: 'Reviewed source',
       userQuestion: 'Can this be simpler?',
       intent: 'first_aid',
+      languageCode: 'en',
     );
 
     expect(received?.method, 'rewriteVerifiedContent');
@@ -90,6 +91,7 @@ void main() {
       'source': 'Reviewed source',
       'userQuestion': 'Can this be simpler?',
       'intent': 'first_aid',
+      'language': 'en',
     });
     expect(result.status, NativeAiStatus.unavailable);
     expect(result.reason, NativeAiReason.criticalIntent);
@@ -106,6 +108,7 @@ void main() {
       source: 'Reviewed source',
       userQuestion: 'Simplify this',
       intent: 'general_information',
+      languageCode: 'en',
     );
 
     expect(result.status, NativeAiStatus.error);
@@ -123,12 +126,14 @@ void main() {
     final result = await service.answerQuestion(
       question: 'What is the difference between a flood and an earthquake?',
       approvedContext: '[flood] Flood overview',
+      languageCode: 'en',
     );
 
     expect(received?.method, 'answerQuestion');
     expect(received?.arguments, {
       'question': 'What is the difference between a flood and an earthquake?',
       'approvedContext': '[flood] Flood overview',
+      'language': 'en',
     });
     expect(result.status, NativeAiStatus.success);
     expect(result.value?.text, 'answer');

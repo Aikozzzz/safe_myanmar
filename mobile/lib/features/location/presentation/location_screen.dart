@@ -309,8 +309,8 @@ class LocationDetailsSheet extends StatelessWidget {
             icon: Icons.pin_drop_outlined,
             label: strings.locationDetailsCoordinates,
             value: strings.locationCoordinates(
-              location.latitude.toStringAsFixed(6),
-              location.longitude.toStringAsFixed(6),
+              _formatLocalizedCoordinate(context, location.latitude),
+              _formatLocalizedCoordinate(context, location.longitude),
             ),
           ),
           const Divider(),
@@ -825,6 +825,7 @@ class _HazardSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     final isSimulation = collection.simulation;
     return Semantics(
       key: const ValueKey('hazard-summary'),
@@ -866,6 +867,11 @@ class _HazardSummary extends StatelessWidget {
                       ],
                     ),
                   ),
+              if (burmese && visibleHazards.isNotEmpty)
+                Text(
+                  strings.originalSourceTextNotice,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               const SizedBox(height: 8),
               Text(strings.navigationSource(collection.source)),
               if (_usesOpenStreetMap(collection.source))
@@ -900,6 +906,7 @@ class _ContextSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     final selected = collection.items
         .where((area) => area.id == selectedId)
         .firstOrNull;
@@ -936,6 +943,11 @@ class _ContextSummary extends StatelessWidget {
               if (selected case final area?) ...[
                 const SizedBox(height: 12),
                 Text(area.name, style: Theme.of(context).textTheme.titleSmall),
+                if (burmese)
+                  Text(
+                    strings.originalSourceTextNotice,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 const SizedBox(height: 8),
                 Text(
                   strings.contextSelectedCandidate,
@@ -1010,9 +1022,11 @@ class _ContextMetrics extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final numberFormat = NumberFormat('0.#', locale);
     final densityFormat = NumberFormat(
       '0.#',
-      Localizations.localeOf(context).toLanguageTag(),
+      locale,
     );
     final metrics = area.metrics;
     final rows = <Widget>[
@@ -1040,7 +1054,7 @@ class _ContextMetrics extends StatelessWidget {
         _ContextMetricRow(
           icon: Icons.terrain_outlined,
           value: strings.contextElevation(
-            metrics.relativeElevationM.toStringAsFixed(1),
+            numberFormat.format(metrics.relativeElevationM),
           ),
         ),
       _ContextMetricRow(
@@ -1345,6 +1359,7 @@ class _ContextAreaList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     final candidates = areas.take(3).toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1355,6 +1370,13 @@ class _ContextAreaList extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(strings.contextAreasDescription),
+        if (burmese && candidates.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            strings.originalSourceTextNotice,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: loading ? null : onAnalyze,
@@ -1466,9 +1488,11 @@ String _contextAreaSemanticsLabel(
   required int rank,
   required bool selected,
 }) {
+  final locale = Localizations.localeOf(context).toLanguageTag();
+  final numberFormat = NumberFormat('0.#', locale);
   final densityFormat = NumberFormat(
     '0.#',
-    Localizations.localeOf(context).toLanguageTag(),
+    locale,
   );
   final metrics = area.metrics;
   final details = <String>[
@@ -1493,7 +1517,7 @@ String _contextAreaSemanticsLabel(
         densityFormat.format(metrics.treeDensity * 100),
       ),
     if (area.disasterType == DisasterType.flood)
-      strings.contextElevation(metrics.relativeElevationM.toStringAsFixed(1)),
+      strings.contextElevation(numberFormat.format(metrics.relativeElevationM)),
     strings.contextHazardIntersections(metrics.hazardIntersections),
     if (area.rationale.isNotEmpty)
       '${strings.contextRationaleHeading}: ${area.rationale.join('; ')}',
@@ -1527,6 +1551,7 @@ class _RouteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     final number = NumberFormat.decimalPattern(
       Localizations.localeOf(context).toLanguageTag(),
     );
@@ -1610,6 +1635,11 @@ class _RouteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(strings.routeRationale(option.rationale)),
+                  if (burmese)
+                    Text(
+                      strings.originalSourceTextNotice,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   Text(
                     strings.routeGeneratedAt(
                       _formatUtc(context, strings, option.generatedAt),
@@ -1824,3 +1854,9 @@ class _LocationStatusCard extends StatelessWidget {
     return strings.utcTimestamp(formatted);
   }
 }
+
+String _formatLocalizedCoordinate(BuildContext context, double value) =>
+    NumberFormat(
+      '0.000000',
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(value);

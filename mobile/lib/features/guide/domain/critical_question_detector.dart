@@ -69,6 +69,7 @@ const _criticalTerms = <_CriticalTermGroup>[
     _CriticalTerm('help me'),
     _CriticalTerm('အက်စ်အိုအက်စ်'),
     _CriticalTerm('အရေးပေါ်စာ'),
+    _CriticalTerm('အရေးပေါ်စာပို့'),
     _CriticalTerm('အကူအညီတောင်း'),
   ]),
   _CriticalTermGroup(EmergencyIntent.safeRoute, [
@@ -77,6 +78,7 @@ const _criticalTerms = <_CriticalTermGroup>[
     _CriticalTerm('evacuation route'),
     _CriticalTerm('ဘေးကင်းလမ်း'),
     _CriticalTerm('ဘေးကင်းတဲ့လမ်း'),
+    _CriticalTerm('လုံခြုံတဲ့လမ်း'),
     _CriticalTerm('ရွှေ့ပြောင်းလမ်း'),
   ]),
 ];

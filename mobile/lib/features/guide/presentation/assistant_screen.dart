@@ -147,6 +147,7 @@ class _MessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     if (message.isUser) {
       return Align(
         alignment: Alignment.centerRight,
@@ -176,9 +177,7 @@ class _MessageCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               if (article != null) ...[
-                Text(article.answerEn),
-                const Divider(height: 24),
-                Text(article.answerMy),
+                Text(article.answerForLanguage(burmese: burmese)),
                 const SizedBox(height: 12),
                 if (message.localRewording case final rewording?) ...[
                   _LocalRewordingCard(text: rewording),

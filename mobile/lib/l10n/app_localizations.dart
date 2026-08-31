@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_my.dart';
 
 // ignore_for_file: type=lint
 
@@ -92,7 +93,10 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('my'),
+  ];
 
   /// No description provided for @appName.
   ///
@@ -1604,6 +1608,12 @@ abstract class AppLocalizations {
   /// **'Send using SIM'**
   String get sosSendUsingSim;
 
+  /// No description provided for @sosSimLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SIM {slot}: {label}'**
+  String sosSimLabel(int slot, String label);
+
   /// No description provided for @sosMaximumDrafts.
   ///
   /// In en, this message translates to:
@@ -2354,6 +2364,36 @@ abstract class AppLocalizations {
   /// **'Battery: {value}%'**
   String assistantDraftBattery(int value);
 
+  /// No description provided for @languageSettingsTitle.
+  String get languageSettingsTitle;
+
+  /// No description provided for @languageSettingsDescription.
+  String get languageSettingsDescription;
+
+  /// No description provided for @languageEnglish.
+  String get languageEnglish;
+
+  /// No description provided for @languageBurmese.
+  String get languageBurmese;
+
+  /// No description provided for @languageSaving.
+  String get languageSaving;
+
+  /// No description provided for @languageReadErrorTitle.
+  String get languageReadErrorTitle;
+
+  /// No description provided for @languageReadErrorDescription.
+  String get languageReadErrorDescription;
+
+  /// No description provided for @languageWriteErrorTitle.
+  String get languageWriteErrorTitle;
+
+  /// No description provided for @languageWriteErrorDescription.
+  String get languageWriteErrorDescription;
+
+  /// No description provided for @originalSourceTextNotice.
+  String get originalSourceTextNotice;
+
   /// No description provided for @moreTitle.
   ///
   /// In en, this message translates to:
@@ -2871,7 +2911,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en'].contains(locale.languageCode);
+      <String>['en', 'my'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -2882,6 +2922,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'my':
+      return AppLocalizationsMy();
   }
 
   throw FlutterError(

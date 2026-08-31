@@ -176,14 +176,28 @@ delivery, and SafeMyanmar has no dispatch or rescue acknowledgement.
 Drift v3 seeds a small versioned English/Myanmar Guide set with trusted source
 metadata and review dates. Search, category filtering, and deterministic intent
 matching work offline. The deterministic tier always controls approved article
-retrieval and explicit map/SOS navigation actions.
+retrieval and explicit map/SOS navigation actions. More persists the explicit
+English/မြန်မာ choice separately in secure storage; it defaults to English when
+the value is missing, invalid, or unreadable and does not change the profile
+payload or cached emergency data. Burmese Guide cards and article details use
+the reviewed `titleMy`, `questionMy`, and `answerMy` fields only.
 
 Optional ONNX refinement runs only for an unknown deterministic result. Optional
 LiteRT-LM can answer general non-critical questions and reword supplied verified
-content, with approved disaster context supplied when relevant. It is excluded
-from critical intents. Missing, invalid, unsupported, resource-constrained, or
-failed models fall back without blocking deterministic guidance. See
+content, with approved disaster context supplied in the selected language when
+relevant. The native bridge receives `en` or `my`; Burmese output must contain
+reliable Burmese text and pass safety checks. Empty, English-only, unsafe, or
+otherwise rejected output falls back to reviewed Burmese content or localized
+safe copy. Gemma is excluded from critical medical, trapped-person, SOS, and
+route intents. Missing, invalid, unsupported, resource-constrained, or failed
+models fall back without blocking deterministic guidance. See
 [optional AI model provisioning](optional-ai-model-provisioning.md).
+
+App-owned labels and statuses are localized. Live provider names, place names,
+alert descriptions, map-derived candidate names, and other unreviewed dynamic
+fields remain unchanged, with a concise Burmese original-source notice where
+they are displayed. Localized formatting changes presentation only: cached
+records and previously confirmed SOS draft bodies are not rewritten.
 
 ## Privacy And Permission Boundaries
 
