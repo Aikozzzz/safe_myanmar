@@ -51,6 +51,7 @@ void main() {
       isGeneralChatQuestion('How long does it take for Typhon to pass a city'),
       isTrue,
     );
+    expect(isGeneralChatQuestion('ငလျင်အကြောင်း ရှင်းပြပါ'), isTrue);
     expect(isGeneralChatQuestion('How do I avoid floodwater?'), isFalse);
   });
 
