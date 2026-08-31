@@ -49,6 +49,10 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Offline verified-content retrieval'), findsOneWidget);
     expect(
+      find.textContaining('Burmese translations require review'),
+      findsNothing,
+    );
+    expect(
       tester.getSemantics(find.text('Offline verified-content retrieval')),
       matchesSemantics(label: 'Offline verified-content retrieval'),
     );

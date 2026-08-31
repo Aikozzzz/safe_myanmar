@@ -34,6 +34,14 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.textContaining('This tool matches disaster questions'),
+      findsNothing,
+    );
+    expect(
+      find.textContaining('Gemma answers are generated on-device'),
+      findsNothing,
+    );
   });
 
   testWidgets('capability banner announces available ONNX and Gemma', (
@@ -77,6 +85,12 @@ void main() {
     await tester.tap(find.byTooltip('Send question'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('Optional local rewording'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('APPROVED EARTHQUAKE ANSWER'), findsOneWidget);
     expect(find.text('Optional local rewording'), findsOneWidget);
     expect(find.text('Optional simpler wording.'), findsOneWidget);
@@ -88,10 +102,8 @@ void main() {
     expect(find.text('Content version: 1'), findsOneWidget);
     expect(
       find.textContaining('Burmese translations require review'),
-      findsOneWidget,
+      findsNothing,
     );
-    await tester.ensureVisible(find.text('Optional local rewording'));
-    await tester.pumpAndSettle();
     expect(
       tester.getSemantics(find.text('Optional local rewording')),
       matchesSemantics(
@@ -130,6 +142,12 @@ void main() {
     await tester.tap(find.byTooltip('Send question'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('Open Map'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(
       find.text('Response engine: optional local ONNX intent classifier'),
       findsOneWidget,

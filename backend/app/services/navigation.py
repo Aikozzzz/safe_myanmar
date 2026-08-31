@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from math import asin, cos, radians, sin, sqrt
 
 from app.providers.mapbox.directions import (
@@ -24,8 +24,12 @@ from app.schemas.navigation import (
     Shelter,
     ShelterListResponse,
 )
+from app.services.environment_provider import ContextAnalysisUnavailable
 from app.services.real_context_analysis import RealContextAnalyzer
-from app.services.real_navigation_data import YangonNavigationData
+from app.services.real_navigation_data import (
+    DEFAULT_SNAPSHOT_MAX_AGE_SECONDS,
+    YangonNavigationData,
+)
 
 SIMULATION_DATA_AT = datetime(2026, 7, 23, tzinfo=UTC)
 
@@ -43,6 +47,13 @@ class SimulationRegion:
             self.min_latitude <= coordinate.latitude <= self.max_latitude
             and self.min_longitude <= coordinate.longitude <= self.max_longitude
         )
+
+
+@dataclass(frozen=True, slots=True)
+class _ResolvedDestination:
+    coordinate: Coordinate
+    source: str
+    uncertainty_notice: str
 
 
 MANDALAY_REGION = SimulationRegion(
@@ -481,7 +492,7 @@ class NavigationService:
         self, request: RouteSuggestionRequest
     ) -> RouteSuggestionsResponse:
         if self._real_data is not None:
-            raise RoutingUnavailable
+            return self._suggest_real_routes(request)
         self._require_simulation()
         origin_region = _simulation_region_for_coordinate(request.origin)
         if origin_region is None:
@@ -576,6 +587,181 @@ class NavigationService:
             uncertainty_notice=UNCERTAINTY_NOTICE,
         )
 
+    def _suggest_real_routes(
+        self, request: RouteSuggestionRequest
+    ) -> RouteSuggestionsResponse:
+        real_data = self._real_data
+        if real_data is None:
+            raise RoutingUnavailable
+
+        now = _utc_datetime_or_none(self._clock())
+        retrieved_at = _utc_datetime_or_none(real_data.retrieved_at)
+        if (
+            now is None
+            or retrieved_at is None
+            or now - retrieved_at > timedelta(seconds=DEFAULT_SNAPSHOT_MAX_AGE_SECONDS)
+            or _has_stale_metadata(real_data.uncertainty_notice)
+        ):
+            raise RoutingUnavailable
+
+        destination = self._resolve_real_destination(request)
+        profile, reason = self._select_profile(
+            request.origin, destination.coordinate, request.profile
+        )
+        try:
+            routes = tuple(
+                self._directions.get_routes(
+                    request.origin, destination.coordinate, profile
+                )
+            )
+        except (DirectionsProviderError, TypeError):
+            raise RoutingUnavailable from None
+
+        if not routes:
+            raise RoutingUnavailable
+
+        generated_at = _utc_datetime_or_none(self._clock())
+        if generated_at is None:
+            raise RoutingUnavailable
+        relevant_hazards = tuple(
+            hazard
+            for hazard in real_data.hazards
+            if hazard.disaster_type == request.disaster_type
+        )
+        ranked = sorted(
+            enumerate(routes),
+            key=lambda indexed_route: (
+                _intersection_count(indexed_route[1], relevant_hazards),
+                indexed_route[1].duration_seconds,
+                indexed_route[1].distance_m,
+                indexed_route[0],
+            ),
+        )[:3]
+        uncertainty_notice = _append_notice(
+            destination.uncertainty_notice,
+            "Route geometry and travel times come from Mapbox Directions. "
+            "Mapped hazards, roads, access, weather, and destination conditions "
+            "may differ; this suggestion does not confirm destination or route "
+            "safety.",
+        )
+        options = [
+            RouteOption(
+                id=f"real-route-{index}",
+                generated_at=generated_at,
+                hazard_data_at=retrieved_at,
+                profile=profile,
+                source=destination.source,
+                simulation=False,
+                geometry=route.geometry,
+                distance_m=route.distance_m,
+                duration_seconds=route.duration_seconds,
+                hazard_intersection_count=_intersection_count(route, relevant_hazards),
+                rationale=(
+                    "Suggested route ranked by current mapped hazard "
+                    "intersections, then duration and distance; route conditions "
+                    "may differ."
+                    if index == 1
+                    else "Alternative route ranked by current mapped hazard "
+                    "intersections, then duration and distance; route conditions "
+                    "may differ."
+                ),
+                recommended=index == 1,
+                uncertainty_notice=uncertainty_notice,
+            )
+            for index, (_, route) in enumerate(ranked, start=1)
+        ]
+        return RouteSuggestionsResponse(
+            options=options,
+            generated_at=generated_at,
+            hazard_data_at=retrieved_at,
+            profile=profile,
+            profile_selection_reason=reason,
+            source=destination.source,
+            simulation=False,
+            uncertainty_notice=uncertainty_notice,
+        )
+
+    def _resolve_real_destination(
+        self, request: RouteSuggestionRequest
+    ) -> _ResolvedDestination:
+        real_data = self._real_data
+        if real_data is None:
+            raise RoutingUnavailable
+
+        if request.context_area_id is not None:
+            if self._context_analyzer is None:
+                raise RoutingUnavailable
+            try:
+                context_response = self.find_context_areas(
+                    ContextAreaRequest(
+                        origin=request.origin,
+                        disaster_type=request.disaster_type,
+                        scenario=request.scenario,
+                        search_radius_m=request.search_radius_m,
+                    )
+                )
+            except ContextAnalysisUnavailable:
+                raise RoutingUnavailable from None
+            context = next(
+                (
+                    item
+                    for item in context_response.items
+                    if item.id == request.context_area_id
+                ),
+                None,
+            )
+            if (
+                context is None
+                or context_response.simulation
+                or context.simulation
+                or context.disaster_type != request.disaster_type
+                or context.scenario != request.scenario
+                or not context.source.strip()
+                or not context_response.source.strip()
+                or _has_simulation_metadata(context.source)
+                or _has_simulation_metadata(context_response.source)
+                or _has_stale_metadata(
+                    context.uncertainty_notice,
+                    context_response.uncertainty_notice,
+                )
+                or _utc_datetime_or_none(context.data_at) is None
+                or _utc_datetime_or_none(context_response.data_at) is None
+                or _utc_datetime_or_none(context.data_at)
+                != _utc_datetime_or_none(context_response.data_at)
+            ):
+                raise ShelterNotFound
+            return _ResolvedDestination(
+                coordinate=context.coordinate,
+                source=context.source,
+                uncertainty_notice=_append_notice(
+                    context_response.uncertainty_notice,
+                    context.uncertainty_notice,
+                ),
+            )
+
+        shelter = next(
+            (item for item in real_data.shelters if item.id == request.shelter_id),
+            None,
+        )
+        if (
+            shelter is None
+            or shelter.simulation
+            or not shelter.source.strip()
+            or _has_simulation_metadata(shelter.source)
+            or _utc_datetime_or_none(shelter.data_at)
+            != _utc_datetime_or_none(real_data.retrieved_at)
+        ):
+            raise ShelterNotFound
+        return _ResolvedDestination(
+            coordinate=shelter.coordinate,
+            source=shelter.source,
+            uncertainty_notice=_append_notice(
+                real_data.uncertainty_notice,
+                "The selected snapshot-listed shelter has not been independently "
+                "verified for current access or conditions.",
+            ),
+        )
+
     def _require_simulation(self) -> None:
         if not self._simulation_enabled:
             raise SimulationDataDisabled
@@ -600,6 +786,29 @@ class NavigationService:
             "Driving was selected because the straight-line distance is over "
             "5 km; send profile to override this deterministic rule.",
         )
+
+
+def _utc_datetime_or_none(value: datetime) -> datetime | None:
+    if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is None or value.utcoffset() is None:
+        return None
+    return value.astimezone(UTC)
+
+
+def _has_simulation_metadata(*values: str) -> bool:
+    return any(
+        value == "SafeMyanmar Demo" or "simulation" in value.casefold()
+        for value in values
+    )
+
+
+def _has_stale_metadata(*values: str) -> bool:
+    return any("stale" in value.casefold() for value in values)
+
+
+def _append_notice(existing: str, addition: str) -> str:
+    return f"{existing.strip()} {addition.strip()}".strip()
 
 
 def _straight_line_distance_m(origin: Coordinate, destination: Coordinate) -> float:

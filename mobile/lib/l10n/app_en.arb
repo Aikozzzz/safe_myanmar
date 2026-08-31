@@ -74,11 +74,11 @@
   },
   "simulationLabel": "SIMULATION",
   "simulationNavigationHeading": "Simulation shelter and route information",
-  "navigationDataHeading": "Shelter and hazard information",
   "navigationSource": "Source: {source}",
   "@navigationSource": {
     "placeholders": {"source": {"type": "String"}}
   },
+  "openStreetMapAttribution": "© OpenStreetMap contributors",
   "shelterDataTime": "Shelter data: {time}",
   "@shelterDataTime": {
     "placeholders": {"time": {"type": "String"}}
@@ -111,16 +111,22 @@
   "chooseShelter": "Shelter or suggested place",
   "shelterListHeading": "Available mapped shelters",
   "shelterListEmpty": "No cached shelter details are available.",
-  "hazardSummaryTitle": "Hazard summary",
-  "hazardSummaryDescription": "Review mapped hazards with their source and data time. Information may be incomplete or stale.",
-  "contextAreasHeading": "Nearby lower-exposure areas",
-  "contextAreasDescription": "Suggestions compare currently available mapped environment data. They are not official shelters or guarantees.",
+  "contextAreasHeading": "Top lower-exposure suggestions",
+  "contextAreasDescription": "Suggestions use names from mapped parks, fields, and other place features when available. Compare the available mapped metrics and limits; these are not official shelters or guarantees.",
   "contextSummaryTitle": "Context summary",
-  "contextSummaryDescription": "Suggestions use available mapped data; they are not official shelters or guarantees.",
+  "contextSummaryDescription": "Review the selected candidate's mapped metrics, rationale, source, timestamp, and limits. It is not an official shelter or a guarantee.",
   "contextSummaryNoMappedHazards": "No mapped hazards found. This does not confirm the area is safe.",
   "analyzeContext": "Analyze nearby areas",
   "analyzingContext": "Analyzing context",
   "noContextAreas": "No lower-exposure area was identified for this scenario. Follow authorized local instructions.",
+  "contextSelectedCandidate": "Selected candidate",
+  "contextSelectCandidate": "Select candidate",
+  "contextSuggestionRank": "Suggestion {rank}",
+  "@contextSuggestionRank": {
+    "placeholders": {"rank": {"type": "int"}}
+  },
+  "contextCandidateSelectionHint": "Select this candidate to review its details. Requesting a route is a separate action.",
+  "contextNoCandidateSelected": "No candidate is selected. Select one above to review its details.",
   "chooseContextScenario": "Earthquake context",
   "outdoorsAfterShaking": "After shaking stops: analyze open areas",
   "activeShaking": "During active shaking: show immediate guidance",
@@ -139,10 +145,26 @@
       "tree": {"type": "int"}
     }
   },
+  "contextMetricsHeading": "Mapped comparison metrics",
+  "contextBuildingDensity": "Mapped building density: {density}%",
+  "@contextBuildingDensity": {
+    "placeholders": {"density": {"type": "String"}}
+  },
+  "contextTreeDensity": "Mapped tree density: {density}%",
+  "@contextTreeDensity": {
+    "placeholders": {"density": {"type": "String"}}
+  },
+  "contextHazardIntersections": "Mapped hazard intersections: {count}",
+  "@contextHazardIntersections": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "contextRationaleHeading": "Why this area is listed",
   "contextDataAt": "Analysis data: {time}",
   "@contextDataAt": {
     "placeholders": {"time": {"type": "String"}}
   },
+  "contextDataHeading": "Data, source, and limits",
+  "contextRouteSelectionDescription": "Select a candidate above, then request a route separately. No route is requested automatically.",
   "sosBluetoothShareTitle": "Share limited SOS data nearby",
   "sosBluetoothShareDescription": "Broadcast a temporary ID, timestamp, exact coordinates when available, location status, and battery level to nearby SafeMyanmar users for 10 minutes.",
   "sosBluetoothFields": "Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, and battery level.",
@@ -489,7 +511,6 @@
   "guideLoading": "Loading offline emergency guidance",
   "guideNoResults": "No approved offline article matched this search.",
   "guideStorageError": "Offline guidance could not be read from this device.",
-  "guideTranslationWarning": "Burmese translations require review by qualified local language and emergency experts before deployment.",
   "guideArticleTitle": "Emergency guide",
   "guideArticleUnavailable": "This approved offline article is unavailable.",
   "guideOpenArticleHint": "Open approved emergency article",
@@ -514,14 +535,12 @@
   "assistantGemmaChecking": "Checking optional Gemma 3 local assistant availability.",
   "assistantGemmaAvailable": "Optional local Gemma 3 can answer general questions, with extra focus on disaster and preparedness topics.",
   "assistantGemmaUnavailable": "Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.",
-  "assistantIntroduction": "This tool matches disaster questions with approved offline content. When the optional Gemma 3 model is installed, it can also answer general non-critical questions with disaster guidance prioritized.",
   "assistantSuggestedQuestions": "Suggested questions",
   "assistantSuggestionEarthquake": "What should I do during an earthquake?",
   "assistantSuggestionTrapped": "I am trapped after an earthquake",
   "assistantSuggestionFirstAid": "What should I check before giving first aid?",
   "assistantSuggestionFlood": "How do I avoid floodwater?",
   "assistantSearching": "Preparing an offline answer",
-  "assistantDisclaimer": "Gemma answers are generated on-device and may be inaccurate. Disaster guidance is grounded in approved offline content when available. This is not a diagnosis or a replacement for authorized emergency or medical services.",
   "assistantInputLabel": "Emergency question",
   "assistantInputHint": "Type in English or Burmese",
   "assistantSend": "Send question",

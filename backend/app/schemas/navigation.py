@@ -117,7 +117,9 @@ class HazardListResponse(ExactModel):
 
 class RouteSuggestionRequest(ExactModel):
     origin: Coordinate
-    shelter_id: str = Field(min_length=1, max_length=100)
+    # Context-area identifiers use the same transport field for compatibility
+    # with clients that already send a required shelter_id.
+    shelter_id: str = Field(min_length=1, max_length=150)
     context_area_id: str | None = Field(default=None, min_length=1, max_length=150)
     disaster_type: DisasterType
     scenario: ContextScenario = "general"
@@ -130,9 +132,9 @@ class RouteOption(ExactModel):
     generated_at: datetime
     hazard_data_at: datetime
     profile: RouteProfile
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
+    source: str = "SafeMyanmar Demo"
     directions_provider: Literal["Mapbox Directions"] = "Mapbox Directions"
-    simulation: Literal[True] = True
+    simulation: bool = True
     geometry: LineStringGeometry
     distance_m: float = Field(ge=0, allow_inf_nan=False)
     duration_seconds: float = Field(ge=0, allow_inf_nan=False)
@@ -148,7 +150,7 @@ class RouteSuggestionsResponse(ExactModel):
     hazard_data_at: datetime
     profile: RouteProfile
     profile_selection_reason: str
-    source: Literal["SafeMyanmar Demo"] = "SafeMyanmar Demo"
+    source: str = "SafeMyanmar Demo"
     directions_provider: Literal["Mapbox Directions"] = "Mapbox Directions"
-    simulation: Literal[True] = True
+    simulation: bool = True
     uncertainty_notice: str

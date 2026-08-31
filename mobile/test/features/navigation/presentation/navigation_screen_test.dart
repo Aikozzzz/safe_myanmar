@@ -77,6 +77,13 @@ void main() {
   }
 
   Future<void> requestRoutes(WidgetTester tester) async {
+    final candidate = find.text('Select candidate').first;
+    await tester.scrollUntilVisible(candidate, 200);
+    await tester.ensureVisible(candidate);
+    await tester.pumpAndSettle();
+    await tester.tap(candidate);
+    await tester.pumpAndSettle();
+
     final action = find.widgetWithText(
       FilledButton,
       'Request route suggestions',
@@ -104,7 +111,8 @@ void main() {
     expect(find.byType(MapWidget), findsNothing);
     expect(find.text('Map configuration unavailable'), findsOneWidget);
     expect(find.byKey(const ValueKey('map-layer-legend')), findsNothing);
-    expect(find.text('Hazard summary'), findsOneWidget);
+    expect(find.text('Hazard summary'), findsNothing);
+    expect(find.text('Shelter and hazard information'), findsNothing);
     expect(find.text('SIMULATION: Test Hazard'), findsOneWidget);
     expect(find.text('SIMULATION'), findsWidgets);
     expect(find.text('Disaster type'), findsNothing);
@@ -114,13 +122,13 @@ void main() {
 
     await analyzeContext(tester);
 
-    expect(find.text('Nearby lower-exposure areas'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
     expect(find.text('Context summary'), findsOneWidget);
     expect(
       find.text(
         'No mapped hazards found. This does not confirm the area is safe.',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.text('Building clearance: 120 m; tree clearance: 90 m'),
@@ -130,6 +138,203 @@ void main() {
     expect(find.text('Earthquake context'), findsOneWidget);
     expect(find.text('Travel profile'), findsOneWidget);
     expect(find.text('Request route suggestions'), findsOneWidget);
+  });
+
+  testWidgets('shows named earthquake candidates and mapped metrics', (
+    tester,
+  ) async {
+    navigationRepository.contextAreas = NavigationResource(
+      data: ContextAreaCollectionDto.fromJson(
+        contextAreaResponseJson(
+          name: "People's Park",
+          candidateNames: [
+            "People's Park",
+            'Bogyoke Sports Field',
+            "People's Square",
+          ],
+          source: 'OpenStreetMap via Overpass',
+          simulation: false,
+          uncertaintyNotice:
+              'OpenStreetMap coverage may be incomplete; missing mapped features are not confirmed absent.',
+          rationale: [
+            'Named park polygon from mapped place data',
+            'Open space comparison after shaking',
+          ],
+        ),
+      ).toDomain(),
+      isCached: false,
+      remoteFailed: false,
+    );
+
+    await pumpScreen(tester);
+    await enableLocation(tester);
+    await analyzeContext(tester);
+
+    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
+    expect(find.text('Suggestion 1'), findsOneWidget);
+    expect(find.text('Suggestion 2'), findsOneWidget);
+    expect(find.text('Suggestion 3'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Request route suggestions'),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    final candidate = find.text("People's Park").first;
+    await tester.scrollUntilVisible(candidate, 200);
+    await tester.ensureVisible(candidate);
+    expect(find.text("People's Park"), findsWidgets);
+    expect(find.text('Mapped comparison metrics'), findsWidgets);
+    expect(
+      find.text('Building clearance: 120 m; tree clearance: 90 m'),
+      findsWidgets,
+    );
+    expect(find.text('Mapped building density: 10%'), findsWidgets);
+    expect(find.text('Mapped tree density: 20%'), findsWidgets);
+    expect(find.text('Mapped hazard intersections: 0'), findsWidgets);
+    expect(find.text('Why this area is listed'), findsWidgets);
+    expect(
+      find.text('Named park polygon from mapped place data'),
+      findsWidgets,
+    );
+    expect(find.text('Source: OpenStreetMap via Overpass'), findsWidgets);
+    expect(find.text('© OpenStreetMap contributors'), findsWidgets);
+    expect(find.textContaining('Analysis data:'), findsWidgets);
+    expect(
+      find.textContaining('OpenStreetMap coverage may be incomplete'),
+      findsWidgets,
+    );
+    expect(find.bySemanticsLabel(RegExp("People's Park")), findsWidgets);
+
+    final secondCandidate = find.text('Bogyoke Sports Field').first;
+    final secondCard = find.ancestor(
+      of: secondCandidate,
+      matching: find.byType(Card),
+    );
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.tap(secondCard);
+    await tester.pumpAndSettle();
+    expect(find.text('Selected candidate'), findsWidgets);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Request route suggestions'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('shows flood elevation and omits earthquake-only metrics', (
+    tester,
+  ) async {
+    final earthquake = ContextAreaCollectionDto.fromJson(
+      contextAreaResponseJson(
+        name: "People's Park",
+        source: 'OpenStreetMap via Overpass',
+        simulation: false,
+        uncertaintyNotice: 'Mapped earthquake data may be incomplete.',
+      ),
+    ).toDomain();
+    final flood = ContextAreaCollectionDto.fromJson(
+      contextAreaResponseJson(
+        name: 'Yangon City Golf Course',
+        disasterType: 'flood',
+        scenario: 'general',
+        source: 'OpenTopoData',
+        simulation: false,
+        metrics: {
+          'building_clearance_m': 2.0,
+          'tree_clearance_m': 3.0,
+          'relative_elevation_m': 7.5,
+          'building_density': 0.8,
+          'tree_density': 0.7,
+          'hazard_intersections': 0,
+        },
+        rationale: ['About 7.5 m higher than the current location'],
+        uncertaintyNotice:
+            'Terrain elevation is not a flood forecast; mapped conditions may be incomplete.',
+      ),
+    ).toDomain();
+    var response = earthquake;
+    navigationRepository.contextAreasHandler = (_) async => NavigationResource(
+      data: response,
+      isCached: false,
+      remoteFailed: false,
+    );
+
+    await pumpScreen(tester);
+    await enableLocation(tester);
+    await analyzeContext(tester);
+
+    final disasterField = find
+        .widgetWithText(DropdownButtonFormField<DisasterType>, 'Earthquake')
+        .last;
+    await tester.scrollUntilVisible(disasterField, 200);
+    await tester.ensureVisible(disasterField);
+    await tester.pumpAndSettle();
+    await tester.tap(disasterField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Flood').last);
+    await tester.pumpAndSettle();
+
+    response = flood;
+    await analyzeContext(tester);
+
+    final candidate = find.text('Yangon City Golf Course').first;
+    await tester.scrollUntilVisible(candidate, 200);
+    await tester.ensureVisible(candidate);
+    expect(find.text('Relative elevation: 7.5 m'), findsWidgets);
+    expect(find.text('Mapped hazard intersections: 0'), findsWidgets);
+    expect(find.textContaining('Mapped building density:'), findsNothing);
+    expect(find.textContaining('Mapped tree density:'), findsNothing);
+    expect(find.textContaining('Building clearance:'), findsNothing);
+  });
+
+  testWidgets('keeps empty analysis transparent without claiming no hazards', (
+    tester,
+  ) async {
+    navigationRepository.contextAreas = NavigationResource(
+      data: ContextAreaCollection(
+        items: const [],
+        dataAt: DateTime.utc(2026, 8, 17, 13, 42),
+        source: 'OpenStreetMap via Overpass',
+        uncertaintyNotice:
+            'Mapped environment data is incomplete; no candidate was returned.',
+      ),
+      isCached: false,
+      remoteFailed: false,
+    );
+
+    await pumpScreen(tester);
+    await enableLocation(tester);
+    await analyzeContext(tester);
+
+    expect(find.text('Data, source, and limits'), findsOneWidget);
+    expect(find.text('Source: OpenStreetMap via Overpass'), findsOneWidget);
+    expect(
+      find.textContaining('Mapped environment data is incomplete'),
+      findsWidgets,
+    );
+    expect(
+      find.text(
+        'No mapped hazards found. This does not confirm the area is safe.',
+      ),
+      findsNothing,
+    );
+    expect(find.text('Request route suggestions'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Request route suggestions'),
+          )
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets('context summary exposes cached status and cache time', (
@@ -168,10 +373,10 @@ void main() {
 
     expect(find.text('Location access is off'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Nearby lower-exposure areas'),
+      find.text('Top lower-exposure suggestions'),
       200,
     );
-    expect(find.text('Nearby lower-exposure areas'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
     expect(
       find.text('No lower-exposure area was identified for this scenario.'),
       findsNothing,
@@ -186,10 +391,10 @@ void main() {
   ) async {
     await pumpScreen(tester);
     await tester.scrollUntilVisible(
-      find.text('Nearby lower-exposure areas'),
+      find.text('Top lower-exposure suggestions'),
       200,
     );
-    expect(find.text('Nearby lower-exposure areas'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
     expect(
       find.text('Building clearance: 120 m; tree clearance: 90 m'),
       findsNothing,
@@ -207,7 +412,12 @@ void main() {
     tester,
   ) async {
     navigationRepository.routes = NavigationResource(
-      data: routeSuggestions(optionCount: 3),
+      data: routeSuggestions(
+        optionCount: 3,
+        source: 'Verified shelter registry',
+        simulation: false,
+        uncertaintyNotice: 'Map and hazard data may be incomplete.',
+      ),
       isCached: false,
       remoteFailed: false,
     );
@@ -220,11 +430,16 @@ void main() {
     expect(find.text('Alternative 1'), findsOneWidget);
     expect(find.text('Alternative 2'), findsOneWidget);
     expect(find.text('Selected route'), findsOneWidget);
+    expect(find.text('Source: Verified shelter registry'), findsWidgets);
+    expect(find.text('Directions provider: Mapbox Directions'), findsWidgets);
+    expect(find.textContaining('Generated:'), findsWidgets);
+    expect(
+      find.textContaining('Uncertainty: Map and hazard data may be incomplete'),
+      findsWidgets,
+    );
     expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
 
-    final alternative = find.byKey(
-      const ValueKey('route-card-simulation-route-3'),
-    );
+    final alternative = find.byKey(const ValueKey('route-card-real-route-3'));
     await tester.scrollUntilVisible(alternative, 200);
     await tester.ensureVisible(alternative);
     await tester.pumpAndSettle();
@@ -254,7 +469,7 @@ void main() {
     await analyzeContext(tester);
     await requestRoutes(tester);
 
-    expect(find.text('Nearby lower-exposure areas'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
     expect(
       find.textContaining('Shelters and hazards remain visible; try again.'),
       findsOneWidget,
@@ -262,9 +477,87 @@ void main() {
     expect(find.text('Retry route suggestions'), findsOneWidget);
   });
 
+  testWidgets('empty routing keeps the selected candidates visible', (
+    tester,
+  ) async {
+    navigationRepository.routes = NavigationResource(
+      data: routeSuggestions(optionCount: 0),
+      isCached: false,
+      remoteFailed: false,
+    );
+
+    await pumpScreen(tester);
+    await enableLocation(tester);
+    await analyzeContext(tester);
+    await requestRoutes(tester);
+
+    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
+    expect(find.text('SIMULATION: Lower-exposure area 1'), findsWidgets);
+    expect(
+      find.text(
+        'The server returned no route options. No alternative was created by SafeMyanmar.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Retry route suggestions'), findsNothing);
+  });
+
+  testWidgets('cached routes remain visible with stale metadata', (
+    tester,
+  ) async {
+    navigationRepository.routes = NavigationResource(
+      data: routeSuggestions(optionCount: 2),
+      isCached: true,
+      remoteFailed: true,
+      cachedAt: DateTime.utc(2026, 7, 23, 12, 30),
+    );
+
+    await pumpScreen(tester);
+    await enableLocation(tester);
+    await analyzeContext(tester);
+    await requestRoutes(tester);
+
+    expect(
+      find.textContaining(
+        'Route suggestions could not be updated. Shelters and hazards remain visible; try again.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        'A previously loaded route response remains visible and is stale.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Route saved at: Jul 23, 2026 12:30:00 UTC'),
+      findsOneWidget,
+    );
+    expect(find.text('SIMULATION: Lower-exposure area 1'), findsWidgets);
+    expect(find.text('Suggested'), findsOneWidget);
+  });
+
   testWidgets('map controls and route cards fit 390x844 at 200 percent text', (
     tester,
   ) async {
+    navigationRepository.contextAreas = NavigationResource(
+      data: ContextAreaCollectionDto.fromJson(
+        contextAreaResponseJson(
+          candidateNames: [
+            'SIMULATION: Lower-exposure area 1',
+            'SIMULATION: Lower-exposure area 2',
+            'SIMULATION: Lower-exposure area 3',
+          ],
+        ),
+      ).toDomain(),
+      isCached: false,
+      remoteFailed: false,
+    );
+    navigationRepository.routes = NavigationResource(
+      data: routeSuggestions(optionCount: 3),
+      isCached: false,
+      remoteFailed: false,
+    );
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpScreen(tester, textScale: 2);
@@ -272,6 +565,9 @@ void main() {
     await analyzeContext(tester);
     await requestRoutes(tester);
 
+    expect(find.text('Suggestion 1'), findsOneWidget);
+    expect(find.text('Suggestion 2'), findsOneWidget);
+    expect(find.text('Suggestion 3'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Suggested'), 200);
     expect(tester.takeException(), isNull);
     final routeButton = find.ancestor(
@@ -289,6 +585,11 @@ void main() {
           .toBoolOrNull(),
       isTrue,
     );
+    final routeSemantics = tester.getSemantics(
+      find.byKey(const ValueKey('route-card-simulation-route-1')),
+    );
+    expect(routeSemantics.label, contains('Source: SafeMyanmar Demo'));
+    expect(routeSemantics.label, contains('Hazard data:'));
   });
 }
 

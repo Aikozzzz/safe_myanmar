@@ -24,7 +24,8 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   Future<NavigationResource<ShelterCollection>> loadCachedShelters() async {
     try {
       final cached = await _local.readShelters();
-      if (cached != null && !_usableSource(cached.value.source)) {
+      if (cached != null &&
+          !_usableSource(cached.value.source, cached.value.simulation)) {
         return const NavigationResource(
           data: null,
           isCached: false,
@@ -50,7 +51,8 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   Future<NavigationResource<HazardCollection>> loadCachedHazards() async {
     try {
       final cached = await _local.readHazards();
-      if (cached != null && !_usableSource(cached.value.source)) {
+      if (cached != null &&
+          !_usableSource(cached.value.source, cached.value.simulation)) {
         return const NavigationResource(
           data: null,
           isCached: false,
@@ -76,7 +78,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   Future<NavigationResource<ShelterCollection>> loadShelters() async {
     try {
       final value = await _remote.fetchShelters();
-      _requireUsableSource(value.source);
+      _requireUsableSource(value.source, value.simulation);
       await _tryCache(() => _local.replaceShelters(value, _now().toUtc()));
       return NavigationResource(
         data: value.toDomain(),
@@ -86,7 +88,8 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readShelters();
-        if (cached != null && !_usableSource(cached.value.source)) {
+        if (cached != null &&
+            !_usableSource(cached.value.source, cached.value.simulation)) {
           return const NavigationResource(
             data: null,
             isCached: false,
@@ -113,7 +116,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   Future<NavigationResource<HazardCollection>> loadHazards() async {
     try {
       final value = await _remote.fetchHazards();
-      _requireUsableSource(value.source);
+      _requireUsableSource(value.source, value.simulation);
       await _tryCache(() => _local.replaceHazards(value, _now().toUtc()));
       return NavigationResource(
         data: value.toDomain(),
@@ -123,7 +126,8 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readHazards();
-        if (cached != null && !_usableSource(cached.value.source)) {
+        if (cached != null &&
+            !_usableSource(cached.value.source, cached.value.simulation)) {
           return const NavigationResource(
             data: null,
             isCached: false,
@@ -152,7 +156,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   ) async {
     try {
       final value = await _remote.findContextAreas(request);
-      _requireUsableSource(value.source);
+      _requireUsableSource(value.source, value.simulation);
       await _tryCache(
         () => _local.replaceContextAreas(value, request, _now().toUtc()),
       );
@@ -164,7 +168,8 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readContextAreas(request);
-        if (cached != null && !_usableSource(cached.value.source)) {
+        if (cached != null &&
+            !_usableSource(cached.value.source, cached.value.simulation)) {
           return const NavigationResource(
             data: null,
             isCached: false,
@@ -193,7 +198,8 @@ final class NavigationRepositoryImpl implements NavigationRepository {
   ) async {
     try {
       final cached = await _local.readContextAreas(request);
-      if (cached != null && !_usableSource(cached.value.source)) {
+      if (cached != null &&
+          !_usableSource(cached.value.source, cached.value.simulation)) {
         return const NavigationResource(
           data: null,
           isCached: false,
@@ -222,7 +228,7 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     final generation = ++_routeRequestGeneration;
     try {
       final value = await _remote.fetchRouteSuggestions(request);
-      _requireUsableSource(value.source);
+      _requireUsableSource(value.source, value.simulation);
       if (generation == _routeRequestGeneration) {
         await _tryCache(
           () => _local.replaceRoutes(value, request, _now().toUtc()),
@@ -236,7 +242,8 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     } catch (_) {
       try {
         final cached = await _local.readRoutes(request);
-        if (cached != null && !_usableSource(cached.value.source)) {
+        if (cached != null &&
+            !_usableSource(cached.value.source, cached.value.simulation)) {
           return const NavigationResource(
             data: null,
             isCached: false,
@@ -259,11 +266,11 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     }
   }
 
-  bool _usableSource(String source) =>
-      allowSimulationData || source != 'SafeMyanmar Demo';
+  bool _usableSource(String source, bool simulation) =>
+      allowSimulationData || (!simulation && source != 'SafeMyanmar Demo');
 
-  void _requireUsableSource(String source) {
-    if (!_usableSource(source)) {
+  void _requireUsableSource(String source, bool simulation) {
+    if (!_usableSource(source, simulation)) {
       throw NavigationProtocolException();
     }
   }

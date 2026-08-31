@@ -73,7 +73,10 @@ def test_production_settings_accept_remote_tls_database():
 
 
 def test_simulation_data_is_disabled_by_default():
-    settings = Settings(database_url=DEVELOPMENT_DATABASE_URL)
+    settings = Settings(
+        database_url=DEVELOPMENT_DATABASE_URL,
+        mapbox_directions_access_token=None,
+    )
 
     assert settings.enable_simulation_data is False
     assert settings.enable_simulation_analysis is False

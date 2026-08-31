@@ -412,7 +412,10 @@ class _NavigationContent extends StatelessWidget {
     final shelters = state.shelters;
     final hazards = state.hazards;
     final visibleHazards = state.relevantHazards;
-    final routes = state.routes?.options ?? const <RouteOption>[];
+    final routeOptions = (state.routes?.options ?? const <RouteOption>[])
+        .take(3)
+        .toList(growable: false);
+    final routes = routeOptions;
     final currentLocation = location;
     final events = [
       ?activeEvent,
@@ -518,6 +521,7 @@ class _NavigationContent extends StatelessWidget {
           requested: state.contextAnalysisRequested,
           loading: state.contextAnalysisLoading,
           failed: state.contextAnalysisFailed,
+          cached: state.contextCached,
           uncertaintyNotice: state.contextAreas?.uncertaintyNotice,
           onAnalyze: onAnalyzeContext,
           onSelected: onContextAreaChanged,
@@ -530,7 +534,6 @@ class _NavigationContent extends StatelessWidget {
               selectedId: state.selectedContextAreaId,
               cached: state.contextCached,
               cachedAt: state.contextCachedAt,
-              visibleHazards: visibleHazards,
             ),
           ],
         if (state.contextAnalysisRequested) ...[
@@ -569,24 +572,23 @@ class _NavigationContent extends StatelessWidget {
         ],
         if (state.routes case final response?) ...[
           const SizedBox(height: 12),
-          if (response.options.isEmpty)
+          if (routeOptions.isEmpty)
             _StatusMessage(
               icon: Icons.alt_route,
               message: strings.noRoutesReturned,
             )
           else
-            for (var index = 0; index < response.options.length; index++) ...[
+            for (var index = 0; index < routeOptions.length; index++) ...[
               _RouteCard(
-                option: response.options[index],
+                option: routeOptions[index],
                 response: response,
                 label: index == 0
                     ? strings.routeSuggested
                     : strings.routeAlternative(index),
-                selected: response.options[index].id == state.selectedRouteId,
-                onSelected: () => onRouteSelected(response.options[index].id),
+                selected: routeOptions[index].id == state.selectedRouteId,
+                onSelected: () => onRouteSelected(routeOptions[index].id),
               ),
-              if (index != response.options.length - 1)
-                const SizedBox(height: 8),
+              if (index != routeOptions.length - 1) const SizedBox(height: 8),
             ],
         ],
       ],
@@ -741,7 +743,10 @@ class _SimulationStatus extends StatelessWidget {
     final hazards = state.hazards;
     final source = shelters?.source ?? hazards?.source;
     final notice = shelters?.uncertaintyNotice ?? hazards?.uncertaintyNotice;
-    final isSimulation = source == 'SafeMyanmar Demo';
+    final isSimulation =
+        shelters?.simulation == true ||
+        hazards?.simulation == true ||
+        (shelters == null && hazards == null && source == 'SafeMyanmar Demo');
     return Semantics(
       container: true,
       child: Card(
@@ -767,13 +772,13 @@ class _SimulationStatus extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (isSimulation) const SizedBox(height: 8),
-              Text(
-                isSimulation
-                    ? strings.simulationNavigationHeading
-                    : strings.navigationDataHeading,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              if (isSimulation) ...[
+                const SizedBox(height: 8),
+                Text(
+                  strings.simulationNavigationHeading,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
               if (source != null) ...[
                 const SizedBox(height: 8),
                 Text(strings.navigationSource(source)),
@@ -820,7 +825,7 @@ class _HazardSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
-    final isSimulation = collection.source == 'SafeMyanmar Demo';
+    final isSimulation = collection.simulation;
     return Semantics(
       key: const ValueKey('hazard-summary'),
       container: true,
@@ -830,21 +835,6 @@ class _HazardSummary extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.warning_amber_outlined),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      strings.hazardSummaryTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(strings.hazardSummaryDescription),
               if (isSimulation) ...[
                 const SizedBox(height: 8),
                 _SimulationBadge(label: strings.simulationLabel),
@@ -878,6 +868,8 @@ class _HazardSummary extends StatelessWidget {
                   ),
               const SizedBox(height: 8),
               Text(strings.navigationSource(collection.source)),
+              if (_usesOpenStreetMap(collection.source))
+                Text(strings.openStreetMapAttribution),
               Text(
                 strings.hazardDataTime(
                   _formatUtc(context, strings, collection.dataAt),
@@ -898,14 +890,12 @@ class _ContextSummary extends StatelessWidget {
     required this.selectedId,
     required this.cached,
     required this.cachedAt,
-    required this.visibleHazards,
   });
 
   final ContextAreaCollection collection;
   final String? selectedId;
   final bool cached;
   final DateTime? cachedAt;
-  final List<Hazard> visibleHazards;
 
   @override
   Widget build(BuildContext context) {
@@ -913,12 +903,7 @@ class _ContextSummary extends StatelessWidget {
     final selected = collection.items
         .where((area) => area.id == selectedId)
         .firstOrNull;
-    final noMappedHazards =
-        selected?.metrics.hazardIntersections == 0 ||
-        (selected == null &&
-            collection.items.isEmpty &&
-            visibleHazards.isEmpty);
-    final isSimulation = collection.source == 'SafeMyanmar Demo';
+    final isSimulation = collection.simulation;
 
     return Semantics(
       key: const ValueKey('context-summary'),
@@ -950,56 +935,258 @@ class _ContextSummary extends StatelessWidget {
               ],
               if (selected case final area?) ...[
                 const SizedBox(height: 12),
+                Text(area.name, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
                 Text(
-                  _disasterLabel(strings, area.disasterType),
+                  strings.contextSelectedCandidate,
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
-                Text(area.name, style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 4),
-                Text(strings.contextDistance(area.distanceM.round())),
-                if (area.disasterType == DisasterType.flood)
-                  Text(
-                    strings.contextElevation(
-                      area.metrics.relativeElevationM.toStringAsFixed(1),
-                    ),
-                  )
-                else
-                  Text(
-                    strings.contextClearance(
-                      area.metrics.buildingClearanceM.round(),
-                      area.metrics.treeClearanceM.round(),
-                    ),
-                  ),
-                Text(
-                  strings.routeHazardIntersections(
-                    area.metrics.hazardIntersections,
-                  ),
-                ),
-                for (final reason in area.rationale) Text('- $reason'),
-              ],
-              if (noMappedHazards) ...[
                 const SizedBox(height: 8),
-                Text(strings.contextSummaryNoMappedHazards),
+                _ContextAreaDetails(area: area, includeMetadata: false),
+                if (area.metrics.hazardIntersections == 0) ...[
+                  const SizedBox(height: 8),
+                  Text(strings.contextSummaryNoMappedHazards),
+                ],
+              ] else if (collection.items.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(strings.contextNoCandidateSelected),
               ],
               const SizedBox(height: 8),
-              Text(strings.navigationSource(collection.source)),
-              Text(
-                strings.contextDataAt(
-                  _formatUtc(context, strings, collection.dataAt),
-                ),
+              _ContextCollectionMetadata(
+                collection: collection,
+                cached: cached,
+                cachedAt: cachedAt,
               ),
-              if (cached) Text(strings.navigationCachedWarning),
-              if (cachedAt case final timestamp?)
-                Text(
-                  strings.navigationCachedAt(
-                    _formatUtc(context, strings, timestamp),
-                  ),
-                ),
-              Text(strings.uncertaintyNotice(collection.uncertaintyNotice)),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ContextAreaDetails extends StatelessWidget {
+  const _ContextAreaDetails({required this.area, this.includeMetadata = true});
+
+  final ContextArea area;
+  final bool includeMetadata;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _disasterLabel(strings, area.disasterType),
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        if (area.disasterType == DisasterType.earthquake) ...[
+          const SizedBox(height: 2),
+          Text(_contextScenarioLabel(strings, area.scenario)),
+        ],
+        const SizedBox(height: 4),
+        Text(strings.contextDistance(area.distanceM.round())),
+        const SizedBox(height: 12),
+        _ContextMetrics(area: area),
+        if (area.rationale.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _ContextRationale(rationale: area.rationale),
+        ],
+        if (includeMetadata) ...[
+          const SizedBox(height: 12),
+          _ContextAreaMetadata(area: area),
+        ],
+      ],
+    );
+  }
+}
+
+class _ContextMetrics extends StatelessWidget {
+  const _ContextMetrics({required this.area});
+
+  final ContextArea area;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    final densityFormat = NumberFormat(
+      '0.#',
+      Localizations.localeOf(context).toLanguageTag(),
+    );
+    final metrics = area.metrics;
+    final rows = <Widget>[
+      if (area.disasterType == DisasterType.earthquake) ...[
+        Text(
+          strings.contextClearance(
+            metrics.buildingClearanceM.round(),
+            metrics.treeClearanceM.round(),
+          ),
+        ),
+        _ContextMetricRow(
+          icon: Icons.apartment_outlined,
+          value: strings.contextBuildingDensity(
+            densityFormat.format(metrics.buildingDensity * 100),
+          ),
+        ),
+        _ContextMetricRow(
+          icon: Icons.park_outlined,
+          value: strings.contextTreeDensity(
+            densityFormat.format(metrics.treeDensity * 100),
+          ),
+        ),
+      ],
+      if (area.disasterType == DisasterType.flood)
+        _ContextMetricRow(
+          icon: Icons.terrain_outlined,
+          value: strings.contextElevation(
+            metrics.relativeElevationM.toStringAsFixed(1),
+          ),
+        ),
+      _ContextMetricRow(
+        icon: Icons.warning_amber_outlined,
+        value: strings.contextHazardIntersections(metrics.hazardIntersections),
+      ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.contextMetricsHeading,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 4),
+        ...rows,
+      ],
+    );
+  }
+}
+
+class _ContextMetricRow extends StatelessWidget {
+  const _ContextMetricRow({required this.icon, required this.value});
+
+  final IconData icon;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContextRationale extends StatelessWidget {
+  const _ContextRationale({required this.rationale});
+
+  final List<String> rationale;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.contextRationaleHeading,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 4),
+        for (final reason in rationale)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text(reason)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ContextAreaMetadata extends StatelessWidget {
+  const _ContextAreaMetadata({required this.area});
+
+  final ContextArea area;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(strings.navigationSource(area.source)),
+        if (_usesOpenStreetMap(area.source))
+          Text(strings.openStreetMapAttribution),
+        Text(strings.contextDataAt(_formatUtc(context, strings, area.dataAt))),
+        if (area.uncertaintyNotice.isNotEmpty)
+          Text(strings.uncertaintyNotice(area.uncertaintyNotice)),
+      ],
+    );
+  }
+}
+
+class _ContextCollectionMetadata extends StatelessWidget {
+  const _ContextCollectionMetadata({
+    required this.collection,
+    required this.cached,
+    required this.cachedAt,
+  });
+
+  final ContextAreaCollection collection;
+  final bool cached;
+  final DateTime? cachedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.contextDataHeading,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 4),
+        Text(strings.navigationSource(collection.source)),
+        if (_usesOpenStreetMap(collection.source))
+          Text(strings.openStreetMapAttribution),
+        Text(
+          strings.contextDataAt(
+            _formatUtc(context, strings, collection.dataAt),
+          ),
+        ),
+        if (cached) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(strings.navigationCachedWarning)),
+            ],
+          ),
+        ],
+        if (cachedAt case final timestamp?)
+          Text(
+            strings.navigationCachedAt(_formatUtc(context, strings, timestamp)),
+          ),
+        if (collection.uncertaintyNotice.isNotEmpty)
+          Text(strings.uncertaintyNotice(collection.uncertaintyNotice)),
+      ],
     );
   }
 }
@@ -1102,18 +1289,29 @@ class _RouteControls extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        FilledButton.icon(
+        Text(strings.contextRouteSelectionDescription),
+        const SizedBox(height: 8),
+        FilledButton(
           onPressed:
               state.selectedContextAreaId == null ||
                   state.loadingRoutes ||
                   onRequestRoutes == null
               ? null
               : onRequestRoutes,
-          icon: const Icon(Icons.route),
-          label: Text(
-            state.routeFailed
-                ? strings.retryRouteSuggestions
-                : strings.requestRouteSuggestions,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.route),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  state.routeFailed
+                      ? strings.retryRouteSuggestions
+                      : strings.requestRouteSuggestions,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1128,6 +1326,7 @@ class _ContextAreaList extends StatelessWidget {
     required this.requested,
     required this.loading,
     required this.failed,
+    required this.cached,
     required this.uncertaintyNotice,
     required this.onAnalyze,
     required this.onSelected,
@@ -1138,6 +1337,7 @@ class _ContextAreaList extends StatelessWidget {
   final bool requested;
   final bool loading;
   final bool failed;
+  final bool cached;
   final String? uncertaintyNotice;
   final Future<void> Function()? onAnalyze;
   final ValueChanged<String> onSelected;
@@ -1145,6 +1345,7 @@ class _ContextAreaList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final candidates = areas.take(3).toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1164,22 +1365,40 @@ class _ContextAreaList extends StatelessWidget {
         ),
         if (failed) ...[
           const SizedBox(height: 8),
-          Text(strings.contextAnalysisUnavailable),
+          Text(
+            cached
+                ? '${strings.contextAnalysisUnavailable} '
+                      '${strings.navigationCachedWarning}'
+                : strings.contextAnalysisUnavailable,
+          ),
         ],
-        if (requested && !loading && areas.isEmpty) ...[
+        if (requested && !loading && candidates.isEmpty) ...[
           const SizedBox(height: 8),
-          Text(uncertaintyNotice ?? strings.noContextAreas),
+          Text(
+            strings.uncertaintyNotice(
+              uncertaintyNotice ?? strings.noContextAreas,
+            ),
+          ),
         ],
-        for (final area in areas) ...[
+        for (var index = 0; index < candidates.length; index++) ...[
           const SizedBox(height: 8),
           Semantics(
+            key: ValueKey('context-area-card-${candidates[index].id}'),
+            container: true,
             button: true,
-            selected: area.id == selectedId,
-            label: area.id == selectedId ? '${area.name}. Selected' : area.name,
+            selected: candidates[index].id == selectedId,
+            label: _contextAreaSemanticsLabel(
+              context,
+              strings,
+              candidates[index],
+              rank: index + 1,
+              selected: candidates[index].id == selectedId,
+            ),
+            hint: strings.contextCandidateSelectionHint,
             child: Card(
               clipBehavior: Clip.antiAlias,
               child: InkWell(
-                onTap: () => onSelected(area.id),
+                onTap: () => onSelected(candidates[index].id),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -1187,40 +1406,39 @@ class _ContextAreaList extends StatelessWidget {
                     children: [
                       Row(
                         children: [
+                          Flexible(
+                            child: Text(
+                              strings.contextSuggestionRank(index + 1),
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Icon(
-                            area.id == selectedId
+                            candidates[index].id == selectedId
                                 ? Icons.check_circle
                                 : Icons.radio_button_unchecked,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              area.name,
+                              candidates[index].name,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
                         ],
                       ),
-                      Text(strings.contextDistance(area.distanceM.round())),
-                      if (area.disasterType == DisasterType.flood)
+                      if (candidates[index].id == selectedId) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          strings.contextElevation(
-                            area.metrics.relativeElevationM.toStringAsFixed(1),
-                          ),
-                        )
-                      else
-                        Text(
-                          strings.contextClearance(
-                            area.metrics.buildingClearanceM.round(),
-                            area.metrics.treeClearanceM.round(),
-                          ),
+                          strings.contextSelectedCandidate,
+                          style: Theme.of(context).textTheme.labelLarge,
                         ),
-                      for (final reason in area.rationale) Text('- $reason'),
-                      Text(
-                        strings.contextDataAt(
-                          _formatUtc(context, strings, area.dataAt),
-                        ),
-                      ),
+                      ] else ...[
+                        const SizedBox(height: 4),
+                        Text(strings.contextSelectCandidate),
+                      ],
+                      const SizedBox(height: 8),
+                      _ContextAreaDetails(area: candidates[index]),
                     ],
                   ),
                 ),
@@ -1232,6 +1450,64 @@ class _ContextAreaList extends StatelessWidget {
     );
   }
 }
+
+String _contextScenarioLabel(
+  AppLocalizations strings,
+  ContextScenario scenario,
+) => switch (scenario) {
+  ContextScenario.outdoorsAfterShaking => strings.outdoorsAfterShaking,
+  ContextScenario.general => strings.activeShaking,
+};
+
+String _contextAreaSemanticsLabel(
+  BuildContext context,
+  AppLocalizations strings,
+  ContextArea area, {
+  required int rank,
+  required bool selected,
+}) {
+  final densityFormat = NumberFormat(
+    '0.#',
+    Localizations.localeOf(context).toLanguageTag(),
+  );
+  final metrics = area.metrics;
+  final details = <String>[
+    strings.contextSuggestionRank(rank),
+    area.name,
+    selected
+        ? strings.contextSelectedCandidate
+        : strings.contextSelectCandidate,
+    _disasterLabel(strings, area.disasterType),
+    strings.contextDistance(area.distanceM.round()),
+    if (area.disasterType == DisasterType.earthquake)
+      strings.contextClearance(
+        metrics.buildingClearanceM.round(),
+        metrics.treeClearanceM.round(),
+      ),
+    if (area.disasterType == DisasterType.earthquake)
+      strings.contextBuildingDensity(
+        densityFormat.format(metrics.buildingDensity * 100),
+      ),
+    if (area.disasterType == DisasterType.earthquake)
+      strings.contextTreeDensity(
+        densityFormat.format(metrics.treeDensity * 100),
+      ),
+    if (area.disasterType == DisasterType.flood)
+      strings.contextElevation(metrics.relativeElevationM.toStringAsFixed(1)),
+    strings.contextHazardIntersections(metrics.hazardIntersections),
+    if (area.rationale.isNotEmpty)
+      '${strings.contextRationaleHeading}: ${area.rationale.join('; ')}',
+    strings.navigationSource(area.source),
+    if (_usesOpenStreetMap(area.source)) strings.openStreetMapAttribution,
+    strings.contextDataAt(_formatUtc(context, strings, area.dataAt)),
+    if (area.uncertaintyNotice.isNotEmpty)
+      strings.uncertaintyNotice(area.uncertaintyNotice),
+  ];
+  return details.join('. ');
+}
+
+bool _usesOpenStreetMap(String source) =>
+    source.toLowerCase().contains('openstreetmap');
 
 class _RouteCard extends StatelessWidget {
   const _RouteCard({
@@ -1259,11 +1535,30 @@ class _RouteCard extends StatelessWidget {
       '0.#',
       Localizations.localeOf(context).toLanguageTag(),
     ).format(minutes);
+    final semanticLabel = <String>[
+      label,
+      if (selected) strings.routeSelected,
+      strings.routeProfileValue(_profileLabel(strings, option.profile)),
+      strings.routeDistanceValue(number.format(option.distanceM.round())),
+      strings.routeDurationValue(duration),
+      strings.routeHazardIntersections(option.hazardIntersectionCount),
+      strings.navigationSource(option.source),
+      strings.routeDirectionsProvider(option.directionsProvider),
+      strings.routeGeneratedAt(
+        _formatUtc(context, strings, option.generatedAt),
+      ),
+      strings.routeHazardDataAt(
+        _formatUtc(context, strings, option.hazardDataAt),
+      ),
+      if (option.simulation || response.simulation) strings.simulationLabel,
+      strings.uncertaintyNotice(option.uncertaintyNotice),
+    ].join('. ');
     return Semantics(
       key: ValueKey('route-card-${option.id}'),
+      container: true,
       button: true,
       selected: selected,
-      label: selected ? '$label. ${strings.routeSelected}' : label,
+      label: semanticLabel,
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -1291,6 +1586,10 @@ class _RouteCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (option.simulation || response.simulation) ...[
+                    const SizedBox(height: 8),
+                    _SimulationBadge(label: strings.simulationLabel),
+                  ],
                   if (selected) Text(strings.routeSelected),
                   const SizedBox(height: 8),
                   Text(

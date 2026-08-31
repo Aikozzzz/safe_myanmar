@@ -442,17 +442,17 @@ abstract class AppLocalizations {
   /// **'Simulation shelter and route information'**
   String get simulationNavigationHeading;
 
-  /// No description provided for @navigationDataHeading.
-  ///
-  /// In en, this message translates to:
-  /// **'Shelter and hazard information'**
-  String get navigationDataHeading;
-
   /// No description provided for @navigationSource.
   ///
   /// In en, this message translates to:
   /// **'Source: {source}'**
   String navigationSource(String source);
+
+  /// No description provided for @openStreetMapAttribution.
+  ///
+  /// In en, this message translates to:
+  /// **'© OpenStreetMap contributors'**
+  String get openStreetMapAttribution;
 
   /// No description provided for @shelterDataTime.
   ///
@@ -592,28 +592,16 @@ abstract class AppLocalizations {
   /// **'No cached shelter details are available.'**
   String get shelterListEmpty;
 
-  /// No description provided for @hazardSummaryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Hazard summary'**
-  String get hazardSummaryTitle;
-
-  /// No description provided for @hazardSummaryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Review mapped hazards with their source and data time. Information may be incomplete or stale.'**
-  String get hazardSummaryDescription;
-
   /// No description provided for @contextAreasHeading.
   ///
   /// In en, this message translates to:
-  /// **'Nearby lower-exposure areas'**
+  /// **'Top lower-exposure suggestions'**
   String get contextAreasHeading;
 
   /// No description provided for @contextAreasDescription.
   ///
   /// In en, this message translates to:
-  /// **'Suggestions compare currently available mapped environment data. They are not official shelters or guarantees.'**
+  /// **'Suggestions use names from mapped parks, fields, and other place features when available. Compare the available mapped metrics and limits; these are not official shelters or guarantees.'**
   String get contextAreasDescription;
 
   /// No description provided for @contextSummaryTitle.
@@ -625,7 +613,7 @@ abstract class AppLocalizations {
   /// No description provided for @contextSummaryDescription.
   ///
   /// In en, this message translates to:
-  /// **'Suggestions use available mapped data; they are not official shelters or guarantees.'**
+  /// **'Review the selected candidate\'s mapped metrics, rationale, source, timestamp, and limits. It is not an official shelter or a guarantee.'**
   String get contextSummaryDescription;
 
   /// No description provided for @contextSummaryNoMappedHazards.
@@ -651,6 +639,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No lower-exposure area was identified for this scenario. Follow authorized local instructions.'**
   String get noContextAreas;
+
+  /// No description provided for @contextSelectedCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected candidate'**
+  String get contextSelectedCandidate;
+
+  /// No description provided for @contextSelectCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select candidate'**
+  String get contextSelectCandidate;
+
+  /// No description provided for @contextSuggestionRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion {rank}'**
+  String contextSuggestionRank(int rank);
+
+  /// No description provided for @contextCandidateSelectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select this candidate to review its details. Requesting a route is a separate action.'**
+  String get contextCandidateSelectionHint;
+
+  /// No description provided for @contextNoCandidateSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No candidate is selected. Select one above to review its details.'**
+  String get contextNoCandidateSelected;
 
   /// No description provided for @chooseContextScenario.
   ///
@@ -688,11 +706,53 @@ abstract class AppLocalizations {
   /// **'Building clearance: {building} m; tree clearance: {tree} m'**
   String contextClearance(int building, int tree);
 
+  /// No description provided for @contextMetricsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Mapped comparison metrics'**
+  String get contextMetricsHeading;
+
+  /// No description provided for @contextBuildingDensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Mapped building density: {density}%'**
+  String contextBuildingDensity(String density);
+
+  /// No description provided for @contextTreeDensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Mapped tree density: {density}%'**
+  String contextTreeDensity(String density);
+
+  /// No description provided for @contextHazardIntersections.
+  ///
+  /// In en, this message translates to:
+  /// **'Mapped hazard intersections: {count}'**
+  String contextHazardIntersections(int count);
+
+  /// No description provided for @contextRationaleHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Why this area is listed'**
+  String get contextRationaleHeading;
+
   /// No description provided for @contextDataAt.
   ///
   /// In en, this message translates to:
   /// **'Analysis data: {time}'**
   String contextDataAt(String time);
+
+  /// No description provided for @contextDataHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Data, source, and limits'**
+  String get contextDataHeading;
+
+  /// No description provided for @contextRouteSelectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a candidate above, then request a route separately. No route is requested automatically.'**
+  String get contextRouteSelectionDescription;
 
   /// No description provided for @sosBluetoothShareTitle.
   ///
@@ -1952,12 +2012,6 @@ abstract class AppLocalizations {
   /// **'Offline guidance could not be read from this device.'**
   String get guideStorageError;
 
-  /// No description provided for @guideTranslationWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'Burmese translations require review by qualified local language and emergency experts before deployment.'**
-  String get guideTranslationWarning;
-
   /// No description provided for @guideArticleTitle.
   ///
   /// In en, this message translates to:
@@ -2072,12 +2126,6 @@ abstract class AppLocalizations {
   /// **'Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.'**
   String get assistantGemmaUnavailable;
 
-  /// No description provided for @assistantIntroduction.
-  ///
-  /// In en, this message translates to:
-  /// **'This tool matches disaster questions with approved offline content. When the optional Gemma 3 model is installed, it can also answer general non-critical questions with disaster guidance prioritized.'**
-  String get assistantIntroduction;
-
   /// No description provided for @assistantSuggestedQuestions.
   ///
   /// In en, this message translates to:
@@ -2113,12 +2161,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preparing an offline answer'**
   String get assistantSearching;
-
-  /// No description provided for @assistantDisclaimer.
-  ///
-  /// In en, this message translates to:
-  /// **'Gemma answers are generated on-device and may be inaccurate. Disaster guidance is grounded in approved offline content when available. This is not a diagnosis or a replacement for authorized emergency or medical services.'**
-  String get assistantDisclaimer;
 
   /// No description provided for @assistantInputLabel.
   ///

@@ -17,6 +17,7 @@ from app.providers.usgs.normalizer import normalize_feed
 from app.repositories.earthquakes import EarthquakeRepository, ProviderSyncRepository
 from app.services.earthquakes import EarthquakeService
 from app.services.real_context_analysis import (
+    CachedEnvironmentProvider,
     LiveEnvironmentProvider,
     RealContextAnalyzer,
 )
@@ -99,10 +100,12 @@ def create_app() -> FastAPI:
                 directions_provider = MapboxDirectionsProvider(
                     mapbox_token, settings.provider_timeout_seconds
                 )
-                environment_provider = LiveEnvironmentProvider(
-                    overpass_url=settings.overpass_api_url,
-                    elevation_url=settings.elevation_api_url,
-                    timeout_seconds=settings.provider_timeout_seconds,
+                environment_provider = CachedEnvironmentProvider(
+                    LiveEnvironmentProvider(
+                        overpass_url=settings.overpass_api_url,
+                        elevation_url=settings.elevation_api_url,
+                        timeout_seconds=settings.provider_timeout_seconds,
+                    )
                 )
                 navigation_service = NavigationService(
                     False,

@@ -18,7 +18,9 @@ flowchart TD
     A --> P[More]
     M --> L[Explicit foreground location request]
     L --> N[Explicit context-area analysis]
-    N --> R[Up to three ranked route alternatives]
+    N --> N3[Up to three ranked candidates]
+    N3 --> R[Explicit selected destination]
+    R --> V[Up to three ranked route alternatives]
     S --> C[Selected secure local contacts]
     C --> D[Persisted reviewed draft]
     D --> X[External native SMS composer]
@@ -70,11 +72,23 @@ sequence; Guide quick actions open only curated content or an explicit route.
    Plain-language summaries expose the selected result's typed metrics,
    rationale, source, timestamp, cached state, and uncertainty without claiming
    an official shelter or guaranteed safety.
-7. The user selects a generated lower-exposure area and explicitly requests
-   route alternatives.
-8. The backend requests up to three Mapbox alternatives and ranks them by
-   relevant simulated hazard intersections, duration, then distance. The user
-   can select any returned option.
+   The client preserves the API's explicit `simulation` marker instead of
+   inferring it from source text; fictional or mixed analysis is displayed only
+   when the mobile development simulation gate is enabled.
+7. The UI displays up to three generated candidates and the user explicitly
+   selects one. The selected context-area ID is sent in both the compatibility
+   `shelter_id` field and `context_area_id`; no route request is made from a
+   merely displayed or inferred candidate.
+8. The backend recomputes and validates the selected destination, then requests
+   up to three Mapbox alternatives. Real routes are ranked by current mapped
+   hazard intersections, duration, then distance; simulation routes use the
+   same deterministic ordering against fictional hazards. The user can select
+   any returned option, but none is presented as guaranteed safe.
+9. Route cards retain the destination source, directions provider, profile,
+   `generated_at`, `hazard_data_at`, ranking rationale, simulation marker, and
+   uncertainty notice. Missing Mapbox credentials, empty or invalid provider
+   results, stale navigation data, or an unverified destination leave routing
+   unavailable rather than triggering a straight-line fallback.
 
 `ENABLE_SIMULATION_DATA` is false by default and forbidden in production. All
 shelters, hazards, and routes in that mode are fictional, timestamped,
@@ -83,6 +97,35 @@ also false by default and forbidden in production; it only augments backend
 context analysis and must never silently replace or merge the mobile hazard or
 shelter lists. A cached route is not recomputed for a changed location and is
 shown only with a cache warning after remote failure.
+
+## Nearby-area environment pipeline
+
+Real earthquake analysis asks the backend environment provider for full
+OpenStreetMap geometry through Overpass: named parks, sports fields, recreation
+grounds, public squares, designated gathering areas, building footprints and
+heights, trees or woodland, and power infrastructure. Real flood analysis
+enables mapped water, wetland, and waterway geometry and samples terrain at a
+denser local grid. The default configured elevation service is OpenTopoData
+ASTER30m; a deployment can substitute a compatible approved DEM or
+Copernicus-derived service through `ELEVATION_API_URL`. Terrain elevation is
+not a flood forecast or an authority-verified vertical-evacuation site.
+
+The backend keeps observations in a bounded, process-local coarse cache keyed
+by rounded analysis cells and request options. It retains up to 128 entries for
+five minutes, does not write GIS observations to the database, and may return a
+matching expired observation with an explicit stale notice when a provider
+fails. The original observation timestamp remains visible. Exact user
+coordinates are not logged or persisted by SafeMyanmar, although the requested
+location is sent to the configured upstream GIS services during collection.
+Mapped data can be incomplete or stale: absent OSM geometry is not confirmation
+of absence, and missing building heights or partial geometry lower confidence.
+User-facing OSM-derived content must include `© OpenStreetMap contributors` and
+respect the configured elevation provider's terms.
+
+The response remains a comparative lower-exposure suggestion. It is not a
+survey, official shelter, evacuation order, flood warning, or guarantee of a
+safe place or route. A future preprocessed Myanmar GeoJSON/DEM adapter can
+replace the public provider while preserving the API and mobile states.
 
 ## Background SOS Receiving
 

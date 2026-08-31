@@ -206,12 +206,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Simulation shelter and route information';
 
   @override
-  String get navigationDataHeading => 'Shelter and hazard information';
-
-  @override
   String navigationSource(String source) {
     return 'Source: $source';
   }
+
+  @override
+  String get openStreetMapAttribution => '© OpenStreetMap contributors';
 
   @override
   String shelterDataTime(String time) {
@@ -296,25 +296,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shelterListEmpty => 'No cached shelter details are available.';
 
   @override
-  String get hazardSummaryTitle => 'Hazard summary';
-
-  @override
-  String get hazardSummaryDescription =>
-      'Review mapped hazards with their source and data time. Information may be incomplete or stale.';
-
-  @override
-  String get contextAreasHeading => 'Nearby lower-exposure areas';
+  String get contextAreasHeading => 'Top lower-exposure suggestions';
 
   @override
   String get contextAreasDescription =>
-      'Suggestions compare currently available mapped environment data. They are not official shelters or guarantees.';
+      'Suggestions use names from mapped parks, fields, and other place features when available. Compare the available mapped metrics and limits; these are not official shelters or guarantees.';
 
   @override
   String get contextSummaryTitle => 'Context summary';
 
   @override
   String get contextSummaryDescription =>
-      'Suggestions use available mapped data; they are not official shelters or guarantees.';
+      'Review the selected candidate\'s mapped metrics, rationale, source, timestamp, and limits. It is not an official shelter or a guarantee.';
 
   @override
   String get contextSummaryNoMappedHazards =>
@@ -329,6 +322,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noContextAreas =>
       'No lower-exposure area was identified for this scenario. Follow authorized local instructions.';
+
+  @override
+  String get contextSelectedCandidate => 'Selected candidate';
+
+  @override
+  String get contextSelectCandidate => 'Select candidate';
+
+  @override
+  String contextSuggestionRank(int rank) {
+    return 'Suggestion $rank';
+  }
+
+  @override
+  String get contextCandidateSelectionHint =>
+      'Select this candidate to review its details. Requesting a route is a separate action.';
+
+  @override
+  String get contextNoCandidateSelected =>
+      'No candidate is selected. Select one above to review its details.';
 
   @override
   String get chooseContextScenario => 'Earthquake context';
@@ -355,9 +367,37 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get contextMetricsHeading => 'Mapped comparison metrics';
+
+  @override
+  String contextBuildingDensity(String density) {
+    return 'Mapped building density: $density%';
+  }
+
+  @override
+  String contextTreeDensity(String density) {
+    return 'Mapped tree density: $density%';
+  }
+
+  @override
+  String contextHazardIntersections(int count) {
+    return 'Mapped hazard intersections: $count';
+  }
+
+  @override
+  String get contextRationaleHeading => 'Why this area is listed';
+
+  @override
   String contextDataAt(String time) {
     return 'Analysis data: $time';
   }
+
+  @override
+  String get contextDataHeading => 'Data, source, and limits';
+
+  @override
+  String get contextRouteSelectionDescription =>
+      'Select a candidate above, then request a route separately. No route is requested automatically.';
 
   @override
   String get sosBluetoothShareTitle => 'Share limited SOS data nearby';
@@ -1135,10 +1175,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Offline guidance could not be read from this device.';
 
   @override
-  String get guideTranslationWarning =>
-      'Burmese translations require review by qualified local language and emergency experts before deployment.';
-
-  @override
   String get guideArticleTitle => 'Emergency guide';
 
   @override
@@ -1216,10 +1252,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.';
 
   @override
-  String get assistantIntroduction =>
-      'This tool matches disaster questions with approved offline content. When the optional Gemma 3 model is installed, it can also answer general non-critical questions with disaster guidance prioritized.';
-
-  @override
   String get assistantSuggestedQuestions => 'Suggested questions';
 
   @override
@@ -1238,10 +1270,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantSearching => 'Preparing an offline answer';
-
-  @override
-  String get assistantDisclaimer =>
-      'Gemma answers are generated on-device and may be inaccurate. Disaster guidance is grounded in approved offline content when available. This is not a diagnosis or a replacement for authorized emergency or medical services.';
 
   @override
   String get assistantInputLabel => 'Emergency question';

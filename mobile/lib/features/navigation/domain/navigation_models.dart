@@ -49,6 +49,7 @@ final class Shelter {
     required this.description,
     required this.source,
     required this.dataAt,
+    this.simulation = false,
   });
 
   final String id;
@@ -57,6 +58,7 @@ final class Shelter {
   final String description;
   final String source;
   final DateTime dataAt;
+  final bool simulation;
 }
 
 final class ShelterCollection {
@@ -65,12 +67,14 @@ final class ShelterCollection {
     required this.dataAt,
     required this.source,
     required this.uncertaintyNotice,
+    this.simulation = false,
   }) : items = List.unmodifiable(items);
 
   final List<Shelter> items;
   final DateTime dataAt;
   final String source;
   final String uncertaintyNotice;
+  final bool simulation;
 }
 
 final class ContextMetrics {
@@ -104,6 +108,7 @@ final class ContextArea {
     required this.source,
     required this.dataAt,
     required this.uncertaintyNotice,
+    this.simulation = false,
   }) : rationale = List.unmodifiable(rationale);
 
   final String id;
@@ -117,6 +122,7 @@ final class ContextArea {
   final String source;
   final DateTime dataAt;
   final String uncertaintyNotice;
+  final bool simulation;
 }
 
 final class ContextAreaCollection {
@@ -125,12 +131,14 @@ final class ContextAreaCollection {
     required this.dataAt,
     required this.source,
     required this.uncertaintyNotice,
+    this.simulation = false,
   }) : items = List.unmodifiable(items);
 
   final List<ContextArea> items;
   final DateTime dataAt;
   final String source;
   final String uncertaintyNotice;
+  final bool simulation;
 }
 
 final class ContextAreaRequest {
@@ -165,6 +173,7 @@ final class Hazard {
     required List<List<NavigationCoordinate>> rings,
     required this.source,
     required this.dataAt,
+    this.simulation = false,
   }) : rings = List.unmodifiable(
          rings.map((ring) => List<NavigationCoordinate>.unmodifiable(ring)),
        );
@@ -175,6 +184,7 @@ final class Hazard {
   final List<List<NavigationCoordinate>> rings;
   final String source;
   final DateTime dataAt;
+  final bool simulation;
 }
 
 final class HazardCollection {
@@ -183,12 +193,14 @@ final class HazardCollection {
     required this.dataAt,
     required this.source,
     required this.uncertaintyNotice,
+    this.simulation = false,
   }) : items = List.unmodifiable(items);
 
   final List<Hazard> items;
   final DateTime dataAt;
   final String source;
   final String uncertaintyNotice;
+  final bool simulation;
 }
 
 final class RouteOption {
@@ -206,6 +218,7 @@ final class RouteOption {
     required this.rationale,
     required this.recommended,
     required this.uncertaintyNotice,
+    this.simulation = false,
   }) : geometry = List.unmodifiable(geometry);
 
   final String id;
@@ -221,6 +234,7 @@ final class RouteOption {
   final String rationale;
   final bool recommended;
   final String uncertaintyNotice;
+  final bool simulation;
 }
 
 final class RouteSuggestions {
@@ -233,6 +247,7 @@ final class RouteSuggestions {
     required this.source,
     required this.directionsProvider,
     required this.uncertaintyNotice,
+    this.simulation = false,
   }) : options = List.unmodifiable(options);
 
   final List<RouteOption> options;
@@ -243,6 +258,7 @@ final class RouteSuggestions {
   final String source;
   final String directionsProvider;
   final String uncertaintyNotice;
+  final bool simulation;
 }
 
 final class RouteSuggestionRequest {

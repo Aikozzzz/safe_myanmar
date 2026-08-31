@@ -50,7 +50,10 @@ limited to `localhost`, `127.0.0.1`, and `10.0.2.2`.
 token. It is embedded in the built app, so restrict it by application/package
 and allowed APIs and never substitute the backend Directions secret. Flutter
 does not read root or backend `.env` files; both mobile settings must be passed
-with `--dart-define`.
+with `--dart-define`. The backend must separately receive
+`MAPBOX_DIRECTIONS_ACCESS_TOKEN` to generate route alternatives; it is a secret,
+is never sent to Flutter, and an unset or invalid value leaves routing
+unavailable while map and cached navigation screens remain usable.
 
 ## Permissions And Privacy
 
@@ -168,10 +171,22 @@ with `--dart-define`.
   hazard geometry for the selected disaster type, can use mapped building/tree
   data for earthquakes and terrain elevation for floods, and otherwise only
   excludes points intersecting current hazard geometry. It does not claim any
-area or route is safe. Fictional navigation records remain separately gated
-behind `ENABLE_SIMULATION_DATA=true`; `ENABLE_SIMULATION_ANALYSIS=true` is a
-backend-only development option that augments context-area analysis without
-adding simulation records to mobile hazard or shelter lists.
+  area or route is safe. The UI presents up to three candidates, requires an
+  explicit selection, and then displays up to three route alternatives. The
+  selected context-area ID is sent explicitly; the backend revalidates it
+  before requesting directions. Route cards show source, directions provider,
+  profile, generated time, hazard-data time, ranking rationale, simulation
+  state, and uncertainty. Missing token, stale data, unavailable destinations,
+  and empty route results remain unavailable rather than becoming straight-line
+  guidance. Fictional navigation records remain separately gated behind
+  `ENABLE_SIMULATION_DATA=true`; `ENABLE_SIMULATION_ANALYSIS=true` is a
+  backend-only development option that augments context-area analysis without
+  adding simulation records to mobile hazard or shelter lists.
+- Navigation DTOs preserve the backend's explicit `simulation` marker,
+  including mixed real-plus-simulation analysis responses. The client displays
+  the simulation label and accepts such responses only when the development
+  `--dart-define=ENABLE_SIMULATION_DATA=true` opt-in is also supplied; real
+  responses remain usable by default.
 - SOS persists at most five drafts, suppresses equivalent active drafts within
   five minutes, previews shared data, and requires hold/accessibility
   confirmation. Status means prepared, SMS sending, SMS accepted by the device,

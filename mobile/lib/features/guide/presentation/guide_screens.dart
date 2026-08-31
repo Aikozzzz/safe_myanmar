@@ -186,7 +186,6 @@ class _GuideScreenState extends ConsumerState<GuideScreen> {
                   ],
                 ),
               },
-              _TranslationWarning(text: strings.guideTranslationWarning),
             ],
           ),
         ),
@@ -252,8 +251,6 @@ class ArticleDetailScreen extends ConsumerWidget {
                 Text(article.answerMy),
                 const SizedBox(height: 20),
                 ArticleSourceCard(article: article),
-                const SizedBox(height: 12),
-                _TranslationWarning(text: strings.guideTranslationWarning),
               ],
             );
           },
@@ -483,27 +480,6 @@ class _OfflineBanner extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    ),
-  );
-}
-
-class _TranslationWarning extends StatelessWidget {
-  const _TranslationWarning({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.translate),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text)),
-        ],
       ),
     ),
   );
