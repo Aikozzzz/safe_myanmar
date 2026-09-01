@@ -184,4 +184,22 @@ void main() {
       throwsA(isA<NavigationProtocolException>()),
     );
   });
+
+  test('navigation payloads stay language-neutral after encode and decode', () {
+    final shelters = ShelterCollectionDto.fromJson(shelterResponseJson());
+    final hazards = HazardCollectionDto.fromJson(hazardResponseJson());
+    final routes = RouteSuggestionsDto.fromJson(
+      routeResponseJson(optionCount: 3),
+    );
+
+    for (final payload in [shelters.toJson(), hazards.toJson(), routes.toJson()]) {
+      expect(payload.containsKey('language'), isFalse);
+      expect(payload.containsKey('locale'), isFalse);
+    }
+    expect(shelters.toDomain().items.single.name, 'SIMULATION: Test Shelter');
+    expect(
+      ShelterCollectionDto.fromJson(shelters.toJson()).toDomain().items.single.name,
+      shelters.toDomain().items.single.name,
+    );
+  });
 }

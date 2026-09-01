@@ -169,4 +169,27 @@ void main() {
       }
     });
   });
+
+  test('alert payloads stay language-neutral after parse', () {
+    final json = validEnvelopeJson();
+    final envelope = AlertEnvelopeDto.fromJson(json);
+    final domain = envelope.items.single.toDomain();
+
+    expect(json.containsKey('language'), isFalse);
+    expect(json.containsKey('locale'), isFalse);
+    expect(
+      ((json['items']! as List).single as Map).containsKey('language'),
+      isFalse,
+    );
+    expect(domain.title, 'M 5.2 - Myanmar');
+    expect(domain.place, 'Myanmar');
+    expect(
+      AlertEnvelopeDto.fromJson(Map<String, Object?>.from(json))
+          .items
+          .single
+          .toDomain()
+          .title,
+      domain.title,
+    );
+  });
 }

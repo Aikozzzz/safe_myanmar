@@ -294,7 +294,7 @@ internal class GemmaRewriteRuntime(
                 "သွေးထွက်", "ဆေးဘက်", "ဆေးကု", "အက်စ်အိုအက်စ်", "အရေးပေါ်စာ",
                 "အရေးပေါ်စာပို့", "အကူအညီတောင်း", "အရေးပေါ်အကူအညီ",
                 "safe route", "safe_route", "safer route", "saferoute", "evacuation route",
-                "ဘေးကင်းလမ်း", "ဘေးကင်းတဲ့လမ်း", "ရွှေ့ပြောင်းလမ်း",
+                "ဘေးကင်းလမ်း", "ဘေးကင်းတဲ့လမ်း", "လုံခြုံတဲ့လမ်း", "ရွှေ့ပြောင်းလမ်း",
             )
         private val SYSTEM_INSTRUCTION = """
             You are the offline SafeMyanmar explanation assistant.

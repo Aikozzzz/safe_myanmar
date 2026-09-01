@@ -90,6 +90,16 @@ void main() {
     expect(map.left, greaterThan(alerts.left));
     expect(map.top, closeTo(alerts.top, 0.1));
   });
+
+  testWidgets('Home chrome uses reviewed Burmese labels', (tester) async {
+    await _pumpHome(tester, locale: const Locale('my'));
+
+    expect(find.text('ဘေးကင်းရေးစင်တာ'), findsOneWidget);
+    expect(find.text('တိုက်ရိုက်ငလျင်အချက်အလက်'), findsOneWidget);
+    expect(find.text('မြေပုံဖွင့်ရန်'), findsOneWidget);
+    expect(find.text('SOS ပြင်ဆင်မှုဖွင့်ရန်'), findsOneWidget);
+    expect(find.text('လမ်းညွှန်ဖွင့်ရန်'), findsOneWidget);
+  });
 }
 
 const _homeCardKeys = <String>[
@@ -105,11 +115,12 @@ Future<void> _pumpHome(
   VoidCallback? onOpenMap,
   VoidCallback? onOpenSos,
   VoidCallback? onOpenGuide,
+  Locale locale = const Locale('en'),
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: SafeTheme.light(),
-      locale: const Locale('en'),
+      locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

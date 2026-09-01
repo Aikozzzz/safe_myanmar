@@ -73,5 +73,9 @@ void main() {
       classifier.classify('အရေးပေါ်အကူအညီတောင်းပါ').intent,
       EmergencyIntent.sendSos,
     );
+    expect(
+      classifier.classify('ပထမအကူအညီ လိုအပ်နေတယ်').intent,
+      EmergencyIntent.firstAid,
+    );
   });
 }

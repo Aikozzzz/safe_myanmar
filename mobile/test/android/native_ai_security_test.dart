@@ -137,6 +137,7 @@ void main() {
         'အရေးပေါ်စာ',
         'အရေးပေါ်စာပို့',
         'ဘေးကင်းတဲ့လမ်း',
+        'လုံခြုံတဲ့လမ်း',
       ]) {
         expect(nativeSources, contains('"$term"'), reason: term);
       }

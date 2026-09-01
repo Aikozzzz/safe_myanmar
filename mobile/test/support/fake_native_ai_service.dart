@@ -37,6 +37,8 @@ final class FakeNativeAiService implements NativeAiService {
   NativeAiResult<NativeVerifiedRewrite> rewriteResult;
   NativeAiResult<NativeVerifiedRewrite> answerResult;
   Future<NativeAiCapabilities> Function()? capabilitiesHandler;
+  Future<NativeAiResult<NativeVerifiedRewrite>> Function()? rewriteHandler;
+  Future<NativeAiResult<NativeVerifiedRewrite>> Function()? answerHandler;
   int capabilitiesCalls = 0;
   int classificationCalls = 0;
   int initializationCalls = 0;
@@ -47,6 +49,7 @@ final class FakeNativeAiService implements NativeAiService {
   RewriteInvocation? lastRewrite;
   String? lastQuestion;
   String? lastApprovedContext;
+  String? lastAnswerLanguage;
 
   @override
   Future<NativeAiCapabilities> capabilities() async {
@@ -84,7 +87,7 @@ final class FakeNativeAiService implements NativeAiService {
       intent: intent,
       languageCode: languageCode,
     );
-    return rewriteResult;
+    return rewriteHandler?.call() ?? rewriteResult;
   }
 
   @override
@@ -96,7 +99,8 @@ final class FakeNativeAiService implements NativeAiService {
     answerCalls++;
     lastQuestion = question;
     lastApprovedContext = approvedContext;
-    return answerResult;
+    lastAnswerLanguage = languageCode;
+    return answerHandler?.call() ?? answerResult;
   }
 
   @override

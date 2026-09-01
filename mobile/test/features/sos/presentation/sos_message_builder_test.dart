@@ -3,6 +3,7 @@ import 'package:mobile/features/location/domain/foreground_location.dart';
 import 'package:mobile/features/sos/domain/sos_draft.dart';
 import 'package:mobile/features/sos/presentation/sos_message_builder.dart';
 import 'package:mobile/l10n/app_localizations_en.dart';
+import 'package:mobile/l10n/app_localizations_my.dart';
 
 void main() {
   final strings = AppLocalizationsEn();
@@ -64,5 +65,26 @@ void main() {
     expect(body, isNot(contains('Map:')));
     expect(body, isNot(contains('Message:')));
     expect(body, isNot(contains(RegExp(r'\b(Sent|Delivered)\b'))));
+  });
+
+  test('builds a reviewed Burmese body without rewriting user text', () {
+    final body = buildSosMessage(
+      strings: AppLocalizationsMy(),
+      profileName: 'Test User',
+      location: SosLocationSnapshot(
+        latitude: 16.8409,
+        longitude: 96.1735,
+        timestamp: DateTime.utc(2026, 7, 23, 1, 2, 3),
+        precision: LocationPrecision.precise,
+        isLastKnown: false,
+      ),
+      userMessage: 'I need help leaving this area.',
+    );
+
+    expect(body, contains('အသုံးပြုသူပြင်ဆင်ထားသော SafeMyanmar အရေးပေါ်စာ။'));
+    expect(body, contains('ပရိုဖိုင်အမည် - Test User'));
+    expect(body, contains('16.840900, 96.173500'));
+    expect(body, contains('I need help leaving this area.'));
+    expect(body, contains('တရားဝင်အရေးပေါ်'));
   });
 }

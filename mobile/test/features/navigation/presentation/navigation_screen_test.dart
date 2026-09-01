@@ -37,7 +37,11 @@ void main() {
     );
   });
 
-  Future<void> pumpScreen(WidgetTester tester, {double textScale = 1}) async {
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    double textScale = 1,
+    Locale locale = const Locale('en'),
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -52,7 +56,7 @@ void main() {
           data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
           child: MaterialApp(
             theme: SafeTheme.light(),
-            locale: const Locale('en'),
+            locale: locale,
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
@@ -590,6 +594,14 @@ void main() {
     );
     expect(routeSemantics.label, contains('Source: SafeMyanmar Demo'));
     expect(routeSemantics.label, contains('Hazard data:'));
+  });
+
+  testWidgets('Map chrome uses reviewed Burmese labels', (tester) async {
+    await pumpScreen(tester, locale: const Locale('my'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('မြေပုံ'), findsWidgets);
+    expect(find.text('ကျွန်ုပ်၏တည်နေရာကို အသုံးပြုရန်'), findsOneWidget);
   });
 }
 

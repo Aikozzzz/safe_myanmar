@@ -6,6 +6,7 @@ import 'package:mobile/core/ai/native_ai_platform_service.dart';
 import 'package:mobile/features/guide/application/assistant_controller.dart';
 import 'package:mobile/features/guide/application/providers.dart';
 import 'package:mobile/features/guide/domain/intent_classifier.dart';
+import 'package:mobile/features/settings/application/language_preference_controller.dart';
 import 'package:mobile/features/settings/application/providers.dart';
 import 'package:mobile/features/settings/domain/app_language.dart';
 
@@ -233,6 +234,7 @@ void main() {
       nativeAi.lastRewrite!.verifiedContent,
       reply.article!.answerMy,
     );
+    expect(reply.language, AppLanguage.burmese);
   });
 
   test(
@@ -263,8 +265,46 @@ void main() {
     expect(reply.gemmaAnswer, isNull);
     expect(reply.responseEngine, AssistantResponseEngine.deterministic);
     expect(nativeAi.answerCalls, 1);
+    expect(nativeAi.lastAnswerLanguage, 'my');
+    expect(nativeAi.lastApprovedContext, contains('အတည်ပြုထားသော အဖြေ'));
     },
   );
+
+  test('in-flight replies keep the language captured at send time', () async {
+    final rewrite = Completer<NativeAiResult<NativeVerifiedRewrite>>();
+    final nativeAi = FakeNativeAiService(
+      capabilitiesResult: availableNativeAiCapabilities,
+    )..rewriteHandler = () => rewrite.future;
+    final container = _container(
+      nativeAi,
+      language: AppLanguage.burmese,
+    );
+    addTearDown(container.dispose);
+    await _loadLanguage(container, AppLanguage.burmese);
+    await _loadCapabilities(container);
+
+    final send = container
+        .read(assistantControllerProvider.notifier)
+        .send('ငလျင်အတွက် လမ်းညွှန်ချက်');
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      await container
+          .read(languagePreferenceControllerProvider.notifier)
+          .setLanguage(AppLanguage.english),
+      LanguagePreferenceOperationResult.success,
+    );
+    rewrite.complete(
+      const NativeAiResult.success(
+        NativeVerifiedRewrite('အရေးပေါ်လမ်းညွှန်ကို အတိုချုံးရှင်းပြထားသည်။'),
+      ),
+    );
+    await send;
+    final reply = container.read(assistantControllerProvider).messages.last;
+
+    expect(reply.language, AppLanguage.burmese);
+    expect(reply.article!.answerMy, 'အတည်ပြုထားသော အဖြေ');
+    expect(nativeAi.lastRewrite!.languageCode, 'my');
+  });
 
   test(
     'general chat waits for capability discovery before falling back',

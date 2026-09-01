@@ -25,7 +25,10 @@ void main() {
     promptStore = FakeLocationPermissionPromptStore();
   });
 
-  Future<void> pumpScreen(WidgetTester tester) async {
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    Locale locale = const Locale('en'),
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -34,7 +37,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: SafeTheme.light(),
-          locale: const Locale('en'),
+          locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -312,6 +315,17 @@ void main() {
     expect(find.text('Use my location'), findsNothing);
     expect(repository.permissionRequests, 0);
     expect(repository.currentLocationRequests, 1);
+  });
+
+  testWidgets('Map location chrome uses reviewed Burmese labels', (
+    tester,
+  ) async {
+    await pumpScreen(tester, locale: const Locale('my'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('တည်နေရာအသုံးပြုခွင့် ပိတ်ထားသည်'), findsOneWidget);
+    expect(find.text('ကျွန်ုပ်၏တည်နေရာကို အသုံးပြုရန်'), findsOneWidget);
+    expect(find.textContaining('SDK'), findsOneWidget);
   });
 }
 

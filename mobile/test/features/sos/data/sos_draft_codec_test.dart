@@ -112,4 +112,16 @@ void main() {
 
     expect(SosDraftCodec.decode(SosDraftCodec.encode([partial])), [partial]);
   });
+
+  test('confirmed draft bodies stay unchanged and language-neutral', () {
+    final encoded = SosDraftCodec.encode([draft]);
+    final json = jsonDecode(encoded) as Map<String, dynamic>;
+    final stored = (json['drafts'] as List).single as Map<String, dynamic>;
+
+    expect(json.containsKey('language'), isFalse);
+    expect(stored.containsKey('language'), isFalse);
+    expect(stored['body'], 'Exact immutable body for Test User.');
+    expect(SosDraftCodec.decode(encoded).single.body, draft.body);
+    expect(SosDraftCodec.decode(encoded).single.message, 'I need help.');
+  });
 }

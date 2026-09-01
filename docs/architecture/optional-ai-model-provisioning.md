@@ -99,8 +99,9 @@ failures return to deterministic content. The asynchronous Flow overload is
 intentionally avoided because the Android artifact currently has a coroutines
 callback ABI mismatch.
 Trapped-person, first-aid, SOS, and safer-route requests are blocked from Tier 3.
-Generated wording is visibly secondary to the unchanged source-backed article;
-the Burmese UI also identifies the translation-review boundary.
+Generated wording is visibly secondary to the unchanged source-backed article.
+Burmese Guide screens identify the translation-review boundary, and live
+provider names or unreviewed alert text stay in their original language.
 
 ## Provisioning Checklist
 

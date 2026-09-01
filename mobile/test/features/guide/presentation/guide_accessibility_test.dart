@@ -127,6 +127,35 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('Guide chrome uses reviewed Burmese labels', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          emergencyGuideRepositoryProvider.overrideWithValue(
+            FakeEmergencyGuideRepository(),
+          ),
+          nativeAiServiceProvider.overrideWithValue(FakeNativeAiService()),
+        ],
+        child: const MaterialApp(
+          locale: Locale('my'),
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: GuideScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('လမ်းညွှန်'), findsWidgets);
+    expect(find.text('အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု'), findsOneWidget);
+    expect(find.text('ဝပ်၊ ကာကွယ်၊ ကိုင်ထားပါ'), findsOneWidget);
+  });
 }
 
 Future<void> _revealInGuide(WidgetTester tester, Finder target) async {
