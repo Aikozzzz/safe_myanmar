@@ -255,14 +255,21 @@ class ArticleDetailScreen extends ConsumerWidget {
 }
 
 class ArticleSourceCard extends StatelessWidget {
-  const ArticleSourceCard({required this.article, super.key});
+  const ArticleSourceCard({
+    required this.article,
+    this.burmese,
+    super.key,
+  });
 
   final EmergencyArticle article;
+  final bool? burmese;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toLanguageTag();
+    final showBurmeseNotice =
+        burmese ?? Localizations.localeOf(context).languageCode == 'my';
     final sourceDate = article.sourceUpdatedAt;
     return Semantics(
       container: true,
@@ -298,6 +305,10 @@ class ArticleSourceCard extends StatelessWidget {
               SelectableText(article.sourceUrl),
               const SizedBox(height: 8),
               Text(strings.guideContentWarning),
+              if (showBurmeseNotice) ...[
+                const SizedBox(height: 8),
+                Text(strings.guideTranslationWarning),
+              ],
             ],
           ),
         ),

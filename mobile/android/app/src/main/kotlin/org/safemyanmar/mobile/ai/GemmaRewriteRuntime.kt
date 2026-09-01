@@ -286,10 +286,14 @@ internal class GemmaRewriteRuntime(
             setOf(
                 "trapped", "stuck", "buried", "under rubble",
                 "injury", "injured", "wound", "wounded", "bleeding", "medical",
-                "first aid", "first-aid", "send sos", "sos", "emergency message", "help me",
+                "first aid", "first-aid", "firstaid", "first_aid",
+                "send sos", "send_sos", "sendsos", "sos",
+                "emergency message", "emergency_message", "emergencymessage",
+                "help me", "helpme",
                 "ပိတ်မိ", "အပျက်အစီးအောက်", "မြုပ်နေ", "ရှေးဦးသူနာပြု", "ဒဏ်ရာ",
                 "သွေးထွက်", "ဆေးဘက်", "ဆေးကု", "အက်စ်အိုအက်စ်", "အရေးပေါ်စာ",
-                "အကူအညီတောင်း", "safe route", "safer route", "evacuation route",
+                "အရေးပေါ်စာပို့", "အကူအညီတောင်း", "အရေးပေါ်အကူအညီ",
+                "safe route", "safe_route", "safer route", "saferoute", "evacuation route",
                 "ဘေးကင်းလမ်း", "ဘေးကင်းတဲ့လမ်း", "ရွှေ့ပြောင်းလမ်း",
             )
         private val SYSTEM_INSTRUCTION = """

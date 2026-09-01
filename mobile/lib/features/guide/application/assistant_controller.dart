@@ -26,8 +26,10 @@ enum AssistantCapabilityStatus { checking, available, unavailable }
 enum AssistantResponseEngine { deterministic, onnx, gemma }
 
 final class AssistantMessage {
-  const AssistantMessage.user(this.text)
-    : isUser = true,
+  const AssistantMessage.user(
+    this.text, {
+    this.language = AppLanguage.english,
+  }) : isUser = true,
       result = null,
       article = null,
       replyKind = null,
@@ -37,6 +39,7 @@ final class AssistantMessage {
       gemmaAnswer = null;
 
   const AssistantMessage.assistant({
+    required this.language,
     required this.result,
     required this.article,
     required this.replyKind,
@@ -49,6 +52,7 @@ final class AssistantMessage {
 
   final bool isUser;
   final String? text;
+  final AppLanguage language;
   final IntentResult? result;
   final EmergencyArticle? article;
   final AssistantReplyKind? replyKind;
@@ -129,7 +133,7 @@ final class AssistantController extends Notifier<AssistantState> {
         : classifiedResult;
     final extraction = extractSosDraft(text);
     state = state.copyWith(
-      messages: [...state.messages, AssistantMessage.user(text)],
+      messages: [...state.messages, AssistantMessage.user(text, language: language)],
       isLoading: true,
     );
 
@@ -233,6 +237,7 @@ final class AssistantController extends Notifier<AssistantState> {
       messages: [
         ...state.messages,
         AssistantMessage.assistant(
+          language: language,
           result: result,
           article: article,
           replyKind: replyKind,
@@ -399,9 +404,29 @@ final _unsafeGeneratedTextPatterns = [
   RegExp(r'\brescue\s+(?:teams|services).{0,40}\b(?:will|definitely)\b'),
   RegExp(r'\b(?:i|we)\s+(?:have\s+)?sent\s+(?:an?\s+)?sos\b'),
   RegExp(r'လုံးဝ(?:ဘေးကင်း|လုံခြုံ)'),
+  RegExp(
+    r'(?:ဘေးကင်း|လုံခြုံ)(?:ပါသည်|ပါတယ်|တယ်|မယ်|ကြောင်း|ဖြစ်သည်)',
+  ),
+  RegExp(
+    r'(?:ဤ|ဒီ).{0,40}(?:လမ်း|လမ်းကြောင်း|နေရာ|ဧရိယာ).{0,40}'
+    r'(?:ဘေးကင်း|လုံခြုံ)(?:ပါသည်|ပါတယ်|တယ်|မယ်|ကြောင်း|ဖြစ်သည်)',
+  ),
+  RegExp(
+    r'အာမခံ.{0,20}(?:ဘေးကင်း|လုံခြုံ|ကယ်ဆယ်|ရောက်)',
+  ),
   RegExp(r'(?:သေချာ|မုချ).{0,40}(?:ကယ်ဆယ်|ရောက်လာ)'),
-  RegExp(r'(?:ရောဂါ|ဒဏ်ရာ).{0,40}(?:ခွဲခြား|diagnos)'),
-  RegExp(r'(?:sos|အရေးပေါ်စာ).{0,40}(?:ပို့ပြီး|ပေးပို့ပြီး)'),
+  RegExp(
+    r'(?:ကယ်ဆယ်ရေး|ကယ်ဆယ်သူ|ကယ်ဆယ်ရေးအဖွဲ့).{0,40}'
+    r'(?:သေချာ|မုချ|ရောက်လာ|ရောက်မည်|ရောက်မယ်)',
+  ),
+  RegExp(
+    r'(?:ရောဂါ|ဒဏ်ရာ|အနာ|ကျန်းမာရေး).{0,40}'
+    r'(?:ခွဲခြား|ရောဂါရှာဖွေ|စစ်ဆေးပြီး|diagnos)',
+  ),
+  RegExp(
+    r'(?:sos|အရေးပေါ်စာ).{0,40}'
+    r'(?:ပို့ပြီး|ပေးပို့ပြီး|ပို့ထား|အောင်မြင်စွာပို့|ရောက်ပြီး)',
+  ),
 ];
 
 const _unavailableCapabilities = NativeAiCapabilities(

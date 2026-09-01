@@ -52,6 +52,8 @@ void main() {
       isTrue,
     );
     expect(isGeneralChatQuestion('ငလျင်အကြောင်း ရှင်းပြပါ'), isTrue);
+    expect(isGeneralChatQuestion('ငလျင်ဆိုတာဘာလဲ'), isTrue);
+    expect(isGeneralChatQuestion('ငလျင်နဲ့ ရေကြီးမှု ဘာကွာသလဲ'), isTrue);
     expect(isGeneralChatQuestion('How do I avoid floodwater?'), isFalse);
   });
 
@@ -59,6 +61,17 @@ void main() {
     expect(
       classifier.classify('ငလျင်လှုပ်နေရင် ဘာလုပ်ရမလဲ').intent,
       EmergencyIntent.earthquakeGuidance,
+    );
+  });
+
+  test('recognizes common Burmese shelter and SOS aliases', () {
+    expect(
+      classifier.classify('အမိုးအကာရှာပေးပါ').intent,
+      EmergencyIntent.findShelter,
+    );
+    expect(
+      classifier.classify('အရေးပေါ်အကူအညီတောင်းပါ').intent,
+      EmergencyIntent.sendSos,
     );
   });
 }

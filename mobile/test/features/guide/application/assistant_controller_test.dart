@@ -546,6 +546,35 @@ void main() {
     });
   }
 
+  for (final output in [
+    'ဤလမ်းသည် ဘေးကင်းပါသည်။',
+    'ဒဏ်ရာကို ရောဂါရှာဖွေပြီးပြီ။',
+    'ကယ်ဆယ်ရေးအဖွဲ့သည် မုချ ရောက်လာမည်။',
+    'SOS ကို အောင်မြင်စွာပို့ပြီးပါပြီ။',
+  ]) {
+    test('unsafe Burmese Gemma claims fall back to approved article content', () async {
+      final nativeAi = FakeNativeAiService(
+        capabilitiesResult: availableNativeAiCapabilities,
+        rewriteResult: NativeAiResult.success(NativeVerifiedRewrite(output)),
+      );
+      final container = _container(
+        nativeAi,
+        language: AppLanguage.burmese,
+      );
+      addTearDown(container.dispose);
+      await _loadLanguage(container, AppLanguage.burmese);
+      await _loadCapabilities(container);
+
+      await container
+          .read(assistantControllerProvider.notifier)
+          .send('ငလျင်အတွက် လမ်းညွှန်ချက်');
+      final reply = container.read(assistantControllerProvider).messages.last;
+
+      expect(reply.article!.answerMy, 'အတည်ပြုထားသော အဖြေ');
+      expect(reply.localRewording, isNull);
+    });
+  }
+
   test('Gemma is never called for critical or action responses', () async {
     final prohibitedInputs = [
       'I am trapped under rubble',
@@ -601,6 +630,30 @@ void main() {
       await Future<void>.delayed(Duration.zero);
     },
   );
+
+  test('retains the language used for each assistant response', () async {
+    final nativeAi = FakeNativeAiService(
+      capabilitiesResult: availableNativeAiCapabilities,
+      rewriteResult: const NativeAiResult.success(
+        NativeVerifiedRewrite('အတည်ပြုထားသော ပြန်လည်ရေးသားမှု'),
+      ),
+    );
+    final container = _container(
+      nativeAi,
+      language: AppLanguage.burmese,
+    );
+    addTearDown(container.dispose);
+    await _loadLanguage(container, AppLanguage.burmese);
+    await _loadCapabilities(container);
+
+    await container
+        .read(assistantControllerProvider.notifier)
+        .send('ငလျင်အတွက် လမ်းညွှန်ချက်');
+    final messages = container.read(assistantControllerProvider).messages;
+
+    expect(messages.first.language, AppLanguage.burmese);
+    expect(messages.last.language, AppLanguage.burmese);
+  });
 }
 
 ProviderContainer _container(

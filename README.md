@@ -244,6 +244,8 @@ language and safety checks. Critical medical, trapped-person, SOS, and route
 decisions remain deterministic and reviewed. Live provider names, place names,
 alert text, map-derived names, and other unreviewed fields remain source text;
 the Burmese UI identifies that boundary instead of silently translating it.
+Explicitly enabled Android nearby-SOS foreground notifications also use the
+selected language for their title, body, and stop action.
 Changing language never rewrites cached alert/navigation data or a previously
 confirmed SOS draft body.
 

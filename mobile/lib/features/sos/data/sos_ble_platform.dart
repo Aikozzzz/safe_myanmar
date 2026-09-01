@@ -100,15 +100,25 @@ final class MethodChannelSosBlePlatform implements SosBlePlatformService {
   }
 
   @override
-  Future<void> startBroadcast(Uint8List payload) async {
-    await _invoke<void>('startBroadcast', {'payload': payload});
+  Future<void> startBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {
+    await _invoke<void>('startBroadcast', {
+      'payload': payload,
+      'language': languageCode,
+    });
   }
 
   @override
-  Future<void> startRelayBroadcast(Uint8List payload) async {
+  Future<void> startRelayBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {
     await _invoke<void>('startBroadcast', {
       'payload': payload,
       'duration_seconds': sosBleRelayDurationSeconds,
+      'language': languageCode,
     });
   }
 
@@ -132,8 +142,8 @@ final class MethodChannelSosBlePlatform implements SosBlePlatformService {
       await _invoke<bool>('isBackgroundScanEnabled') ?? false;
 
   @override
-  Future<void> startBackgroundScan() async {
-    await _invoke<void>('startBackgroundScan');
+  Future<void> startBackgroundScan({String languageCode = 'en'}) async {
+    await _invoke<void>('startBackgroundScan', {'language': languageCode});
   }
 
   @override
@@ -203,12 +213,18 @@ final class UnsupportedSosBlePlatform implements SosBlePlatformService {
   Future<int?> batteryPercent() async => null;
 
   @override
-  Future<void> startBroadcast(Uint8List payload) async {
+  Future<void> startBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {
     throw UnsupportedError('Bluetooth SOS is unavailable.');
   }
 
   @override
-  Future<void> startRelayBroadcast(Uint8List payload) async {
+  Future<void> startRelayBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {
     throw UnsupportedError('Bluetooth SOS is unavailable.');
   }
 
@@ -227,7 +243,7 @@ final class UnsupportedSosBlePlatform implements SosBlePlatformService {
   Future<bool> isBackgroundScanEnabled() async => false;
 
   @override
-  Future<void> startBackgroundScan() async {
+  Future<void> startBackgroundScan({String languageCode = 'en'}) async {
     throw UnsupportedError('Background Bluetooth SOS is unavailable.');
   }
 

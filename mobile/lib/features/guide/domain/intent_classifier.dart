@@ -189,6 +189,8 @@ const _comparisonCues = <String>[
   'versus',
   ' vs ',
   'ကွာခြား',
+  'ကွာသလဲ',
+  'မတူ',
   'နှိုင်းယှဉ်',
 ];
 
@@ -208,6 +210,8 @@ const _informationalCues = <String>[
   'ရှင်းပြ',
   'ဘာကြောင့်',
   'ဘယ်လောက်ကြာ',
+  'ဆိုတာဘာလဲ',
+  'ဘာကိုဆိုလို',
 ];
 
 const _emergencyActionCues = <String>[

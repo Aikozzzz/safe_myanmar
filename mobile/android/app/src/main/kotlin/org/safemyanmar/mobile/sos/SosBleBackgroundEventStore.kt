@@ -25,6 +25,19 @@ internal class SosBleBackgroundEventStore(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
     @Synchronized
+    fun setNotificationLanguage(languageCode: String) {
+        preferences.edit()
+            .putString(LANGUAGE_KEY, if (languageCode == "my") "my" else "en")
+            .apply()
+    }
+
+    @Synchronized
+    fun notificationLanguage(): String =
+        preferences.getString(LANGUAGE_KEY, "en")?.let {
+            if (it == "my") "my" else "en"
+        } ?: "en"
+
+    @Synchronized
     fun add(payload: ByteArray, rssi: Int?, nowMillis: Long = System.currentTimeMillis()): StoredSosBleEvent? {
         val frame = SosBleFrameValidator.validate(payload, nowMillis) ?: return null
         if (isOriginatedEvent(frame.eventId, nowMillis)) return null
@@ -260,6 +273,7 @@ internal class SosBleBackgroundEventStore(context: Context) {
         private const val HIGH_WATER_KEY = "sender_high_water"
         private const val ORIGINATED_KEY = "originated_events"
         private const val ENABLED_KEY = "enabled"
+        private const val LANGUAGE_KEY = "notification_language"
         private const val MAX_EVENTS = 64
         private val ORIGIN_LOCK = Any()
         private val EVENT_ID_PATTERN = Regex("^[0-9a-f]{16}$")

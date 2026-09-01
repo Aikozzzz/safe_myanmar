@@ -1215,6 +1215,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Emergency information may not cover every situation. Follow authorized local instructions and contact authorized local emergency or medical services when possible.';
 
   @override
+  String get guideTranslationWarning =>
+      'The Myanmar translation is provided for convenience. Check important details against the approved source and authorized local instructions.';
+
+  @override
   String guideSourceSemantics(String source, int version) {
     return 'Approved source $source, content version $version';
   }

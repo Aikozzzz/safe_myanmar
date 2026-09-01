@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
+import '../../settings/application/providers.dart';
 import '../data/sos_ble_sender_identity.dart';
 import '../domain/sos_ble.dart';
 import '../domain/sos_draft.dart';
@@ -30,6 +31,12 @@ final class SosBleController extends Notifier<SosBleState> {
   SosBleState build() {
     _platform = ref.watch(sosBlePlatformProvider);
     _senderIdentityStore = ref.watch(sosBleSenderIdentityStoreProvider);
+    ref.listen(languagePreferenceControllerProvider, (previous, next) {
+      if (previous?.language == next.language || !state.backgroundListening) {
+        return;
+      }
+      unawaited(_restartBackgroundScan(next.language.code));
+    });
     _payloadSubscription = _platform.payloadStream.listen(
       _handleAdvertisement,
       onError: (_, _) => state = state.copyWith(error: 'receiver_error'),
@@ -129,7 +136,9 @@ final class SosBleController extends Notifier<SosBleState> {
         );
         return;
       }
-      await _platform.startBackgroundScan();
+      await _platform.startBackgroundScan(
+        languageCode: ref.read(languagePreferenceControllerProvider).language.code,
+      );
       state = state.copyWith(
         backgroundListening: true,
         permissions: await _refreshPermissions(),
@@ -192,6 +201,17 @@ final class SosBleController extends Notifier<SosBleState> {
       if (_pendingFocusEventId != null && !_disposed) {
         unawaited(restoreBackgroundEvents());
       }
+    }
+  }
+
+  Future<void> _restartBackgroundScan(String languageCode) async {
+    if (_disposed || !state.backgroundListening) return;
+    try {
+      await _platform.stopBackgroundScan();
+      if (_disposed || !state.backgroundListening) return;
+      await _platform.startBackgroundScan(languageCode: languageCode);
+    } on Object {
+      if (!_disposed) state = state.copyWith(error: 'background_scan_failed');
     }
   }
 
@@ -283,7 +303,10 @@ final class SosBleController extends Notifier<SosBleState> {
         eventSequence: identity.eventSequence,
       );
       _rememberEventId(_originatedEventIds, event.eventId);
-      await _platform.startBroadcast(_codec.encode(event));
+      await _platform.startBroadcast(
+        _codec.encode(event),
+        languageCode: ref.read(languagePreferenceControllerProvider).language.code,
+      );
       state = state.copyWith(
         broadcastStatus: SosBleBroadcastStatus.active,
         activeEventId: event.eventId,
@@ -355,7 +378,10 @@ final class SosBleController extends Notifier<SosBleState> {
       state = state.copyWith(supported: true, permissions: permissions);
       final backgroundEnabled = await _platform.isBackgroundScanEnabled();
       if (backgroundEnabled && permissions.canBackgroundReceive) {
-        await _platform.startBackgroundScan();
+        await _platform.startBackgroundScan(
+          languageCode:
+              ref.read(languagePreferenceControllerProvider).language.code,
+        );
         await restoreBackgroundEvents();
       } else if (backgroundEnabled) {
         await _platform.stopBackgroundScan();
@@ -495,7 +521,11 @@ final class SosBleController extends Notifier<SosBleState> {
           continue;
         }
         try {
-          await _platform.startRelayBroadcast(_codec.encode(event));
+          await _platform.startRelayBroadcast(
+            _codec.encode(event),
+            languageCode:
+                ref.read(languagePreferenceControllerProvider).language.code,
+          );
           state = state.copyWith(relayCount: state.relayCount + 1, error: null);
           await Future<void>.delayed(
             const Duration(seconds: sosBleRelayDurationSeconds),

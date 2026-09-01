@@ -531,6 +531,7 @@
   "guideSourceDate": "Source updated: {date}",
   "@guideSourceDate": {"placeholders": {"date": {"type": "String"}}},
   "guideContentWarning": "Emergency information may not cover every situation. Follow authorized local instructions and contact authorized local emergency or medical services when possible.",
+  "guideTranslationWarning": "The Myanmar translation is provided for convenience. Check important details against the approved source and authorized local instructions.",
   "guideSourceSemantics": "Approved source {source}, content version {version}",
   "@guideSourceSemantics": {"placeholders": {"source": {"type": "String"}, "version": {"type": "int"}}},
   "assistantTitle": "Offline assistant",

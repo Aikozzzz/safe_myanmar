@@ -100,6 +100,33 @@ void main() {
     expect(tester.getSize(send).width, greaterThanOrEqualTo(48));
     expect(tester.getSize(send).height, greaterThanOrEqualTo(48));
   });
+
+  testWidgets('Burmese article sources show the translation boundary', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('my'),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ArticleSourceCard(article: guideArticleFixtures().first),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining('မြန်မာဘာသာပြန်'),
+      findsOneWidget,
+    );
+  });
 }
 
 Future<void> _revealInGuide(WidgetTester tester, Finder target) async {

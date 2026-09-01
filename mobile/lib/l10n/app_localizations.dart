@@ -2076,6 +2076,9 @@ abstract class AppLocalizations {
   /// **'Emergency information may not cover every situation. Follow authorized local instructions and contact authorized local emergency or medical services when possible.'**
   String get guideContentWarning;
 
+  /// No description provided for @guideTranslationWarning.
+  String get guideTranslationWarning;
+
   /// No description provided for @guideSourceSemantics.
   ///
   /// In en, this message translates to:

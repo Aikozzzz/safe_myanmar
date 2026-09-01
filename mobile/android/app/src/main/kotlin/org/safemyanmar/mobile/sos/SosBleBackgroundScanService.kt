@@ -13,20 +13,23 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import org.safemyanmar.mobile.MainActivity
+import org.safemyanmar.mobile.R
+import java.util.Locale
 
 class SosBleBackgroundScanService : Service() {
     private lateinit var store: SosBleBackgroundEventStore
     private var scanner: BluetoothLeScanner? = null
     private var scanning = false
+    private var notificationLanguageCode = "en"
 
     override fun onCreate() {
         super.onCreate()
         store = SosBleBackgroundEventStore(applicationContext)
-        createNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -43,7 +46,12 @@ class SosBleBackgroundScanService : Service() {
         }
         store.setEnabled(true)
         try {
-            val notification = notification()
+            notificationLanguageCode =
+                intent?.getStringExtra(EXTRA_LANGUAGE)
+                    ?.let { if (it == "my") "my" else "en" }
+                    ?: store.notificationLanguage()
+            createNotificationChannel()
+            val notification = notification(notificationLanguageCode)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
                     NOTIFICATION_ID,
@@ -145,8 +153,14 @@ class SosBleBackgroundScanService : Service() {
                 notificationKey.hashCode(),
                 NotificationCompat.Builder(this, INCOMING_CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                    .setContentTitle("Nearby unverified SOS")
-                    .setContentText("A nearby device reported an SOS. Tap to view it on the map.")
+                    .setContentTitle(
+                        localizedResources(notificationLanguageCode)
+                            .getString(R.string.nearby_unverified_sos_title),
+                    )
+                    .setContentText(
+                        localizedResources(notificationLanguageCode)
+                            .getString(R.string.nearby_unverified_sos_body),
+                    )
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)
                     .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -161,23 +175,25 @@ class SosBleBackgroundScanService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NotificationManager::class.java)
+        val localized = localizedResources(notificationLanguageCode)
         manager.createNotificationChannel(
             NotificationChannel(
                 SERVICE_CHANNEL_ID,
-                "Background SOS receiver",
+                localized.getString(R.string.background_sos_receiver_channel),
                 NotificationManager.IMPORTANCE_LOW,
             ),
         )
         manager.createNotificationChannel(
             NotificationChannel(
                 INCOMING_CHANNEL_ID,
-                "Nearby SOS alerts",
+                localized.getString(R.string.nearby_sos_alerts_channel),
                 NotificationManager.IMPORTANCE_HIGH,
             ),
         )
     }
 
-    private fun notification(): Notification {
+    private fun notification(languageCode: String): Notification {
+        val localized = localizedResources(languageCode)
         val stopIntent = Intent(this, SosBleBackgroundScanService::class.java).apply {
             action = ACTION_STOP
         }
@@ -189,17 +205,28 @@ class SosBleBackgroundScanService : Service() {
         )
         return NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Background SOS receiver is active")
-            .setContentText("SafeMyanmar is listening for nearby SOS frames.")
+            .setContentTitle(localized.getString(R.string.background_sos_receiver_title))
+            .setContentText(localized.getString(R.string.background_sos_receiver_body))
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
-                "Stop",
+                localized.getString(R.string.stop),
                 stopPendingIntent,
             )
             .build()
     }
+
+    private fun localizedResources(languageCode: String = "en") =
+        createConfigurationContext(
+            Configuration(resources.configuration).apply {
+                setLocale(
+                    Locale.forLanguageTag(
+                        if (languageCode == "my") "my" else "en",
+                    ),
+                )
+            },
+        ).resources
 
     companion object {
         const val ACTION_EVENT = "org.safemyanmar.mobile.sos.BACKGROUND_EVENT"
@@ -207,14 +234,17 @@ class SosBleBackgroundScanService : Service() {
         const val EXTRA_RSSI = "rssi"
         const val EXTRA_BACKGROUND = "background"
         private const val ACTION_STOP = "org.safemyanmar.mobile.sos.STOP_BACKGROUND_SCAN"
+        private const val EXTRA_LANGUAGE = "language"
         private const val SERVICE_CHANNEL_ID = "background_sos_receiver"
         private const val INCOMING_CHANNEL_ID = "nearby_sos_alerts"
         private const val NOTIFICATION_ID = 4403
         private const val STOP_REQUEST_CODE = 4404
         private const val TAG = "SosBleBackgroundScan"
 
-        fun start(context: Context) {
-            val intent = Intent(context, SosBleBackgroundScanService::class.java)
+        fun start(context: Context, languageCode: String = "en") {
+            val intent = Intent(context, SosBleBackgroundScanService::class.java).apply {
+                putExtra(EXTRA_LANGUAGE, languageCode)
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {

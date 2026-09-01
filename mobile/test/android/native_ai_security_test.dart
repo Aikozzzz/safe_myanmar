@@ -128,17 +128,28 @@ void main() {
         'first_aid',
         'send_sos',
         'safe_route',
+        'firstaid',
+        'saferoute',
         'bleeding',
         'safer route',
         'ပိတ်မိ',
         'သွေးထွက်',
         'အရေးပေါ်စာ',
+        'အရေးပေါ်စာပို့',
         'ဘေးကင်းတဲ့လမ်း',
       ]) {
         expect(nativeSources, contains('"$term"'), reason: term);
       }
     },
   );
+
+  test('native Gemma validates and instructs the selected output language', () {
+    expect(nativeSources, contains('SUPPORTED_LANGUAGES'));
+    expect(nativeSources, contains('language !in SUPPORTED_LANGUAGES'));
+    expect(nativeSources, contains('outputLanguageInstruction(language)'));
+    expect(nativeSources, contains('Respond in Myanmar (Burmese) only'));
+    expect(dartService, contains("'language': languageCode"));
+  });
 
   test('uses fixed private artifacts and validated metadata contracts', () {
     expect(nativeSources, contains('File(context.filesDir, "ai")'));

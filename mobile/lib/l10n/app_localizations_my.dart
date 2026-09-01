@@ -842,6 +842,9 @@ class AppLocalizationsMy extends AppLocalizationsEn {
   String get guideContentWarning =>
       'အရေးပေါ်အချက်အလက်သည် အခြေအနေတိုင်းကို မဖုံးလွှမ်းနိုင်ပါ။ တရားဝင်ဒေသဆိုင်ရာ ညွှန်ကြားချက်များကို လိုက်နာပြီး ဖြစ်နိုင်လျှင် တရားဝင်ဒေသဆိုင်ရာ အရေးပေါ် သို့မဟုတ် ဆေးဘက်ဝန်ဆောင်မှုကို ဆက်သွယ်ပါ။';
   @override
+  String get guideTranslationWarning =>
+      'မြန်မာဘာသာပြန်ကို အဆင်ပြေစေရန် ပေးထားခြင်းဖြစ်သည်။ အရေးကြီးသောအသေးစိတ်များကို အတည်ပြုရင်းမြစ်နှင့် တရားဝင်ဒေသဆိုင်ရာ ညွှန်ကြားချက်များနှင့် တိုက်ဆိုင်စစ်ဆေးပါ။';
+  @override
   String guideSourceSemantics(String source, int version) =>
       'အတည်ပြုရင်းမြစ် $source၊ အကြောင်းအရာဗားရှင်း $version';
   @override

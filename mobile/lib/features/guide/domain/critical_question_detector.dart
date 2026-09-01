@@ -51,6 +51,8 @@ const _criticalTerms = <_CriticalTermGroup>[
   _CriticalTermGroup(EmergencyIntent.firstAid, [
     _CriticalTerm('first aid'),
     _CriticalTerm('first-aid'),
+    _CriticalTerm('firstaid', isAsciiWord: true),
+    _CriticalTerm('first_aid', isAsciiWord: true),
     _CriticalTerm('injury', isAsciiWord: true),
     _CriticalTerm('injured', isAsciiWord: true),
     _CriticalTerm('wound', isAsciiWord: true),
@@ -66,7 +68,12 @@ const _criticalTerms = <_CriticalTermGroup>[
   _CriticalTermGroup(EmergencyIntent.sendSos, [
     _CriticalTerm('sos', isAsciiWord: true),
     _CriticalTerm('emergency message'),
+    _CriticalTerm('emergency_message', isAsciiWord: true),
+    _CriticalTerm('emergencymessage', isAsciiWord: true),
     _CriticalTerm('help me'),
+    _CriticalTerm('helpme', isAsciiWord: true),
+    _CriticalTerm('send_sos', isAsciiWord: true),
+    _CriticalTerm('sendsos', isAsciiWord: true),
     _CriticalTerm('အက်စ်အိုအက်စ်'),
     _CriticalTerm('အရေးပေါ်စာ'),
     _CriticalTerm('အရေးပေါ်စာပို့'),
@@ -75,6 +82,8 @@ const _criticalTerms = <_CriticalTermGroup>[
   _CriticalTermGroup(EmergencyIntent.safeRoute, [
     _CriticalTerm('safe route'),
     _CriticalTerm('safer route'),
+    _CriticalTerm('safe_route', isAsciiWord: true),
+    _CriticalTerm('saferoute', isAsciiWord: true),
     _CriticalTerm('evacuation route'),
     _CriticalTerm('ဘေးကင်းလမ်း'),
     _CriticalTerm('ဘေးကင်းတဲ့လမ်း'),

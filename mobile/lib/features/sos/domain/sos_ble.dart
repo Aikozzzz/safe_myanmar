@@ -366,9 +366,15 @@ abstract interface class SosBlePlatformService {
 
   Future<int?> batteryPercent();
 
-  Future<void> startBroadcast(Uint8List payload);
+  Future<void> startBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  });
 
-  Future<void> startRelayBroadcast(Uint8List payload);
+  Future<void> startRelayBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  });
 
   Future<void> stopBroadcast();
 
@@ -378,7 +384,7 @@ abstract interface class SosBlePlatformService {
 
   Future<bool> isBackgroundScanEnabled();
 
-  Future<void> startBackgroundScan();
+  Future<void> startBackgroundScan({String languageCode = 'en'});
 
   Future<void> stopBackgroundScan();
 

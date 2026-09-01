@@ -170,6 +170,9 @@ and model identifiers are preserved.
   approved article content or explicit navigation/SOS actions. Burmese
   questions use Burmese aliases and reviewed Burmese answers; unsupported or
   rejected generated output falls back to localized safe copy.
+- Android nearby-SOS foreground notifications receive and persist the selected
+  language when a broadcast or background receiver is started; existing
+  notification channels may retain the label from their first creation.
 - Secure profile, contacts, and SOS drafts remain local and available without a
   network, subject to platform secure-storage availability.
 - Map tiles, fresh navigation data, live earthquake refresh, and Mapbox route

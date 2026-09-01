@@ -750,12 +750,18 @@ final class _FakeSosBlePlatform implements SosBlePlatformService {
   Future<int?> batteryPercent() async => 80;
 
   @override
-  Future<void> startBroadcast(Uint8List payload) async {
+  Future<void> startBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {
     broadcastPayloads.add(payload);
   }
 
   @override
-  Future<void> startRelayBroadcast(Uint8List payload) async {}
+  Future<void> startRelayBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {}
 
   @override
   Future<void> stopBroadcast() async {}
@@ -770,7 +776,7 @@ final class _FakeSosBlePlatform implements SosBlePlatformService {
   Future<bool> isBackgroundScanEnabled() async => false;
 
   @override
-  Future<void> startBackgroundScan() async {}
+  Future<void> startBackgroundScan({String languageCode = 'en'}) async {}
 
   @override
   Future<void> stopBackgroundScan() async {}

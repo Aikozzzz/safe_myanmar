@@ -147,7 +147,7 @@ class _MessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
-    final burmese = Localizations.localeOf(context).languageCode == 'my';
+    final burmese = message.language.isBurmese;
     if (message.isUser) {
       return Align(
         alignment: Alignment.centerRight,
@@ -183,7 +183,10 @@ class _MessageCard extends StatelessWidget {
                   _LocalRewordingCard(text: rewording),
                   const SizedBox(height: 12),
                 ],
-                ArticleSourceCard(article: article),
+                ArticleSourceCard(
+                  article: article,
+                  burmese: message.language.isBurmese,
+                ),
               ] else if (message.gemmaAnswer case final answer?) ...[
                 Text(
                   strings.assistantGemmaAnswerTitle,
