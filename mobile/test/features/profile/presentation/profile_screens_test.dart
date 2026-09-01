@@ -6,15 +6,19 @@ import 'package:mobile/app/router.dart';
 import 'package:mobile/features/profile/application/providers.dart';
 import 'package:mobile/features/profile/domain/local_profile.dart';
 import 'package:mobile/features/profile/domain/local_profile_repository.dart';
+import 'package:mobile/features/settings/application/providers.dart';
 
 import '../../../support/fake_local_profile_repository.dart';
+import '../../../support/fake_language_preference_repository.dart';
 
 void main() {
   late FakeLocalProfileRepository repository;
+  late FakeLanguagePreferenceRepository languageRepository;
   var nextId = 0;
 
   setUp(() {
     repository = FakeLocalProfileRepository();
+    languageRepository = FakeLanguagePreferenceRepository();
     nextId = 0;
   });
 
@@ -32,6 +36,9 @@ void main() {
           contactIdFactoryProvider.overrideWithValue(
             () => 'contact-${++nextId}',
           ),
+          languagePreferenceRepositoryProvider.overrideWithValue(
+            languageRepository,
+          ),
         ],
         child: MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
@@ -41,6 +48,25 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('More persists an explicit Burmese language choice', (
+    tester,
+  ) async {
+    await pumpRoute(tester, '/more');
+
+    expect(
+      find.byKey(const ValueKey('language-preference-card')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('language-en')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('မြန်မာ'));
+    await tester.pumpAndSettle();
+
+    expect(languageRepository.language.code, 'my');
+    expect(find.text('နောက်ထပ်'), findsOneWidget);
+    expect(find.text('ဘာသာစကား'), findsOneWidget);
+  });
 
   testWidgets('More shows a Figma-aligned local profile overview', (
     tester,

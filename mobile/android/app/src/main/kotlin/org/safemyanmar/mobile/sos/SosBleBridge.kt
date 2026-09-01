@@ -105,8 +105,13 @@ class SosBleBridge(private val activity: Activity) :
             "isBackgroundScanEnabled" -> result.success(backgroundEventStore.isEnabled())
             "startBackgroundScan" -> {
                 try {
+                    val language = languageCode(call.argument<String>("language"))
                     backgroundEventStore.setEnabled(true)
-                    SosBleBackgroundScanService.start(activity)
+                    backgroundEventStore.setNotificationLanguage(language)
+                    SosBleBackgroundScanService.start(
+                        activity,
+                        language,
+                    )
                     result.success(null)
                 } catch (error: Throwable) {
                     backgroundEventStore.setEnabled(false)
@@ -186,6 +191,7 @@ class SosBleBridge(private val activity: Activity) :
                                 payload,
                                 receiver,
                                 durationSeconds * 1000L,
+                                languageCode(call.argument<String>("language")),
                             )
                             broadcastTimeout = Runnable {
                                 completeBroadcast {
@@ -383,6 +389,8 @@ class SosBleBridge(private val activity: Activity) :
     private fun hasPermission(permission: String): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
             activity.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun languageCode(value: String?): String = if (value == "my") "my" else "en"
 
     private fun openAppSettings(): Boolean = try {
         activity.startActivity(

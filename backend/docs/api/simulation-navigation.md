@@ -31,8 +31,10 @@ to `SafeMyanmar Demo`, timestamped, and marked `simulation: true`.
 When simulation data is disabled and no navigation snapshot is configured,
 these routes are not registered or included in OpenAPI. With the default
 validated snapshot, shelter, hazard, and context-area routes remain registered
-with `simulation: false`; route suggestions return `503 routing_unavailable`
-when no verified destination or directions provider is available.
+with `simulation: false`. Route suggestions use only a verified snapshot-listed
+shelter or an explicitly selected, freshly recomputed context-area destination;
+they return `503 routing_unavailable` when the destination or directions
+provider is unavailable.
 
 This API does not provide official hazard information or guarantee route safety.
 Clients should keep timestamps, attribution, rationale, and uncertainty notices
@@ -47,13 +49,57 @@ visible. Shelter and hazard lists remain available if routing is unavailable.
 | `NAVIGATION_DATA_PATH` | `SafeMyanmar_Yangon_2026-08-17` | Validated real navigation snapshot directory |
 | `OVERPASS_API_URL` | `https://overpass-api.de/api/interpreter` | Mapped building/tree lookup for earthquake analysis |
 | `ELEVATION_API_URL` | `https://api.opentopodata.org/v1/aster30m` | Terrain elevation lookup for flood analysis |
-| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | unset | Secret Mapbox token required only for route suggestions |
+| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | unset | Backend-only secret required for route suggestions; an unset or invalid token leaves routing unavailable |
 | `PROVIDER_TIMEOUT_SECONDS` | `10.0` | Timeout used for Mapbox and USGS requests |
+
+## Environment data, cache, and attribution
+
+Real earthquake context analysis requests full geometry from OpenStreetMap
+through the configured `OVERPASS_API_URL`. It uses named parks, sports fields,
+recreation grounds, public squares, designated gathering areas, building
+footprints and heights, mapped trees or woodland, and relevant power
+infrastructure. Clearly private or inaccessible open spaces are excluded.
+Flood context analysis requests the same environment service with mapped water,
+wetland, and waterway geometry enabled, then samples terrain from the
+configured `ELEVATION_API_URL`.
+
+The default elevation endpoint is OpenTopoData's ASTER30m service. It supplies
+terrain elevation only; it is not a flood forecast, water-level observation, or
+vertical-evacuation authority. A deployment may configure a compatible
+approved DEM or Copernicus-derived service, but the API does not bundle or
+verify such a dataset. The response source and uncertainty notice must remain
+visible when a deployment substitutes a provider.
+
+Environment observations use a bounded, process-local coarse-area cache: origin
+and candidate locations are bucketed to `0.01` degrees, request radius to
+`250 m`, with at most 128 entries and a five-minute fresh lifetime. The cache
+is cleared on process restart and never writes observations to the database.
+After an upstream failure, a matching expired entry may be returned with
+`cache_status` represented in the source/uncertainty metadata as a stale
+fallback; its original `data_at` timestamp is preserved. The backend does not
+log or persist the user's exact origin, but the configured public GIS providers
+receive the requested query location while the live observation is collected.
+
+OSM-derived features are subject to incomplete tagging, missing geometry,
+missing building heights, provider outages, and changes in mapped conditions.
+No mapped feature is not evidence that the feature is absent. Clients should
+credit `© OpenStreetMap contributors` wherever OSM-derived geometry is shown
+and follow the attribution and usage terms of the configured elevation
+provider. These results are comparative lower-exposure suggestions, not
+surveyed conditions, official shelters, evacuation orders, or guarantees of a
+safe place or route. A future preprocessed Myanmar GeoJSON/DEM adapter can
+replace the public provider without changing the response contract.
 
 The Directions integration always uses the trusted HTTPS host
 `api.mapbox.com`, requests `alternatives=true`, full GeoJSON geometry, and
-returns no more than the routes Mapbox supplies (up to three). Request origins
-and destinations are neither persisted nor logged.
+returns no more than the routes Mapbox supplies (up to three). Routes are
+ranked by the number of relevant mapped hazard intersections, then duration,
+then distance. Every response and option retains `generated_at`,
+`hazard_data_at`, `source`, `directions_provider`, `profile`, and an
+uncertainty notice. Request origins and destinations are neither persisted nor
+logged. Missing credentials, provider failures, empty results, stale
+navigation data, and stale or unverified destinations fail closed; the API
+does not fabricate a straight-line route.
 
 An enabled simulation deployment must remain nonpublic unless an independent
 authentication or network-access control protects it. Restrict the backend
@@ -130,9 +176,13 @@ Request body:
 ```
 
 `context_area_id` is optional for the legacy fixed-shelter demonstration
-contract, but new clients should send it after selecting a result from
-`/context-areas`. The backend recomputes the candidate from the origin and
-disaster and search radius before requesting directions.
+contract, but new clients should send it after displaying the up-to-three
+results from `/context-areas` and explicitly selecting one. The existing
+required `shelter_id` transport field must contain the selected context area's
+identifier for compatibility. The backend recomputes that exact candidate from
+the origin, disaster, scenario, and search radius, then verifies its source,
+timestamps, and non-simulation status before requesting directions. A context
+area is a comparative lower-exposure candidate, not an official shelter.
 
 `profile` is optional and accepts `walking` or `driving`. If omitted, walking is
 selected for a straight-line distance of 5 km or less and driving otherwise.
@@ -155,13 +205,17 @@ never described as suggested safer routes.
 
 Returned Mapbox route geometries are scored against relevant simulation hazard
 polygons. Ranking is deterministic: fewest intersected polygons, then shortest
-duration, then shortest distance. No alternative is generated if Mapbox returns
-fewer than three. The recommended option says exactly: "Suggested safer route
-based on currently available SIMULATION information."
+duration, then shortest distance. Real route responses use the same ranking
+against current snapshot hazards and expose `simulation: false`; simulation
+responses remain explicitly fictional and expose `simulation: true`. The
+service returns fewer than three options when the provider supplies fewer and
+returns no option when all provider geometries are invalid or unavailable.
 
-Errors use the standard safe envelope. Missing or failed Mapbox access returns
-`503 routing_unavailable`; malformed requests return `422 invalid_request`; an
-unknown shelter returns `404 shelter_not_found`; an origin outside coverage
+Errors use the standard safe envelope. Missing token, failed Mapbox access,
+empty provider results, stale route data, or an unavailable selected
+destination returns `503 routing_unavailable`; malformed requests return
+`422 invalid_request`; an unknown shelter or selected context area returns `404
+shelter_not_found`; an origin outside coverage
 returns `400 outside_simulation_area`; rate limits return `429
 route_rate_limit_exceeded`; and exhausted provider concurrency returns `503
 routing_busy`. The `429` and busy `503` responses include bounded `Retry-After`

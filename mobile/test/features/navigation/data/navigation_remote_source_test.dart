@@ -16,33 +16,40 @@ void main() {
     isProduction: true,
   );
 
-  test('uses contract URIs and sends selected route profile', () async {
-    late http.Request captured;
-    final source = NavigationRemoteSource(
-      client: MockClient((request) async {
-        captured = request;
-        return http.Response(
-          jsonEncode(routeResponseJson(profile: 'driving')),
-          200,
-        );
-      }),
-      config: config,
-    );
+  test(
+    'uses contract URI and sends the explicit selected destination',
+    () async {
+      late http.Request captured;
+      final source = NavigationRemoteSource(
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode(routeResponseJson(profile: 'driving')),
+            200,
+          );
+        }),
+        config: config,
+      );
 
-    await source.fetchRouteSuggestions(
-      const RouteSuggestionRequest(
-        origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
-        shelterId: 'simulation-shelter-1',
-        disasterType: DisasterType.flood,
-        profile: RouteProfile.driving,
-      ),
-    );
+      await source.fetchRouteSuggestions(
+        const RouteSuggestionRequest(
+          origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
+          shelterId: 'legacy-shelter',
+          contextAreaId: 'mapped-context-area',
+          disasterType: DisasterType.flood,
+          profile: RouteProfile.driving,
+        ),
+      );
 
-    expect(captured.url, config.routeSuggestionsUri);
-    expect(captured.method, 'POST');
-    expect(jsonDecode(captured.body), containsPair('profile', 'driving'));
-    expect(jsonDecode(captured.body), containsPair('disaster_type', 'flood'));
-  });
+      expect(captured.url, config.routeSuggestionsUri);
+      expect(captured.method, 'POST');
+      final body = jsonDecode(captured.body) as Map<String, Object?>;
+      expect(body, containsPair('profile', 'driving'));
+      expect(body, containsPair('disaster_type', 'flood'));
+      expect(body, containsPair('shelter_id', 'legacy-shelter'));
+      expect(body, containsPair('context_area_id', 'mapped-context-area'));
+    },
+  );
 
   test('rejects a route response for a different requested profile', () async {
     final source = NavigationRemoteSource(

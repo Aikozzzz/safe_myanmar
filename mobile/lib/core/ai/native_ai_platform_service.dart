@@ -84,11 +84,13 @@ abstract interface class NativeAiService {
     required String source,
     required String userQuestion,
     required String intent,
+    required String languageCode,
   });
 
   Future<NativeAiResult<NativeVerifiedRewrite>> answerQuestion({
     required String question,
     required String approvedContext,
+    required String languageCode,
   });
 
   Future<NativeAiResult<bool>> cancel();
@@ -145,12 +147,14 @@ final class NativeAiPlatformService implements NativeAiService {
     required String source,
     required String userQuestion,
     required String intent,
+    required String languageCode,
   }) async {
     final response = await _invoke('rewriteVerifiedContent', {
       'verifiedContent': verifiedContent,
       'source': source,
       'userQuestion': userQuestion,
       'intent': intent,
+      'language': languageCode,
     });
     return _result(response, (map) {
       final text = map['text'];
@@ -162,10 +166,12 @@ final class NativeAiPlatformService implements NativeAiService {
   Future<NativeAiResult<NativeVerifiedRewrite>> answerQuestion({
     required String question,
     required String approvedContext,
+    required String languageCode,
   }) async {
     final response = await _invoke('answerQuestion', {
       'question': question,
       'approvedContext': approvedContext,
+      'language': languageCode,
     });
     return _result(response, (map) {
       final text = map['text'];

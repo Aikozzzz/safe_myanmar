@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -9,8 +10,22 @@ from app.api.v1.navigation import (
     get_navigation_service,
 )
 from app.main import create_app
-from app.providers.mapbox.directions import DirectionsRoute
-from app.schemas.navigation import LineStringGeometry
+from app.providers.mapbox.directions import DirectionsProviderError, DirectionsRoute
+from app.schemas.navigation import (
+    ContextArea,
+    ContextAreaListResponse,
+    ContextMetrics,
+    Coordinate,
+    Hazard,
+    LineStringGeometry,
+    PolygonGeometry,
+    Shelter,
+)
+from app.services.environment_provider import (
+    BuildingFeature,
+    EnvironmentSnapshot,
+    OpenSpaceFeature,
+)
 from app.services.navigation import NavigationService
 
 NOW = datetime(2026, 7, 23, 12, 0, tzinfo=UTC)
@@ -26,14 +41,65 @@ class StubProvider:
         return self.routes
 
 
+class FailingProvider(StubProvider):
+    def get_routes(self, origin, destination, profile):
+        self.calls.append((origin, destination, profile))
+        raise DirectionsProviderError
+
+
+class StubEnvironmentProvider:
+    def __init__(self, snapshot):
+        self.snapshot = snapshot
+        self.calls = []
+
+    def observe(
+        self,
+        origin,
+        candidates,
+        radius_m,
+        *,
+        include_obstacles,
+        include_elevation,
+        include_water=False,
+    ):
+        self.calls.append(
+            {
+                "origin": origin,
+                "candidates": tuple(candidates),
+                "radius_m": radius_m,
+                "include_obstacles": include_obstacles,
+                "include_elevation": include_elevation,
+                "include_water": include_water,
+            }
+        )
+        return self.snapshot
+
+    def close(self):
+        pass
+
+
+class StubContextAnalyzer:
+    def __init__(self, response):
+        self.response = response
+        self.calls = []
+
+    def find_context_areas(self, request, hazards, **kwargs):
+        self.calls.append((request, tuple(hazards), kwargs))
+        return self.response
+
+
 @pytest.fixture
 def navigation_app_without_data(monkeypatch):
+    monkeypatch.setenv("ENABLE_SIMULATION_DATA", "false")
+    monkeypatch.setenv("ENABLE_SIMULATION_ANALYSIS", "false")
     monkeypatch.setenv("NAVIGATION_DATA_PATH", "__missing_navigation_snapshot__")
     return create_app()
 
 
 @pytest.fixture
 def real_navigation_app(monkeypatch):
+    monkeypatch.setenv("ENABLE_SIMULATION_DATA", "false")
+    monkeypatch.setenv("ENABLE_SIMULATION_ANALYSIS", "false")
     monkeypatch.setenv("NAVIGATION_DATA_PATH", "SafeMyanmar_Yangon_2026-08-17")
     return create_app()
 
@@ -41,12 +107,14 @@ def real_navigation_app(monkeypatch):
 @pytest.fixture
 def enabled_navigation_app(monkeypatch):
     monkeypatch.setenv("ENABLE_SIMULATION_DATA", "true")
+    monkeypatch.setenv("ENABLE_SIMULATION_ANALYSIS", "false")
     monkeypatch.setenv("MAPBOX_DIRECTIONS_ACCESS_TOKEN", "")
     return create_app()
 
 
 @pytest.fixture
 def real_navigation_app_with_simulation_analysis(monkeypatch):
+    monkeypatch.setenv("ENABLE_SIMULATION_DATA", "false")
     monkeypatch.setenv("NAVIGATION_DATA_PATH", "SafeMyanmar_Yangon_2026-08-17")
     monkeypatch.setenv("ENABLE_SIMULATION_ANALYSIS", "true")
     return create_app()
@@ -65,6 +133,29 @@ def valid_request():
         "shelter_id": "simulation-shelter-1",
         "disaster_type": "earthquake",
     }
+
+
+def configure_real_route_service(application, provider):
+    current_service = application.state.navigation_service
+    retrieved_at = current_service._real_data.retrieved_at
+    shelter = Shelter(
+        id="verified-shelter",
+        name="Verified snapshot shelter",
+        coordinate=Coordinate(latitude=16.838, longitude=96.132),
+        description="Snapshot-listed shelter.",
+        source="Verified shelter registry",
+        data_at=retrieved_at,
+        simulation=False,
+    )
+    data = replace(current_service._real_data, shelters=(shelter,))
+    service = NavigationService(
+        False,
+        provider,
+        clock=lambda: NOW,
+        real_data=data,
+    )
+    application.dependency_overrides[get_navigation_service] = lambda: service
+    return service
 
 
 def test_endpoints_are_disabled_without_a_navigation_snapshot(
@@ -101,6 +192,171 @@ def test_real_navigation_snapshot_is_exposed_without_simulation(real_navigation_
     assert "SafeMyanmar Yangon snapshot" in hazards.json()["source"]
 
 
+def test_real_route_endpoint_returns_real_metadata_and_selected_shelter(
+    real_navigation_app,
+):
+    route = DirectionsRoute(
+        LineStringGeometry(
+            type="LineString",
+            coordinates=[(96.130522, 16.856152), (96.132, 16.838)],
+        ),
+        2100.0,
+        900.0,
+    )
+    provider = StubProvider((route,))
+    configure_real_route_service(real_navigation_app, provider)
+
+    with TestClient(real_navigation_app) as client:
+        response = client.post(
+            "/api/v1/route-suggestions",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "shelter_id": "verified-shelter",
+                "disaster_type": "earthquake",
+                "scenario": "outdoors_after_shaking",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["simulation"] is False
+    assert payload["source"] == "Verified shelter registry"
+    assert payload["directions_provider"] == "Mapbox Directions"
+    assert payload["options"][0]["simulation"] is False
+    assert payload["options"][0]["source"] == "Verified shelter registry"
+    assert payload["hazard_data_at"] == "2026-08-17T13:42:17Z"
+    assert provider.calls[0][1] == Coordinate(latitude=16.838, longitude=96.132)
+
+
+def test_real_route_endpoint_resolves_explicit_selected_context_area(
+    real_navigation_app,
+):
+    selected = ContextArea(
+        id="mapped-park",
+        name="Mapped public park",
+        coordinate=Coordinate(latitude=16.854, longitude=96.134),
+        disaster_type="earthquake",
+        scenario="outdoors_after_shaking",
+        distance_m=400.0,
+        metrics=ContextMetrics(
+            building_clearance_m=120.0,
+            tree_clearance_m=90.0,
+            relative_elevation_m=0.0,
+            building_density=0.1,
+            tree_density=0.2,
+            hazard_intersections=0,
+        ),
+        rationale=["Mapped public open-space polygon"],
+        source="OpenStreetMap via Overpass",
+        data_at=NOW,
+        simulation=False,
+        uncertainty_notice="Mapped coverage may be incomplete.",
+    )
+    analyzer = StubContextAnalyzer(
+        ContextAreaListResponse(
+            items=[selected],
+            data_at=NOW,
+            source="OpenStreetMap via Overpass",
+            simulation=False,
+            uncertainty_notice="Mapped coverage may be incomplete.",
+        )
+    )
+    route = DirectionsRoute(
+        LineStringGeometry(
+            type="LineString",
+            coordinates=[
+                (96.130522, 16.856152),
+                (selected.coordinate.longitude, selected.coordinate.latitude),
+            ],
+        ),
+        1400.0,
+        700.0,
+    )
+    provider = StubProvider((route,))
+    current_service = real_navigation_app.state.navigation_service
+    service = NavigationService(
+        False,
+        provider,
+        clock=lambda: NOW,
+        real_data=replace(current_service._real_data, shelters=()),
+        context_analyzer=analyzer,
+    )
+    real_navigation_app.dependency_overrides[get_navigation_service] = lambda: service
+
+    with TestClient(real_navigation_app) as client:
+        response = client.post(
+            "/api/v1/route-suggestions",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "shelter_id": selected.id,
+                "context_area_id": selected.id,
+                "disaster_type": "earthquake",
+                "scenario": "outdoors_after_shaking",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["simulation"] is False
+    assert payload["source"] == "OpenStreetMap via Overpass"
+    assert payload["options"][0]["source"] == "OpenStreetMap via Overpass"
+    assert provider.calls == [
+        (
+            Coordinate(latitude=16.856152, longitude=96.130522),
+            selected.coordinate,
+            "walking",
+        )
+    ]
+    assert analyzer.calls[0][0].origin == Coordinate(
+        latitude=16.856152, longitude=96.130522
+    )
+
+
+def test_real_route_endpoint_keeps_unknown_destination_as_safe_not_found(
+    real_navigation_app,
+):
+    provider = StubProvider(())
+    configure_real_route_service(real_navigation_app, provider)
+
+    with TestClient(real_navigation_app) as client:
+        response = client.post(
+            "/api/v1/route-suggestions",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "shelter_id": "unknown-shelter",
+                "disaster_type": "earthquake",
+            },
+        )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "shelter_not_found"
+    assert "16.856152" not in response.text
+    assert "96.130522" not in response.text
+    assert provider.calls == []
+
+
+def test_real_route_endpoint_maps_directions_failure_to_existing_unavailable_error(
+    real_navigation_app,
+):
+    provider = FailingProvider()
+    configure_real_route_service(real_navigation_app, provider)
+
+    with TestClient(real_navigation_app) as client:
+        response = client.post(
+            "/api/v1/route-suggestions",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "shelter_id": "verified-shelter",
+                "disaster_type": "earthquake",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "routing_unavailable"
+    assert "16.856152" not in response.text
+    assert "96.130522" not in response.text
+
+
 def test_real_context_analysis_rejects_unsupported_snapshot_hazard_types(
     real_navigation_app,
 ):
@@ -115,6 +371,89 @@ def test_real_context_analysis_rejects_unsupported_snapshot_hazard_types(
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "context_analysis_unavailable"
+
+
+def test_real_context_analysis_returns_named_mapped_candidate(
+    real_navigation_app,
+):
+    service = real_navigation_app.state.navigation_service
+    service._real_data = replace(
+        service._real_data,
+        hazards=(
+            Hazard(
+                id="current-earthquake",
+                name="Current earthquake geometry",
+                disaster_type="earthquake",
+                geometry=PolygonGeometry(
+                    coordinates=[
+                        [
+                            (96.16, 16.90),
+                            (96.17, 16.90),
+                            (96.17, 16.91),
+                            (96.16, 16.91),
+                            (96.16, 16.90),
+                        ]
+                    ]
+                ),
+                source="Test source",
+                data_at=NOW,
+                simulation=False,
+            ),
+        ),
+    )
+    provider = StubEnvironmentProvider(
+        EnvironmentSnapshot(
+            buildings=(
+                BuildingFeature(
+                    points=(
+                        (96.15, 16.90),
+                        (96.151, 16.90),
+                        (96.151, 16.901),
+                        (96.15, 16.901),
+                        (96.15, 16.90),
+                    ),
+                    height_m=30.0,
+                ),
+            ),
+            trees=((96.12, 16.84),),
+            elevations_m=(),
+            observed_at=NOW,
+            source="OpenStreetMap via Overpass",
+            open_spaces=(
+                OpenSpaceFeature(
+                    points=(
+                        (96.129, 16.854),
+                        (96.134, 16.854),
+                        (96.134, 16.859),
+                        (96.129, 16.859),
+                        (96.129, 16.854),
+                    ),
+                    name="Named test park",
+                    access="yes",
+                ),
+            ),
+        )
+    )
+    service._context_analyzer._provider = provider
+
+    with TestClient(real_navigation_app) as client:
+        response = client.post(
+            "/api/v1/context-areas",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "disaster_type": "earthquake",
+                "scenario": "outdoors_after_shaking",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["simulation"] is False
+    assert payload["items"][0]["name"] == "Named test park"
+    assert payload["items"][0]["data_at"] == "2026-07-23T12:00:00Z"
+    assert provider.calls[0]["include_obstacles"] is True
+    assert provider.calls[0]["include_elevation"] is False
+    assert provider.calls[0]["include_water"] is False
 
 
 def test_real_analysis_can_include_labeled_simulation_data_without_mixing_lists(

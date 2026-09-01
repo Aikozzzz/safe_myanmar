@@ -87,17 +87,21 @@ device reports low memory, total memory below 2.5 GiB, available memory below
 1.25 GiB, or app-private free storage below the larger of 768 MiB and half the
 model file size.
 
-LiteRT-LM receives either the current verified English article or a bounded set
-of approved offline disaster context, plus the user question. It may answer
-general non-critical questions, with disaster and preparedness topics prioritized,
-but must not invent live alerts, diagnoses, guaranteed-safe routes, rescue
-dispatch, or unsupported emergency instructions. The blocking LiteRT-LM
-`sendMessage` call runs on the native bridge's background dispatcher; failures
-return to deterministic content. The asynchronous Flow overload is intentionally
-avoided because the Android artifact currently has a coroutines callback ABI
-mismatch.
+LiteRT-LM receives the current verified article in the selected app language, or
+a bounded set of approved offline disaster context in that language, plus the
+user question. The native bridge accepts only `en` and `my` and instructs the
+model to answer in that language. It may answer general non-critical questions,
+with disaster and preparedness topics prioritized, but must not invent live
+alerts, diagnoses, guaranteed-safe routes, rescue dispatch, or unsupported
+emergency instructions. The blocking LiteRT-LM `sendMessage` call runs on the
+native bridge's background dispatcher; failures or language/safety validation
+failures return to deterministic content. The asynchronous Flow overload is
+intentionally avoided because the Android artifact currently has a coroutines
+callback ABI mismatch.
 Trapped-person, first-aid, SOS, and safer-route requests are blocked from Tier 3.
-Its output is visibly secondary to the unchanged source-backed article.
+Generated wording is visibly secondary to the unchanged source-backed article.
+Burmese Guide screens identify the translation-review boundary, and live
+provider names or unreviewed alert text stay in their original language.
 
 ## Provisioning Checklist
 

@@ -14,16 +14,19 @@ final class ShelterCollectionDto {
     required this.dataAt,
     required this.source,
     required this.uncertaintyNotice,
+    required this.simulation,
   });
 
   factory ShelterCollectionDto.fromJson(Map<String, Object?> json) {
     try {
       _exact(json, _collectionKeys);
-      _simulationMetadata(json);
+      final simulation = _simulationMetadata(json);
       final items = _list(json['items']);
       final dataAt = _timestamp(json['data_at']);
       final shelters = List<Shelter>.unmodifiable(items.map(_shelter));
-      if (shelters.any((item) => item.dataAt != dataAt)) {
+      if (shelters.any(
+        (item) => item.dataAt != dataAt || item.simulation != simulation,
+      )) {
         throw const NavigationProtocolException();
       }
       return ShelterCollectionDto._(
@@ -31,6 +34,7 @@ final class ShelterCollectionDto {
         dataAt: dataAt,
         source: _string(json['source']),
         uncertaintyNotice: _string(json['uncertainty_notice']),
+        simulation: simulation,
       );
     } on NavigationProtocolException {
       rethrow;
@@ -43,19 +47,21 @@ final class ShelterCollectionDto {
   final DateTime dataAt;
   final String source;
   final String uncertaintyNotice;
+  final bool simulation;
 
   ShelterCollection toDomain() => ShelterCollection(
     items: items,
     dataAt: dataAt,
     source: source,
     uncertaintyNotice: uncertaintyNotice,
+    simulation: simulation,
   );
 
   Map<String, Object?> toJson() => {
     'items': items.map(_shelterToJson).toList(),
     'data_at': _timeToJson(dataAt),
     'source': source,
-    'simulation': source == _source,
+    'simulation': simulation,
     'uncertainty_notice': uncertaintyNotice,
   };
 }
@@ -66,16 +72,19 @@ final class HazardCollectionDto {
     required this.dataAt,
     required this.source,
     required this.uncertaintyNotice,
+    required this.simulation,
   });
 
   factory HazardCollectionDto.fromJson(Map<String, Object?> json) {
     try {
       _exact(json, _collectionKeys);
-      _simulationMetadata(json);
+      final simulation = _simulationMetadata(json);
       final items = _list(json['items']);
       final dataAt = _timestamp(json['data_at']);
       final hazards = List<Hazard>.unmodifiable(items.map(_hazard));
-      if (hazards.any((item) => item.dataAt != dataAt)) {
+      if (hazards.any(
+        (item) => item.dataAt != dataAt || item.simulation != simulation,
+      )) {
         throw const NavigationProtocolException();
       }
       return HazardCollectionDto._(
@@ -83,6 +92,7 @@ final class HazardCollectionDto {
         dataAt: dataAt,
         source: _string(json['source']),
         uncertaintyNotice: _string(json['uncertainty_notice']),
+        simulation: simulation,
       );
     } on NavigationProtocolException {
       rethrow;
@@ -95,19 +105,21 @@ final class HazardCollectionDto {
   final DateTime dataAt;
   final String source;
   final String uncertaintyNotice;
+  final bool simulation;
 
   HazardCollection toDomain() => HazardCollection(
     items: items,
     dataAt: dataAt,
     source: source,
     uncertaintyNotice: uncertaintyNotice,
+    simulation: simulation,
   );
 
   Map<String, Object?> toJson() => {
     'items': items.map(_hazardToJson).toList(),
     'data_at': _timeToJson(dataAt),
     'source': source,
-    'simulation': source == _source,
+    'simulation': simulation,
     'uncertainty_notice': uncertaintyNotice,
   };
 }
@@ -118,15 +130,22 @@ final class ContextAreaCollectionDto {
     required this.dataAt,
     required this.source,
     required this.uncertaintyNotice,
+    required this.simulation,
   });
 
   factory ContextAreaCollectionDto.fromJson(Map<String, Object?> json) {
     try {
       _exact(json, _collectionKeys);
-      _simulationMetadata(json);
+      final simulation = _simulationMetadata(json);
       final dataAt = _timestamp(json['data_at']);
-      final items = _list(json['items']).map(_contextArea).toList();
-      if (items.any((item) => item.dataAt != dataAt)) {
+      final rawItems = _list(json['items']);
+      if (rawItems.length > 3) {
+        throw const NavigationProtocolException();
+      }
+      final items = rawItems.map(_contextArea).toList();
+      if (items.any(
+        (item) => item.dataAt != dataAt || item.simulation != simulation,
+      )) {
         throw const NavigationProtocolException();
       }
       return ContextAreaCollectionDto._(
@@ -134,6 +153,7 @@ final class ContextAreaCollectionDto {
         dataAt: dataAt,
         source: _string(json['source']),
         uncertaintyNotice: _string(json['uncertainty_notice']),
+        simulation: simulation,
       );
     } on NavigationProtocolException {
       rethrow;
@@ -146,19 +166,21 @@ final class ContextAreaCollectionDto {
   final DateTime dataAt;
   final String source;
   final String uncertaintyNotice;
+  final bool simulation;
 
   ContextAreaCollection toDomain() => ContextAreaCollection(
     items: items,
     dataAt: dataAt,
     source: source,
     uncertaintyNotice: uncertaintyNotice,
+    simulation: simulation,
   );
 
   Map<String, Object?> toJson() => {
     'items': items.map(_contextAreaToJson).toList(),
     'data_at': _timeToJson(dataAt),
     'source': source,
-    'simulation': source == _source,
+    'simulation': simulation,
     'uncertainty_notice': uncertaintyNotice,
   };
 }
@@ -173,16 +195,19 @@ final class RouteSuggestionsDto {
     required this.source,
     required this.directionsProvider,
     required this.uncertaintyNotice,
+    required this.simulation,
   });
 
   factory RouteSuggestionsDto.fromJson(Map<String, Object?> json) {
     try {
       _exact(json, _routeCollectionKeys);
-      _simulationMetadata(json, directions: true);
+      final simulation = _simulationMetadata(json, directions: true);
       final options = _list(json['options']).map(_routeOption).toList();
       final generatedAt = _timestamp(json['generated_at']);
       final hazardDataAt = _timestamp(json['hazard_data_at']);
       final profile = _profile(json['profile']);
+      final source = _string(json['source']);
+      final directionsProvider = _string(json['directions_provider']);
       if (options.length > 3 ||
           (options.isNotEmpty && !options.first.recommended) ||
           options.skip(1).any((option) => option.recommended) ||
@@ -190,7 +215,10 @@ final class RouteSuggestionsDto {
             (option) =>
                 option.generatedAt != generatedAt ||
                 option.hazardDataAt != hazardDataAt ||
-                option.profile != profile,
+                option.profile != profile ||
+                option.simulation != simulation ||
+                option.source != source ||
+                option.directionsProvider != directionsProvider,
           )) {
         throw const NavigationProtocolException();
       }
@@ -200,9 +228,10 @@ final class RouteSuggestionsDto {
         hazardDataAt: hazardDataAt,
         profile: profile,
         profileSelectionReason: _string(json['profile_selection_reason']),
-        source: _string(json['source']),
-        directionsProvider: _string(json['directions_provider']),
+        source: source,
+        directionsProvider: directionsProvider,
         uncertaintyNotice: _string(json['uncertainty_notice']),
+        simulation: simulation,
       );
     } on NavigationProtocolException {
       rethrow;
@@ -219,6 +248,7 @@ final class RouteSuggestionsDto {
   final String source;
   final String directionsProvider;
   final String uncertaintyNotice;
+  final bool simulation;
 
   RouteSuggestions toDomain() => RouteSuggestions(
     options: options,
@@ -229,6 +259,7 @@ final class RouteSuggestionsDto {
     source: source,
     directionsProvider: directionsProvider,
     uncertaintyNotice: uncertaintyNotice,
+    simulation: simulation,
   );
 
   Map<String, Object?> toJson() => {
@@ -239,7 +270,7 @@ final class RouteSuggestionsDto {
     'profile_selection_reason': profileSelectionReason,
     'source': source,
     'directions_provider': directionsProvider,
-    'simulation': source == _source,
+    'simulation': simulation,
     'uncertainty_notice': uncertaintyNotice,
   };
 }
@@ -326,7 +357,7 @@ const _routeOptionKeys = {
 Shelter _shelter(Object? value) {
   final json = _map(value);
   _exact(json, _shelterKeys);
-  _simulationMetadata(json);
+  final simulation = _simulationMetadata(json);
   return Shelter(
     id: _string(json['id']),
     name: _string(json['name']),
@@ -334,13 +365,14 @@ Shelter _shelter(Object? value) {
     description: _string(json['description']),
     source: _string(json['source']),
     dataAt: _timestamp(json['data_at']),
+    simulation: simulation,
   );
 }
 
 Hazard _hazard(Object? value) {
   final json = _map(value);
   _exact(json, _hazardKeys);
-  _simulationMetadata(json);
+  final simulation = _simulationMetadata(json);
   final geometry = _map(json['geometry']);
   _exact(geometry, _geometryKeys);
   if (geometry['type'] != 'Polygon') throw const NavigationProtocolException();
@@ -361,13 +393,14 @@ Hazard _hazard(Object? value) {
     rings: rings,
     source: _string(json['source']),
     dataAt: _timestamp(json['data_at']),
+    simulation: simulation,
   );
 }
 
 ContextArea _contextArea(Object? value) {
   final json = _map(value);
   _exact(json, _contextAreaKeys);
-  _simulationMetadata(json);
+  final simulation = _simulationMetadata(json);
   if (json['classification'] != 'lower_exposure') {
     throw const NavigationProtocolException();
   }
@@ -408,13 +441,14 @@ ContextArea _contextArea(Object? value) {
     source: _string(json['source']),
     dataAt: _timestamp(json['data_at']),
     uncertaintyNotice: _string(json['uncertainty_notice']),
+    simulation: simulation,
   );
 }
 
 RouteOption _routeOption(Object? value) {
   final json = _map(value);
   _exact(json, _routeOptionKeys);
-  _simulationMetadata(json, directions: true);
+  final simulation = _simulationMetadata(json, directions: true);
   final geometry = _map(json['geometry']);
   _exact(geometry, _geometryKeys);
   if (geometry['type'] != 'LineString') {
@@ -441,6 +475,7 @@ RouteOption _routeOption(Object? value) {
     rationale: _string(json['rationale']),
     recommended: recommended,
     uncertaintyNotice: _string(json['uncertainty_notice']),
+    simulation: simulation,
   );
 }
 
@@ -479,7 +514,7 @@ bool _validLinearRing(List<NavigationCoordinate> ring) {
   return first.latitude == last.latitude && first.longitude == last.longitude;
 }
 
-void _simulationMetadata(Map<String, Object?> json, {bool directions = false}) {
+bool _simulationMetadata(Map<String, Object?> json, {bool directions = false}) {
   final source = json['source'];
   final simulation = json['simulation'];
   if (source is! String || source.isEmpty || simulation is! bool) {
@@ -493,6 +528,7 @@ void _simulationMetadata(Map<String, Object?> json, {bool directions = false}) {
           (json['directions_provider'] as String).isEmpty)) {
     throw const NavigationProtocolException();
   }
+  return simulation;
 }
 
 void _exact(Map<String, Object?> json, Set<String> keys) {
@@ -575,7 +611,7 @@ Map<String, Object?> _shelterToJson(Shelter value) => {
   'description': value.description,
   'source': value.source,
   'data_at': _timeToJson(value.dataAt),
-  'simulation': value.source == _source,
+  'simulation': value.simulation,
 };
 
 Map<String, Object?> _contextAreaToJson(ContextArea value) => {
@@ -597,7 +633,7 @@ Map<String, Object?> _contextAreaToJson(ContextArea value) => {
   'rationale': value.rationale,
   'source': value.source,
   'data_at': _timeToJson(value.dataAt),
-  'simulation': value.source == _source,
+  'simulation': value.simulation,
   'uncertainty_notice': value.uncertaintyNotice,
 };
 
@@ -613,7 +649,7 @@ Map<String, Object?> _hazardToJson(Hazard value) => {
   },
   'source': value.source,
   'data_at': _timeToJson(value.dataAt),
-  'simulation': value.source == _source,
+  'simulation': value.simulation,
 };
 
 Map<String, Object?> _routeOptionToJson(RouteOption value) => {
@@ -623,7 +659,7 @@ Map<String, Object?> _routeOptionToJson(RouteOption value) => {
   'profile': value.profile.name,
   'source': value.source,
   'directions_provider': value.directionsProvider,
-  'simulation': value.source == _source,
+  'simulation': value.simulation,
   'geometry': {
     'type': 'LineString',
     'coordinates': value.geometry.map(_pairToJson).toList(),

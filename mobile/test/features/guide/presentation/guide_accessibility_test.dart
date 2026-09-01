@@ -49,6 +49,10 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Offline verified-content retrieval'), findsOneWidget);
     expect(
+      find.textContaining('Burmese translations require review'),
+      findsNothing,
+    );
+    expect(
       tester.getSemantics(find.text('Offline verified-content retrieval')),
       matchesSemantics(label: 'Offline verified-content retrieval'),
     );
@@ -95,6 +99,62 @@ void main() {
     final send = find.byTooltip('Send question');
     expect(tester.getSize(send).width, greaterThanOrEqualTo(48));
     expect(tester.getSize(send).height, greaterThanOrEqualTo(48));
+  });
+
+  testWidgets('Burmese article sources show the translation boundary', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('my'),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ArticleSourceCard(article: guideArticleFixtures().first),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining('မြန်မာဘာသာပြန်'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Guide chrome uses reviewed Burmese labels', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          emergencyGuideRepositoryProvider.overrideWithValue(
+            FakeEmergencyGuideRepository(),
+          ),
+          nativeAiServiceProvider.overrideWithValue(FakeNativeAiService()),
+        ],
+        child: const MaterialApp(
+          locale: Locale('my'),
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: GuideScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('လမ်းညွှန်'), findsWidgets);
+    expect(find.text('အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု'), findsOneWidget);
+    expect(find.text('ဝပ်၊ ကာကွယ်၊ ကိုင်ထားပါ'), findsOneWidget);
   });
 }
 

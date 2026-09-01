@@ -30,6 +30,15 @@ final class EmergencyArticle {
   final String sourceUrl;
   final DateTime? sourceUpdatedAt;
   final DateTime reviewedAt;
+
+  String titleForLanguage({required bool burmese}) =>
+      burmese && titleMy.trim().isNotEmpty ? titleMy : titleEn;
+
+  String questionForLanguage({required bool burmese}) =>
+      burmese && questionMy.trim().isNotEmpty ? questionMy : questionEn;
+
+  String answerForLanguage({required bool burmese}) =>
+      burmese && answerMy.trim().isNotEmpty ? answerMy : answerEn;
 }
 
 abstract interface class EmergencyGuideRepository {

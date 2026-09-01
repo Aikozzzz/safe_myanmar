@@ -13,6 +13,10 @@ void main() {
     'အရေးပေါ်စာပို့ပြီး အကူအညီတောင်းပါ': EmergencyIntent.sendSos,
     'earthquake advice and a safer route': EmergencyIntent.safeRoute,
     'ငလျင်ဖြစ်နေပြီး ဘေးကင်းတဲ့လမ်း ပြပါ': EmergencyIntent.safeRoute,
+    'firstaid': EmergencyIntent.firstAid,
+    'first_aid': EmergencyIntent.firstAid,
+    'send_sos': EmergencyIntent.sendSos,
+    'saferoute': EmergencyIntent.safeRoute,
   };
 
   for (final entry in cases.entries) {

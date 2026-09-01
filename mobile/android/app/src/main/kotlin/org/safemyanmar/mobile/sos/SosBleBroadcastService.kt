@@ -12,12 +12,15 @@ import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.ResultReceiver
+import org.safemyanmar.mobile.R
+import java.util.Locale
 import androidx.core.app.NotificationCompat
 import org.safemyanmar.mobile.MainActivity
 
@@ -41,10 +44,11 @@ class SosBleBroadcastService : Service() {
             EXTRA_DURATION_MS,
             BROADCAST_DURATION_MS,
         ).coerceIn(5_000L, BROADCAST_DURATION_MS)
+        val languageCode = intent.getStringExtra(EXTRA_LANGUAGE) ?: "en"
         startResultReceiver = parcelableResultReceiver(intent)
         try {
-            createNotificationChannel()
-            val notification = notification()
+            createNotificationChannel(languageCode)
+            val notification = notification(languageCode)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
                     NOTIFICATION_ID,
@@ -170,19 +174,21 @@ class SosBleBroadcastService : Service() {
         }
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannel(languageCode: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NotificationManager::class.java)
+        val localized = localizedResources(languageCode)
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "Nearby SOS sharing",
+                localized.getString(R.string.nearby_sos_sharing_channel),
                 NotificationManager.IMPORTANCE_LOW,
             ),
         )
     }
 
-    private fun notification(): Notification {
+    private fun notification(languageCode: String): Notification {
+        val localized = localizedResources(languageCode)
         val stopIntent = Intent(this, SosBleBroadcastService::class.java).apply {
             action = ACTION_STOP
         }
@@ -194,19 +200,35 @@ class SosBleBroadcastService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("Nearby SOS sharing is active")
-            .setContentText("Limited SOS data is being broadcast for up to 10 minutes.")
+            .setContentTitle(localized.getString(R.string.nearby_sos_sharing_title))
+            .setContentText(localized.getString(R.string.nearby_sos_sharing_body))
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                localized.getString(R.string.stop),
+                stopPendingIntent,
+            )
             .build()
     }
+
+    private fun localizedResources(languageCode: String) =
+        createConfigurationContext(
+            Configuration(resources.configuration).apply {
+                setLocale(
+                    Locale.forLanguageTag(
+                        if (languageCode == "my") "my" else "en",
+                    ),
+                )
+            },
+        ).resources
 
     companion object {
         private const val ACTION_START = "org.safemyanmar.mobile.sos.START_BROADCAST"
         private const val ACTION_STOP = "org.safemyanmar.mobile.sos.STOP_BROADCAST"
         private const val EXTRA_PAYLOAD = "payload"
         private const val EXTRA_DURATION_MS = "duration_ms"
+        private const val EXTRA_LANGUAGE = "language"
         private const val CHANNEL_ID = "nearby_sos_sharing"
         private const val NOTIFICATION_ID = 4402
         private const val BROADCAST_DURATION_MS = 10 * 60 * 1000L
@@ -223,12 +245,14 @@ class SosBleBroadcastService : Service() {
             payload: ByteArray,
             resultReceiver: ResultReceiver,
             durationMs: Long = BROADCAST_DURATION_MS,
+            languageCode: String = "en",
         ) {
             val intent = Intent(context, SosBleBroadcastService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_PAYLOAD, payload)
                 putExtra(EXTRA_RESULT_RECEIVER, resultReceiver)
                 putExtra(EXTRA_DURATION_MS, durationMs)
+                putExtra(EXTRA_LANGUAGE, languageCode)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)

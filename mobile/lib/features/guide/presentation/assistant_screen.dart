@@ -47,8 +47,6 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                   ),
                   const SizedBox(height: 8),
                   _CapabilityBanner(state: state),
-                  const SizedBox(height: 8),
-                  Text(strings.assistantIntroduction),
                   const SizedBox(height: 12),
                   Text(
                     strings.assistantSuggestedQuestions,
@@ -83,10 +81,6 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                       child: const Center(child: CircularProgressIndicator()),
                     ),
                   const SizedBox(height: 8),
-                  _AssistantNotice(
-                    icon: Icons.health_and_safety_outlined,
-                    text: strings.assistantDisclaimer,
-                  ),
                 ],
               ),
             ),
@@ -153,6 +147,7 @@ class _MessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = message.language.isBurmese;
     if (message.isUser) {
       return Align(
         alignment: Alignment.centerRight,
@@ -182,19 +177,15 @@ class _MessageCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               if (article != null) ...[
-                Text(article.answerEn),
-                const Divider(height: 24),
-                Text(article.answerMy),
+                Text(article.answerForLanguage(burmese: burmese)),
                 const SizedBox(height: 12),
                 if (message.localRewording case final rewording?) ...[
                   _LocalRewordingCard(text: rewording),
                   const SizedBox(height: 12),
                 ],
-                ArticleSourceCard(article: article),
-                const SizedBox(height: 12),
-                _AssistantNotice(
-                  icon: Icons.translate,
-                  text: strings.guideTranslationWarning,
+                ArticleSourceCard(
+                  article: article,
+                  burmese: message.language.isBurmese,
                 ),
               ] else if (message.gemmaAnswer case final answer?) ...[
                 Text(

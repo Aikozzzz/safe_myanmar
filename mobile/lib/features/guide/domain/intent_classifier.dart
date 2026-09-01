@@ -178,6 +178,8 @@ const _generalChatTopics = <String>{
   'fire',
   'landslide',
   'rain',
+  'disaster',
+  'danger',
 };
 
 const _comparisonCues = <String>[
@@ -186,6 +188,10 @@ const _comparisonCues = <String>[
   'comparison',
   'versus',
   ' vs ',
+  'ကွာခြား',
+  'ကွာသလဲ',
+  'မတူ',
+  'နှိုင်းယှဉ်',
 ];
 
 const _informationalCues = <String>[
@@ -199,6 +205,13 @@ const _informationalCues = <String>[
   'why do',
   'how does',
   'how long',
+  'ဘာလဲ',
+  'အကြောင်း',
+  'ရှင်းပြ',
+  'ဘာကြောင့်',
+  'ဘယ်လောက်ကြာ',
+  'ဆိုတာဘာလဲ',
+  'ဘာကိုဆိုလို',
 ];
 
 const _emergencyActionCues = <String>[
@@ -212,4 +225,11 @@ const _emergencyActionCues = <String>[
   'show',
   'report',
   'help me',
+  'ဘာလုပ်ရမလဲ',
+  'ဘယ်လို',
+  'ရှောင်',
+  'ပို့',
+  'ရှာ',
+  'အစီရင်ခံ',
+  'အကူအညီ',
 ];

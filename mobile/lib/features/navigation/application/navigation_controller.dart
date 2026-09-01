@@ -44,6 +44,7 @@ final class NavigationController extends Notifier<NavigationState> {
 
   void selectDisasterType(DisasterType value) {
     if (state.disasterType == value) return;
+    _contextGeneration++;
     state = state.copyWith(
       disasterType: value,
       contextScenario: value == DisasterType.earthquake
@@ -60,6 +61,7 @@ final class NavigationController extends Notifier<NavigationState> {
 
   void selectContextScenario(ContextScenario value) {
     if (state.contextScenario == value) return;
+    _contextGeneration++;
     state = state.copyWith(
       contextScenario: value,
       contextAreas: null,
@@ -90,6 +92,7 @@ final class NavigationController extends Notifier<NavigationState> {
           ? state.contextScenario
           : ContextScenario.general,
     );
+    _invalidateRoutes();
     final generation = ++_contextGeneration;
     late Future<void> pending;
     pending = _analyzeContext(request, generation).whenComplete(() {
@@ -249,7 +252,7 @@ final class NavigationController extends Notifier<NavigationState> {
       contextCached: cached.isCached,
       contextCachedAt: cached.cachedAt,
       contextRequest: request,
-      selectedContextAreaId: cached.data?.items.firstOrNull?.id,
+      selectedContextAreaId: null,
     );
     final result = await repository.findContextAreas(request);
     if (generation != _contextGeneration) return;
@@ -261,7 +264,7 @@ final class NavigationController extends Notifier<NavigationState> {
       contextCached: result.isCached,
       contextCachedAt: result.cachedAt,
       contextRequest: request,
-      selectedContextAreaId: areas?.items.firstOrNull?.id,
+      selectedContextAreaId: null,
     );
   }
 

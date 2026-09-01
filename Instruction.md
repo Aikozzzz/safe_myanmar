@@ -305,6 +305,23 @@ flutter run `
 
 Omit `MAPBOX_PUBLIC_ACCESS_TOKEN` when map tiles are not needed.
 
+### Run the backend for an already-installed app
+
+For a phone connected through Android wireless debugging, pair and connect it
+once, then run the backend launcher from the repository root:
+
+```powershell
+adb pair 192.168.1.50:37099
+adb connect 192.168.1.50:42137
+.\tools\run-backend-wireless.ps1 -DeviceId 192.168.1.50:42137
+```
+
+The installed debug APK must use
+`API_BASE_URL=http://127.0.0.1:8000`. The script uses `adb reverse`, so the
+phone's loopback API address reaches the backend on the development computer.
+It does not reinstall or clear the app. Add `-SkipDatabase` or
+`-SkipMigration` when those steps are already handled separately.
+
 ## 8. First App Use
 
 1. Open **Home** to view current or cached USGS earthquake observations.

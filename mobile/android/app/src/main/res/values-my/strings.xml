@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SafeMyanmar</string>
+    <string name="nearby_sos_sharing_channel">အနီးအနား SOS မျှဝေမှု</string>
+    <string name="nearby_sos_sharing_title">အနီးအနား SOS မျှဝေမှု အလုပ်လုပ်နေသည်</string>
+    <string name="nearby_sos_sharing_body">ကန့်သတ်ထားသော SOS အချက်အလက်ကို ၁၀ မိနစ်အထိ ထုတ်လွှင့်နေသည်။</string>
+    <string name="background_sos_receiver_channel">နောက်ခံ SOS လက်ခံစနစ်</string>
+    <string name="background_sos_receiver_title">နောက်ခံ SOS လက်ခံစနစ် အလုပ်လုပ်နေသည်</string>
+    <string name="background_sos_receiver_body">SafeMyanmar သည် အနီးအနား SOS frame များကို နားထောင်နေသည်။</string>
+    <string name="nearby_sos_alerts_channel">အနီးအနား SOS သတိပေးချက်များ</string>
+    <string name="nearby_unverified_sos_title">အတည်မပြုရသေးသော အနီးအနား SOS</string>
+    <string name="nearby_unverified_sos_body">အနီးအနားစက်တစ်ခုက SOS တင်ပြထားသည်။ မြေပုံတွင်ကြည့်ရန် နှိပ်ပါ။</string>
+    <string name="stop">ရပ်ရန်</string>
+</resources>

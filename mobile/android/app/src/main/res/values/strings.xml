@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SafeMyanmar</string>
+    <string name="nearby_sos_sharing_channel">Nearby SOS sharing</string>
+    <string name="nearby_sos_sharing_title">Nearby SOS sharing is active</string>
+    <string name="nearby_sos_sharing_body">Limited SOS data is being broadcast for up to 10 minutes.</string>
+    <string name="background_sos_receiver_channel">Background SOS receiver</string>
+    <string name="background_sos_receiver_title">Background SOS receiver is active</string>
+    <string name="background_sos_receiver_body">SafeMyanmar is listening for nearby SOS frames.</string>
+    <string name="nearby_sos_alerts_channel">Nearby SOS alerts</string>
+    <string name="nearby_unverified_sos_title">Nearby unverified SOS</string>
+    <string name="nearby_unverified_sos_body">A nearby device reported an SOS. Tap to view it on the map.</string>
+    <string name="stop">Stop</string>
 </resources>

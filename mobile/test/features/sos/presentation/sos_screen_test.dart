@@ -19,6 +19,10 @@ import 'package:mobile/features/sos/domain/sos_ble.dart';
 import 'package:mobile/features/sos/domain/sos_draft.dart';
 import 'package:mobile/features/sos/presentation/hold_to_confirm.dart';
 
+import 'package:mobile/features/settings/application/providers.dart';
+import 'package:mobile/features/settings/domain/app_language.dart';
+
+import '../../../support/fake_language_preference_repository.dart';
 import '../../../support/fake_local_profile_repository.dart';
 import '../../../support/fake_location_permission_prompt_store.dart';
 import '../../../support/fake_location_repository.dart';
@@ -26,6 +30,7 @@ import '../../../support/fake_sos_draft_repository.dart';
 
 void main() {
   late FakeLocalProfileRepository profileRepository;
+  late FakeLanguagePreferenceRepository languageRepository;
   late FakeSosDraftRepository draftRepository;
   late FakeLocationRepository locationRepository;
   late FakeLocationPermissionPromptStore promptStore;
@@ -35,6 +40,7 @@ void main() {
   late ProviderContainer container;
 
   setUp(() {
+    languageRepository = FakeLanguagePreferenceRepository();
     profileRepository = FakeLocalProfileRepository()
       ..profile = LocalProfile(
         displayName: 'Test User',
@@ -62,12 +68,16 @@ void main() {
     double textScale = 1,
     SosBlePlatformService? blePlatform,
     String draftId = 'draft-1',
+    AppLanguage language = AppLanguage.english,
   }) async {
     final router = createRouter(initialLocation: '/sos');
     addTearDown(router.dispose);
     container = ProviderContainer(
       overrides: [
         localProfileRepositoryProvider.overrideWithValue(profileRepository),
+        languagePreferenceRepositoryProvider.overrideWithValue(
+          languageRepository..language = language,
+        ),
         sosDraftRepositoryProvider.overrideWithValue(draftRepository),
         locationRepositoryProvider.overrideWithValue(locationRepository),
         locationPermissionPromptStoreProvider.overrideWithValue(promptStore),
@@ -143,6 +153,25 @@ void main() {
     );
     expect(draftRepository.writes, 0);
     expect(composer.calls, 0);
+  });
+
+  testWidgets('SOS chrome uses reviewed Burmese labels', (tester) async {
+    await pumpSos(tester, language: AppLanguage.burmese);
+
+    expect(find.text('SOS ပြင်ဆင်မှု'), findsWidgets);
+    expect(find.text('ရွေးထားသော လက်ခံသူများ'), findsOneWidget);
+    expect(find.text('Test Contact - +12025550123'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('SMS စာသားအတိအကျ အစမ်းပြ'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('SMS စာသားအတိအကျ အစမ်းပြ'), findsOneWidget);
+    expect(
+      find.textContaining('တည်နေရာမရနိုင်ပါ၊ ကိုဩဒိနိတ်မပါဝင်ပါ။'),
+      findsOneWidget,
+    );
+    expect(draftRepository.writes, 0);
   });
 
   testWidgets('shows readiness before review without starting an SOS', (
@@ -750,12 +779,18 @@ final class _FakeSosBlePlatform implements SosBlePlatformService {
   Future<int?> batteryPercent() async => 80;
 
   @override
-  Future<void> startBroadcast(Uint8List payload) async {
+  Future<void> startBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {
     broadcastPayloads.add(payload);
   }
 
   @override
-  Future<void> startRelayBroadcast(Uint8List payload) async {}
+  Future<void> startRelayBroadcast(
+    Uint8List payload, {
+    String languageCode = 'en',
+  }) async {}
 
   @override
   Future<void> stopBroadcast() async {}
@@ -770,7 +805,7 @@ final class _FakeSosBlePlatform implements SosBlePlatformService {
   Future<bool> isBackgroundScanEnabled() async => false;
 
   @override
-  Future<void> startBackgroundScan() async {}
+  Future<void> startBackgroundScan({String languageCode = 'en'}) async {}
 
   @override
   Future<void> stopBackgroundScan() async {}

@@ -82,6 +82,7 @@ void main() {
       source: 'Reviewed source',
       userQuestion: 'Can this be simpler?',
       intent: 'first_aid',
+      languageCode: 'en',
     );
 
     expect(received?.method, 'rewriteVerifiedContent');
@@ -90,6 +91,7 @@ void main() {
       'source': 'Reviewed source',
       'userQuestion': 'Can this be simpler?',
       'intent': 'first_aid',
+      'language': 'en',
     });
     expect(result.status, NativeAiStatus.unavailable);
     expect(result.reason, NativeAiReason.criticalIntent);
@@ -106,6 +108,7 @@ void main() {
       source: 'Reviewed source',
       userQuestion: 'Simplify this',
       intent: 'general_information',
+      languageCode: 'en',
     );
 
     expect(result.status, NativeAiStatus.error);
@@ -123,15 +126,41 @@ void main() {
     final result = await service.answerQuestion(
       question: 'What is the difference between a flood and an earthquake?',
       approvedContext: '[flood] Flood overview',
+      languageCode: 'en',
     );
 
     expect(received?.method, 'answerQuestion');
     expect(received?.arguments, {
       'question': 'What is the difference between a flood and an earthquake?',
       'approvedContext': '[flood] Flood overview',
+      'language': 'en',
     });
     expect(result.status, NativeAiStatus.success);
     expect(result.value?.text, 'answer');
+  });
+
+  test('forwards the selected Burmese language on rewrite and answer', () async {
+    final calls = <MethodCall>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return {'status': 'unavailable', 'reason': 'invalid_request'};
+    });
+
+    await service.rewriteVerifiedContent(
+      verifiedContent: 'အတည်ပြုထားသော အကြောင်းအရာ',
+      source: 'Ready.gov',
+      userQuestion: 'ငလျင်အကြောင်း',
+      intent: 'earthquake_guidance',
+      languageCode: 'my',
+    );
+    await service.answerQuestion(
+      question: 'ငလျင်ဆိုတာဘာလဲ',
+      approvedContext: '[earthquake] အတည်ပြုထားသော အကြောင်းအရာ',
+      languageCode: 'my',
+    );
+
+    expect(calls[0].arguments, containsPair('language', 'my'));
+    expect(calls[1].arguments, containsPair('language', 'my'));
   });
 
   test('Riverpod provider cancels then disposes native resources', () async {

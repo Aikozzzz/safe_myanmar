@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/ai/native_ai_platform_service.dart';
+import '../../settings/application/providers.dart';
+import '../../settings/domain/app_language.dart';
 import '../domain/emergency_article.dart';
 import '../domain/critical_question_detector.dart';
 import '../domain/intent_classifier.dart';
@@ -24,8 +26,10 @@ enum AssistantCapabilityStatus { checking, available, unavailable }
 enum AssistantResponseEngine { deterministic, onnx, gemma }
 
 final class AssistantMessage {
-  const AssistantMessage.user(this.text)
-    : isUser = true,
+  const AssistantMessage.user(
+    this.text, {
+    this.language = AppLanguage.english,
+  }) : isUser = true,
       result = null,
       article = null,
       replyKind = null,
@@ -35,6 +39,7 @@ final class AssistantMessage {
       gemmaAnswer = null;
 
   const AssistantMessage.assistant({
+    required this.language,
     required this.result,
     required this.article,
     required this.replyKind,
@@ -47,6 +52,7 @@ final class AssistantMessage {
 
   final bool isUser;
   final String? text;
+  final AppLanguage language;
   final IntentResult? result;
   final EmergencyArticle? article;
   final AssistantReplyKind? replyKind;
@@ -108,12 +114,14 @@ final class AssistantController extends Notifier<AssistantState> {
   Future<void> send(String input) async {
     final text = _boundedQuestion(input);
     if (text.isEmpty || state.isLoading) return;
+    final language = ref.read(languagePreferenceControllerProvider).language;
     final criticalMatch = detectCriticalQuestion(text);
     final generalChat = criticalMatch == null && isGeneralChatQuestion(text);
     if (generalChat) {
       await (_capabilitiesFuture ??= _loadCapabilities());
       if (_disposed) return;
     }
+    final classifiedResult = _classifier.classify(text);
     final dartResult = generalChat
         ? IntentResult(
             intent: EmergencyIntent.unknown,
@@ -122,10 +130,10 @@ final class AssistantController extends Notifier<AssistantState> {
                 'General chat questions are answered by the offline assistant.',
             matchedTerms: const [],
           )
-        : _classifier.classify(text);
+        : classifiedResult;
     final extraction = extractSosDraft(text);
     state = state.copyWith(
-      messages: [...state.messages, AssistantMessage.user(text)],
+      messages: [...state.messages, AssistantMessage.user(text, language: language)],
       isLoading: true,
     );
 
@@ -181,6 +189,38 @@ final class AssistantController extends Notifier<AssistantState> {
       }
     }
     if (_disposed) return;
+    String? localRewording;
+    String? gemmaAnswer;
+    if (article != null &&
+        criticalMatch == null &&
+        _canUseGemma(result.intent, AssistantReplyKind.article) &&
+        _capabilities?.tier3.available == true) {
+      localRewording = await _tryRewrite(
+        article: article,
+        question: text,
+        intent: result.intent,
+        language: language,
+      );
+      if (localRewording != null) {
+        responseEngine = AssistantResponseEngine.gemma;
+      }
+    } else if (criticalMatch == null &&
+        article == null &&
+        result.intent == EmergencyIntent.unknown) {
+      if (_capabilities?.tier3.available == true) {
+        gemmaAnswer = await _tryAnswerQuestion(text, language);
+        if (gemmaAnswer != null) {
+          responseEngine = AssistantResponseEngine.gemma;
+        }
+      }
+      if (gemmaAnswer == null && generalChat) {
+        article = await _reviewedFallbackArticle(
+          classifiedResult.intent,
+          language,
+        );
+      }
+    }
+    if (_disposed) return;
     final replyKind = article != null
         ? AssistantReplyKind.article
         : switch (result.intent) {
@@ -193,34 +233,11 @@ final class AssistantController extends Notifier<AssistantState> {
             EmergencyIntent.unknown => AssistantReplyKind.unknown,
             _ => AssistantReplyKind.unavailable,
           };
-
-    String? localRewording;
-    String? gemmaAnswer;
-    if (article != null &&
-        criticalMatch == null &&
-        _canUseGemma(result.intent, replyKind) &&
-        _capabilities?.tier3.available == true) {
-      localRewording = await _tryRewrite(
-        article: article,
-        question: text,
-        intent: result.intent,
-      );
-      if (localRewording != null) {
-        responseEngine = AssistantResponseEngine.gemma;
-      }
-    } else if (criticalMatch == null &&
-        replyKind == AssistantReplyKind.unknown &&
-        _capabilities?.tier3.available == true) {
-      gemmaAnswer = await _tryAnswerQuestion(text);
-      if (gemmaAnswer != null) {
-        responseEngine = AssistantResponseEngine.gemma;
-      }
-    }
-    if (_disposed) return;
     state = state.copyWith(
       messages: [
         ...state.messages,
         AssistantMessage.assistant(
+          language: language,
           result: result,
           article: article,
           replyKind: replyKind,
@@ -259,9 +276,13 @@ final class AssistantController extends Notifier<AssistantState> {
     required EmergencyArticle article,
     required String question,
     required EmergencyIntent intent,
+    required AppLanguage language,
   }) async {
-    if (article.answerEn.isEmpty ||
-        article.answerEn.length > _maximumVerifiedContentCharacters ||
+    final verifiedContent = article.answerForLanguage(
+      burmese: language.isBurmese,
+    );
+    if (verifiedContent.isEmpty ||
+        verifiedContent.length > _maximumVerifiedContentCharacters ||
         article.sourceName.isEmpty ||
         article.sourceName.length > _maximumSourceCharacters) {
       return null;
@@ -270,17 +291,18 @@ final class AssistantController extends Notifier<AssistantState> {
       final initialized = await (_gemmaInitialization ??= _initializeGemma());
       if (!initialized || _disposed) return null;
       final rewrite = await _nativeAi.rewriteVerifiedContent(
-        verifiedContent: article.answerEn,
+        verifiedContent: verifiedContent,
         source: article.sourceName,
         userQuestion: question,
         intent: _nativeIntentName(intent),
+        languageCode: language.code,
       );
       final text = rewrite.value?.text.trim();
       if (rewrite.status != NativeAiStatus.success ||
           text == null ||
           text.isEmpty ||
           text.length > _maximumRewriteCharacters ||
-          !_isSafeGeneratedText(text)) {
+          !_isSafeGeneratedText(text, language: language)) {
         return null;
       }
       return text;
@@ -298,14 +320,20 @@ final class AssistantController extends Notifier<AssistantState> {
     }
   }
 
-  Future<String?> _tryAnswerQuestion(String question) async {
+  Future<String?> _tryAnswerQuestion(
+    String question,
+    AppLanguage language,
+  ) async {
     try {
       final articles = await _repository.search(query: '');
       final approvedContext = articles
           .take(_maximumContextArticles)
           .map(
             (article) =>
-                '[${article.category}] ${article.titleEn}\n${article.answerEn}\nSource: ${article.sourceName}',
+                '[${article.category}] '
+                '${article.titleForLanguage(burmese: language.isBurmese)}\n'
+                '${article.answerForLanguage(burmese: language.isBurmese)}\n'
+                'Source: ${article.sourceName}',
           )
           .join('\n\n');
       final initialized = await (_gemmaInitialization ??= _initializeGemma());
@@ -313,16 +341,33 @@ final class AssistantController extends Notifier<AssistantState> {
       final answer = await _nativeAi.answerQuestion(
         question: question,
         approvedContext: approvedContext,
+        languageCode: language.code,
       );
       final text = answer.value?.text.trim();
       if (answer.status != NativeAiStatus.success ||
           text == null ||
           text.isEmpty ||
           text.length > _maximumRewriteCharacters ||
-          !_isSafeGeneratedText(text)) {
+          !_isSafeGeneratedText(text, language: language)) {
         return null;
       }
       return text;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<EmergencyArticle?> _reviewedFallbackArticle(
+    EmergencyIntent intent,
+    AppLanguage language,
+  ) async {
+    final articleId = _articleIds[intent];
+    if (articleId == null) return null;
+    try {
+      final article = await _repository.getById(articleId);
+      if (article == null) return null;
+      final answer = language.isBurmese ? article.answerMy : article.answerEn;
+      return answer.trim().isEmpty ? null : article;
     } catch (_) {
       return null;
     }
@@ -358,6 +403,30 @@ final _unsafeGeneratedTextPatterns = [
   RegExp(r'\b(?:i|we)\s+(?:have\s+)?diagnos(?:e|ed|is)\b'),
   RegExp(r'\brescue\s+(?:teams|services).{0,40}\b(?:will|definitely)\b'),
   RegExp(r'\b(?:i|we)\s+(?:have\s+)?sent\s+(?:an?\s+)?sos\b'),
+  RegExp(r'လုံးဝ(?:ဘေးကင်း|လုံခြုံ)'),
+  RegExp(
+    r'(?:ဘေးကင်း|လုံခြုံ)(?:ပါသည်|ပါတယ်|တယ်|မယ်|ကြောင်း|ဖြစ်သည်)',
+  ),
+  RegExp(
+    r'(?:ဤ|ဒီ).{0,40}(?:လမ်း|လမ်းကြောင်း|နေရာ|ဧရိယာ).{0,40}'
+    r'(?:ဘေးကင်း|လုံခြုံ)(?:ပါသည်|ပါတယ်|တယ်|မယ်|ကြောင်း|ဖြစ်သည်)',
+  ),
+  RegExp(
+    r'အာမခံ.{0,20}(?:ဘေးကင်း|လုံခြုံ|ကယ်ဆယ်|ရောက်)',
+  ),
+  RegExp(r'(?:သေချာ|မုချ).{0,40}(?:ကယ်ဆယ်|ရောက်လာ)'),
+  RegExp(
+    r'(?:ကယ်ဆယ်ရေး|ကယ်ဆယ်သူ|ကယ်ဆယ်ရေးအဖွဲ့).{0,40}'
+    r'(?:သေချာ|မုချ|ရောက်လာ|ရောက်မည်|ရောက်မယ်)',
+  ),
+  RegExp(
+    r'(?:ရောဂါ|ဒဏ်ရာ|အနာ|ကျန်းမာရေး).{0,40}'
+    r'(?:ခွဲခြား|ရောဂါရှာဖွေ|စစ်ဆေးပြီး|diagnos)',
+  ),
+  RegExp(
+    r'(?:sos|အရေးပေါ်စာ).{0,40}'
+    r'(?:ပို့ပြီး|ပေးပို့ပြီး|ပို့ထား|အောင်မြင်စွာပို့|ရောက်ပြီး)',
+  ),
 ];
 
 const _unavailableCapabilities = NativeAiCapabilities(
@@ -377,11 +446,21 @@ String _boundedQuestion(String input) {
   return text.substring(0, _maximumQuestionCharacters).trimRight();
 }
 
-bool _isSafeGeneratedText(String text) {
+bool _isSafeGeneratedText(String text, {required AppLanguage language}) {
   final normalized = text.trim().toLowerCase();
-  return !_unsafeGeneratedTextPatterns.any(
-    (pattern) => pattern.hasMatch(normalized),
-  );
+  if (_unsafeGeneratedTextPatterns.any((pattern) => pattern.hasMatch(normalized))) {
+    return false;
+  }
+  if (language.isBurmese) {
+    final burmeseCharacters = RegExp(
+      r'[\u1000-\u109f]',
+    ).allMatches(text).length;
+    final latinCharacters = RegExp(r'[a-z]', caseSensitive: false)
+        .allMatches(text)
+        .length;
+    return burmeseCharacters >= 3 && burmeseCharacters >= latinCharacters;
+  }
+  return true;
 }
 
 bool _canUseGemma(EmergencyIntent intent, AssistantReplyKind replyKind) =>

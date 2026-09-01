@@ -100,6 +100,107 @@ void main() {
     expect(result.remoteFailed, isTrue);
   });
 
+  test('rejects mixed simulation analysis in real mode', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final repository = NavigationRepositoryImpl(
+      localSource: DriftNavigationLocalSource(database),
+      remoteSource: NavigationRemoteSource(
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode(
+              contextAreaResponseJson(
+                source:
+                    'Yangon snapshot; SafeMyanmar Demo simulation analysis data',
+                simulation: true,
+              ),
+            ),
+            200,
+            headers: const {'content-type': 'application/json'},
+          ),
+        ),
+        config: ApiConfig.fromRaw(
+          'https://api.example.test',
+          isProduction: true,
+        ),
+      ),
+    );
+
+    final result = await repository.findContextAreas(
+      const ContextAreaRequest(
+        origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
+        disasterType: DisasterType.earthquake,
+        scenario: ContextScenario.outdoorsAfterShaking,
+      ),
+    );
+
+    expect(result.data, isNull);
+    expect(result.isCached, isFalse);
+    expect(result.remoteFailed, isTrue);
+  });
+
+  test(
+    'falls back to a matching real route cache with an explicit stale result',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final local = DriftNavigationLocalSource(database);
+      const request = RouteSuggestionRequest(
+        origin: NavigationCoordinate(latitude: 16.856152, longitude: 96.130522),
+        shelterId: 'mapped-context-area',
+        contextAreaId: 'mapped-context-area',
+        disasterType: DisasterType.earthquake,
+        scenario: ContextScenario.outdoorsAfterShaking,
+        profile: RouteProfile.walking,
+      );
+      final online = NavigationRepositoryImpl(
+        localSource: local,
+        remoteSource: NavigationRemoteSource(
+          client: MockClient(
+            (_) async => http.Response(
+              jsonEncode(
+                routeResponseJson(
+                  source: 'Verified shelter registry',
+                  simulation: false,
+                  uncertaintyNotice: 'Route data may be incomplete.',
+                ),
+              ),
+              200,
+              headers: const {'content-type': 'application/json'},
+            ),
+          ),
+          config: ApiConfig.fromRaw(
+            'https://api.example.test',
+            isProduction: true,
+          ),
+        ),
+        now: () => DateTime.utc(2026, 8, 17, 13),
+      );
+
+      final fetched = await online.suggestRoutes(request);
+      final offline = NavigationRepositoryImpl(
+        localSource: local,
+        remoteSource: NavigationRemoteSource(
+          client: MockClient(
+            (_) async => throw http.ClientException('offline'),
+          ),
+          config: ApiConfig.fromRaw(
+            'https://api.example.test',
+            isProduction: true,
+          ),
+        ),
+      );
+      final fallback = await offline.suggestRoutes(request);
+
+      expect(fetched.data?.simulation, isFalse);
+      expect(fallback.data?.source, 'Verified shelter registry');
+      expect(fallback.data?.options, hasLength(1));
+      expect(fallback.isCached, isTrue);
+      expect(fallback.remoteFailed, isTrue);
+      expect(fallback.cachedAt, DateTime.utc(2026, 8, 17, 13));
+    },
+  );
+
   test(
     'never returns a cached route for a different request context',
     () async {

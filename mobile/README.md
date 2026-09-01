@@ -50,7 +50,34 @@ limited to `localhost`, `127.0.0.1`, and `10.0.2.2`.
 token. It is embedded in the built app, so restrict it by application/package
 and allowed APIs and never substitute the backend Directions secret. Flutter
 does not read root or backend `.env` files; both mobile settings must be passed
-with `--dart-define`.
+with `--dart-define`. The backend must separately receive
+`MAPBOX_DIRECTIONS_ACCESS_TOKEN` to generate route alternatives; it is a secret,
+is never sent to Flutter, and an unset or invalid value leaves routing
+unavailable while map and cached navigation screens remain usable.
+
+## Language And Reviewed Content
+
+Open **More > Language** to choose English or မြန်မာ. The explicit choice is
+stored as only `en` or `my` in Android secure storage under the separate
+`app_language_v1` key. It does not change the encrypted profile payload,
+request location, require network access, or invalidate cached alerts,
+navigation data, Guide records, or existing SOS draft bodies. Missing,
+invalid, or temporarily unreadable preferences fall back to English; a failed
+write keeps the previously active language and exposes a retry action.
+
+The Burmese locale covers app-owned chrome, safety labels, reviewed Guide
+titles/answers, deterministic assistant responses, and SOS/map controls.
+Guide Burmese text is reviewed content stored with the article version. The
+optional Gemma path receives the selected language and is discarded when its
+output is empty, unsafe, English-only, or not reliably Burmese; deterministic
+reviewed content remains the fallback. Gemma is never used to decide critical
+medical, trapped-person, SOS, or route actions.
+
+Live provider names, places, alert descriptions, map-derived candidate names,
+and other unreviewed dynamic fields remain in their original form. Burmese
+screens identify that boundary instead of silently machine-translating
+safety-critical provider text. Proper names, URLs, phone numbers, coordinates,
+and model identifiers are preserved.
 
 ## Permissions And Privacy
 
@@ -137,9 +164,15 @@ with `--dart-define`.
   network failure. Alert data older than the backend freshness threshold is
   shown as stale.
 - Guide articles are versioned, source-backed English/Myanmar records seeded in
-  Drift and remain searchable offline.
+  Drift and remain searchable offline. The selected locale determines which
+  reviewed title and answer is shown.
 - The deterministic assistant remains available offline and returns only
-  approved article content or explicit navigation/SOS actions.
+  approved article content or explicit navigation/SOS actions. Burmese
+  questions use Burmese aliases and reviewed Burmese answers; unsupported or
+  rejected generated output falls back to localized safe copy.
+- Android nearby-SOS foreground notifications receive and persist the selected
+  language when a broadcast or background receiver is started; existing
+  notification channels may retain the label from their first creation.
 - Secure profile, contacts, and SOS drafts remain local and available without a
   network, subject to platform secure-storage availability.
 - Map tiles, fresh navigation data, live earthquake refresh, and Mapbox route
@@ -168,10 +201,22 @@ with `--dart-define`.
   hazard geometry for the selected disaster type, can use mapped building/tree
   data for earthquakes and terrain elevation for floods, and otherwise only
   excludes points intersecting current hazard geometry. It does not claim any
-area or route is safe. Fictional navigation records remain separately gated
-behind `ENABLE_SIMULATION_DATA=true`; `ENABLE_SIMULATION_ANALYSIS=true` is a
-backend-only development option that augments context-area analysis without
-adding simulation records to mobile hazard or shelter lists.
+  area or route is safe. The UI presents up to three candidates, requires an
+  explicit selection, and then displays up to three route alternatives. The
+  selected context-area ID is sent explicitly; the backend revalidates it
+  before requesting directions. Route cards show source, directions provider,
+  profile, generated time, hazard-data time, ranking rationale, simulation
+  state, and uncertainty. Missing token, stale data, unavailable destinations,
+  and empty route results remain unavailable rather than becoming straight-line
+  guidance. Fictional navigation records remain separately gated behind
+  `ENABLE_SIMULATION_DATA=true`; `ENABLE_SIMULATION_ANALYSIS=true` is a
+  backend-only development option that augments context-area analysis without
+  adding simulation records to mobile hazard or shelter lists.
+- Navigation DTOs preserve the backend's explicit `simulation` marker,
+  including mixed real-plus-simulation analysis responses. The client displays
+  the simulation label and accepts such responses only when the development
+  `--dart-define=ENABLE_SIMULATION_DATA=true` opt-in is also supplied; real
+  responses remain usable by default.
 - SOS persists at most five drafts, suppresses equivalent active drafts within
   five minutes, previews shared data, and requires hold/accessibility
   confirmation. Status means prepared, SMS sending, SMS accepted by the device,

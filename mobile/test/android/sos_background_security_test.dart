@@ -7,6 +7,7 @@ void main() {
   late String bridge;
   late String store;
   late String service;
+  late String broadcastService;
 
   setUpAll(() {
     manifest = File(
@@ -20,6 +21,9 @@ void main() {
     ).readAsStringSync().replaceAll('\r\n', '\n');
     service = File(
       'android/app/src/main/kotlin/org/safemyanmar/mobile/sos/SosBleBackgroundScanService.kt',
+    ).readAsStringSync().replaceAll('\r\n', '\n');
+    broadcastService = File(
+      'android/app/src/main/kotlin/org/safemyanmar/mobile/sos/SosBleBroadcastService.kt',
     ).readAsStringSync().replaceAll('\r\n', '\n');
   });
 
@@ -72,5 +76,15 @@ void main() {
     expect(backgroundWrite, greaterThan(backgroundFilter));
     expect(backgroundAdd, greaterThanOrEqualTo(0));
     expect(backgroundNotification, greaterThan(backgroundAdd));
+  });
+
+  test('passes the selected language to native SOS notifications', () {
+    expect(bridge, contains('languageCode(call.argument<String>("language"))'));
+    expect(bridge, contains('setNotificationLanguage(language)'));
+    expect(store, contains('notificationLanguage()'));
+    expect(service, contains('EXTRA_LANGUAGE'));
+    expect(service, contains('localizedResources(notificationLanguageCode)'));
+    expect(broadcastService, contains('EXTRA_LANGUAGE'));
+    expect(broadcastService, contains('localizedResources(languageCode)'));
   });
 }

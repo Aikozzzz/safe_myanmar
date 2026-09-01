@@ -482,7 +482,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                       for (final sim in sims)
                         RadioListTile<int>(
                           value: sim.subscriptionId,
-                          title: Text(sim.displayLabel),
+                          title: Text(strings.sosSimLabel(sim.slotIndex + 1, sim.label)),
                         ),
                     ],
                   ),

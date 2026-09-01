@@ -33,8 +33,13 @@ official emergency or medical services when available.
   does not invent shelters. Explicit nearby analysis can score offset points
   using separately retrieved mapped environment data.
 - Current hazard records include source and retrieval timestamps. Route
-  suggestions remain unavailable unless verified destinations and a directions
-  provider are configured; no route is presented as guaranteed safe.
+  guidance is an explicit two-step flow: the user reviews up to three
+  lower-exposure context-area suggestions, selects one, and then requests up to
+  three Mapbox alternatives. Each route includes its destination source,
+  directions provider, generated time, hazard-data time, profile, ranking
+  rationale, and uncertainty notice. Missing or stale destination, directions
+  configuration, or provider data leaves route guidance unavailable; no
+  straight-line fallback or guaranteed-safe route is presented.
 - Drift schema v6 for earthquake, shelter, hazard, and route caches plus
   versioned, source-backed emergency Guide content.
 - Device-local profile and up to ten emergency contacts in Android secure
@@ -106,6 +111,32 @@ separate development mode and is rejected in production.
 real context-area analysis with clearly labeled fictional hazard geometry; it
 does not alter the hazard or shelter lists.
 
+Real nearby-area analysis uses full OpenStreetMap geometry retrieved through
+Overpass: named open spaces, building footprints/heights, trees or woodland,
+power infrastructure, and (for flood analysis) mapped water features. Flood
+terrain samples use the configured `ELEVATION_API_URL`, which defaults to
+OpenTopoData ASTER30m. This is terrain elevation rather than a flood forecast;
+a deployment may provide a compatible approved DEM or Copernicus-derived
+service. Public-provider availability, tagging, geometry, and height coverage
+can be incomplete, and a missing mapped feature is not evidence of absence.
+
+Environment observations are retained only in a bounded process-local coarse
+cache (up to 128 entries, five-minute freshness, and no database persistence).
+Provider failures may show a matching stale observation with its original
+source timestamp and an explicit warning. SafeMyanmar does not log or persist
+the user's exact origin, although the configured upstream GIS service receives
+the requested location during collection. OSM-derived user-facing content must
+credit `© OpenStreetMap contributors`. Nearby results remain comparative
+lower-exposure suggestions, not official shelters, evacuation orders, or
+guarantees of safe places or routes.
+
+Route requests may target a verified shelter record from the current snapshot
+or the exact `context_area_id` selected from the current analysis response.
+When a context area is selected, the backend recomputes that candidate for the
+same origin, disaster type, scenario, and search radius before calling
+Directions. A valid destination alone is not evidence that its access,
+conditions, or route are safe.
+
 ## Prerequisites
 
 - Git.
@@ -153,11 +184,13 @@ With the validated navigation snapshot, the shelter, hazard, and context-area
 endpoints use collected data. They return `404` only when neither a navigation
 snapshot nor simulation mode is available. `ENABLE_SIMULATION_ANALYSIS=true`
 augments context-area analysis only and does not change the shelter or hazard
-lists. Route suggestions additionally require the backend-only Mapbox Directions
-token. The runtime accepts the validated snapshot for up to 30 days after its
-retrieval timestamp; a missing, invalid, or older snapshot keeps
-`/health/ready` unavailable with a safe navigation-data error. See the linked
-API references for exact schemas, validation, and safe error envelopes.
+lists. Route suggestions additionally require a verified snapshot destination
+or a selected context area and the backend-only Mapbox Directions token. The
+runtime accepts the validated snapshot for up to 30 days after its retrieval
+timestamp; route responses retain the hazard-data timestamp and generated
+timestamp so clients can show data age. A missing, invalid, or older snapshot
+keeps `/health/ready` unavailable with a safe navigation-data error. See the
+linked API references for exact schemas, validation, and safe error envelopes.
 
 To run the API in Docker instead:
 
@@ -196,6 +229,53 @@ physical device, run `adb reverse tcp:8000 tcp:8000` and use
 `http://127.0.0.1:8000`; otherwise use a reachable HTTPS endpoint. Device
 `localhost` does not refer to the development computer without `adb reverse`.
 
+### Language selection
+
+The More tab provides an explicit English/မြန်မာ selector. SafeMyanmar stores
+only `en` or `my` in the separate Android secure-storage key
+`app_language_v1`; it does not alter the encrypted profile payload or require
+location, network access, or a fresh cache. The selected locale is restored on
+restart, while missing, invalid, or unreadable values safely use English.
+
+The Burmese locale covers app-owned UI, reviewed offline Guide content,
+deterministic assistant replies, and SOS/map controls. Optional Gemma requests
+include the selected language, but output is accepted only when it passes the
+language and safety checks. Critical medical, trapped-person, SOS, and route
+decisions remain deterministic and reviewed. Live provider names, place names,
+alert text, map-derived names, and other unreviewed fields remain source text;
+the Burmese UI identifies that boundary instead of silently translating it.
+Explicitly enabled Android nearby-SOS foreground notifications also use the
+selected language for their title, body, and stop action.
+Changing language never rewrites cached alert/navigation data or a previously
+confirmed SOS draft body.
+
+### Test an already-installed app over wireless ADB
+
+The repository includes a PowerShell launcher that starts the backend, starts
+the local PostgreSQL container, applies migrations, and creates a temporary
+`adb reverse` tunnel. It does not install the APK, clear app data, or start
+Flutter:
+
+```powershell
+# Pair and connect the phone once from Android wireless debugging settings.
+adb pair 192.168.1.50:37099
+adb connect 192.168.1.50:42137
+adb devices
+
+# From the repository root:
+.\tools\run-backend-wireless.ps1 -DeviceId 192.168.1.50:42137
+```
+
+The already-installed debug APK must have been built with
+`--dart-define=API_BASE_URL=http://127.0.0.1:8000`; `adb reverse` maps that
+device loopback address to the backend on this computer. If only one Android
+device is online, `-DeviceId` may be omitted. Use `-SkipDatabase` when
+PostgreSQL is already running and `-SkipMigration` when its schema is already
+current. Press `Ctrl+C` to stop the backend and remove the temporary tunnel.
+The script leaves the Docker database running. It does not expose the API to
+the local network, and it cannot change the compile-time API URL in an APK
+that is already installed.
+
 ## Configuration
 
 Root `.env.example` documents the cross-layer contract. Flutter values are
@@ -212,12 +292,12 @@ Backend values are read from `backend/.env` when the API starts in `backend/`.
 | `PROVIDER_TIMEOUT_SECONDS` | FastAPI | Defaults to `10.0`; used by USGS and Mapbox requests |
 | `REFRESH_MINIMUM_SECONDS` | FastAPI | Defaults to `60` |
 | `CURRENT_MAX_AGE_SECONDS` | FastAPI | Defaults to `300` |
-| `ENABLE_SIMULATION_DATA` | FastAPI | Defaults to `false`; must remain false in production |
+| `ENABLE_SIMULATION_DATA` | FastAPI; Flutter | Backend defaults to `false` and must remain false in production; mobile must also receive the compile-time define to display fictional or mixed analysis responses |
 | `ENABLE_SIMULATION_ANALYSIS` | FastAPI | Defaults to `false`; development-only backend analysis augmentation; must remain false in production |
 | `NAVIGATION_DATA_PATH` | FastAPI | Defaults to the validated Yangon snapshot directory |
 | `OVERPASS_API_URL` | FastAPI | OpenStreetMap building/tree lookup used by earthquake analysis |
 | `ELEVATION_API_URL` | FastAPI | OpenTopoData elevation lookup used by flood analysis |
-| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | FastAPI | Optional secret; required only when route suggestions are enabled |
+| `MAPBOX_DIRECTIONS_ACCESS_TOKEN` | FastAPI | Optional secret; required for real or simulation route suggestions when a verified/selected destination is requested |
 
 Never commit a real `.env` file or Mapbox secret. Restrict the public mobile
 token by application/package and allowed APIs. The mobile public token is

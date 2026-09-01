@@ -6,12 +6,14 @@ final class RewriteInvocation {
     required this.source,
     required this.userQuestion,
     required this.intent,
+    required this.languageCode,
   });
 
   final String verifiedContent;
   final String source;
   final String userQuestion;
   final String intent;
+  final String languageCode;
 }
 
 final class FakeNativeAiService implements NativeAiService {
@@ -35,6 +37,8 @@ final class FakeNativeAiService implements NativeAiService {
   NativeAiResult<NativeVerifiedRewrite> rewriteResult;
   NativeAiResult<NativeVerifiedRewrite> answerResult;
   Future<NativeAiCapabilities> Function()? capabilitiesHandler;
+  Future<NativeAiResult<NativeVerifiedRewrite>> Function()? rewriteHandler;
+  Future<NativeAiResult<NativeVerifiedRewrite>> Function()? answerHandler;
   int capabilitiesCalls = 0;
   int classificationCalls = 0;
   int initializationCalls = 0;
@@ -45,6 +49,7 @@ final class FakeNativeAiService implements NativeAiService {
   RewriteInvocation? lastRewrite;
   String? lastQuestion;
   String? lastApprovedContext;
+  String? lastAnswerLanguage;
 
   @override
   Future<NativeAiCapabilities> capabilities() async {
@@ -72,6 +77,7 @@ final class FakeNativeAiService implements NativeAiService {
     required String source,
     required String userQuestion,
     required String intent,
+    required String languageCode,
   }) async {
     rewriteCalls++;
     lastRewrite = RewriteInvocation(
@@ -79,19 +85,22 @@ final class FakeNativeAiService implements NativeAiService {
       source: source,
       userQuestion: userQuestion,
       intent: intent,
+      languageCode: languageCode,
     );
-    return rewriteResult;
+    return rewriteHandler?.call() ?? rewriteResult;
   }
 
   @override
   Future<NativeAiResult<NativeVerifiedRewrite>> answerQuestion({
     required String question,
     required String approvedContext,
+    required String languageCode,
   }) async {
     answerCalls++;
     lastQuestion = question;
     lastApprovedContext = approvedContext;
-    return answerResult;
+    lastAnswerLanguage = languageCode;
+    return answerHandler?.call() ?? answerResult;
   }
 
   @override

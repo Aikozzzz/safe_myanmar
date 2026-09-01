@@ -32,6 +32,7 @@ void main() {
   Future<void> pumpDetail(
     WidgetTester tester, {
     String id = 'usgs:example',
+    Locale locale = const Locale('en'),
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -40,7 +41,7 @@ void main() {
           sourceLauncherProvider.overrideWithValue(launcher),
         ],
         child: MaterialApp(
-          locale: const Locale('en'),
+          locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -186,6 +187,23 @@ void main() {
         .map((widget) => widget.data ?? '')
         .join(' ');
     expect(_prohibitedCopy.hasMatch(visibleText), isFalse);
+  });
+
+  testWidgets('Burmese detail keeps provider place names as original text', (
+    tester,
+  ) async {
+    repository.lookupResult = earthquakeFixture();
+    await pumpDetail(tester, locale: const Locale('my'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ငလျင်အချက်အလက်'), findsWidgets);
+    expect(find.textContaining('Myanmar'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'ရင်းမြစ်က ပေးထားသော အမည်များနှင့် တိုက်ရိုက်သတိပေးစာသား',
+      ),
+      findsOneWidget,
+    );
   });
 }
 

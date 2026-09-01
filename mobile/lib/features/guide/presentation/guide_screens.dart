@@ -186,7 +186,6 @@ class _GuideScreenState extends ConsumerState<GuideScreen> {
                   ],
                 ),
               },
-              _TranslationWarning(text: strings.guideTranslationWarning),
             ],
           ),
         ),
@@ -207,6 +206,7 @@ class ArticleDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     return Scaffold(
       appBar: AppBar(title: Text(strings.guideArticleTitle)),
       body: SafeArea(
@@ -238,22 +238,13 @@ class ArticleDetailScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 Text(
-                  article.titleEn,
+                  article.titleForLanguage(burmese: burmese),
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  article.titleMy,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
                 const SizedBox(height: 18),
-                Text(article.answerEn),
-                const Divider(height: 32),
-                Text(article.answerMy),
+                Text(article.answerForLanguage(burmese: burmese)),
                 const SizedBox(height: 20),
                 ArticleSourceCard(article: article),
-                const SizedBox(height: 12),
-                _TranslationWarning(text: strings.guideTranslationWarning),
               ],
             );
           },
@@ -264,14 +255,21 @@ class ArticleDetailScreen extends ConsumerWidget {
 }
 
 class ArticleSourceCard extends StatelessWidget {
-  const ArticleSourceCard({required this.article, super.key});
+  const ArticleSourceCard({
+    required this.article,
+    this.burmese,
+    super.key,
+  });
 
   final EmergencyArticle article;
+  final bool? burmese;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toLanguageTag();
+    final showBurmeseNotice =
+        burmese ?? Localizations.localeOf(context).languageCode == 'my';
     final sourceDate = article.sourceUpdatedAt;
     return Semantics(
       container: true,
@@ -307,6 +305,10 @@ class ArticleSourceCard extends StatelessWidget {
               SelectableText(article.sourceUrl),
               const SizedBox(height: 8),
               Text(strings.guideContentWarning),
+              if (showBurmeseNotice) ...[
+                const SizedBox(height: 8),
+                Text(strings.guideTranslationWarning),
+              ],
             ],
           ),
         ),
@@ -323,6 +325,7 @@ class _ArticleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -343,11 +346,9 @@ class _ArticleCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        article.titleEn,
+                        article.titleForLanguage(burmese: burmese),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 4),
-                      Text(article.titleMy),
                       const SizedBox(height: 8),
                       Text(strings.guideSourceName(article.sourceName)),
                     ],
@@ -483,27 +484,6 @@ class _OfflineBanner extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    ),
-  );
-}
-
-class _TranslationWarning extends StatelessWidget {
-  const _TranslationWarning({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.translate),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text)),
-        ],
       ),
     ),
   );

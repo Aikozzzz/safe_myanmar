@@ -202,6 +202,98 @@ void main() {
     expect(state.selectedContextAreaId, isNull);
   });
 
+  test(
+    'keeps candidate selection separate from explicit route requests',
+    () async {
+      final repository = FakeNavigationRepository()
+        ..contextAreas = NavigationResource(
+          data: ContextAreaCollection(
+            items: [
+              ContextArea(
+                id: 'mapped-park',
+                name: 'Maha Bandula Park',
+                coordinate: const NavigationCoordinate(
+                  latitude: 21.955,
+                  longitude: 96.08,
+                ),
+                disasterType: DisasterType.earthquake,
+                scenario: ContextScenario.outdoorsAfterShaking,
+                distanceM: 550,
+                metrics: const ContextMetrics(
+                  buildingClearanceM: 120,
+                  treeClearanceM: 90,
+                  relativeElevationM: 2,
+                  buildingDensity: 0.1,
+                  treeDensity: 0.2,
+                  hazardIntersections: 0,
+                ),
+                rationale: ['Named mapped park polygon'],
+                source: 'OpenStreetMap via Overpass',
+                dataAt: DateTime.utc(2026, 7, 23, 12),
+                uncertaintyNotice: 'Mapped coverage may be incomplete.',
+              ),
+              ContextArea(
+                id: 'mapped-field',
+                name: 'Bogyoke Sports Field',
+                coordinate: const NavigationCoordinate(
+                  latitude: 21.956,
+                  longitude: 96.081,
+                ),
+                disasterType: DisasterType.earthquake,
+                scenario: ContextScenario.outdoorsAfterShaking,
+                distanceM: 700,
+                metrics: const ContextMetrics(
+                  buildingClearanceM: 140,
+                  treeClearanceM: 110,
+                  relativeElevationM: 1,
+                  buildingDensity: 0.05,
+                  treeDensity: 0.1,
+                  hazardIntersections: 0,
+                ),
+                rationale: ['Named mapped sports field polygon'],
+                source: 'OpenStreetMap via Overpass',
+                dataAt: DateTime.utc(2026, 7, 23, 12),
+                uncertaintyNotice: 'Mapped coverage may be incomplete.',
+              ),
+            ],
+            dataAt: DateTime.utc(2026, 7, 23, 12),
+            source: 'OpenStreetMap via Overpass',
+            uncertaintyNotice: 'Mapped coverage may be incomplete.',
+          ),
+          isCached: false,
+          remoteFailed: false,
+        );
+      final container = ProviderContainer(
+        overrides: [navigationRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(navigationControllerProvider.notifier);
+
+      await controller.analyzeContext(location);
+      expect(repository.requests, isEmpty);
+      expect(
+        container.read(navigationControllerProvider).selectedContextAreaId,
+        isNull,
+      );
+
+      controller.selectContextArea('mapped-field');
+      expect(repository.requests, isEmpty);
+      expect(
+        container.read(navigationControllerProvider).selectedContextAreaId,
+        'mapped-field',
+      );
+
+      await controller.requestRoutes(location);
+
+      expect(repository.requests.single.contextAreaId, 'mapped-field');
+      expect(repository.requests.single.shelterId, 'mapped-field');
+      expect(
+        repository.requests.single.scenario,
+        ContextScenario.outdoorsAfterShaking,
+      );
+    },
+  );
+
   test('late route response is discarded after a newer request', () async {
     final first = Completer<NavigationResource<RouteSuggestions>>();
     final second = Completer<NavigationResource<RouteSuggestions>>();

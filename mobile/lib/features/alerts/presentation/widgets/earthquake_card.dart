@@ -20,6 +20,7 @@ class EarthquakeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final burmese = Localizations.localeOf(context).languageCode == 'my';
     final magnitude = strings.magnitudeValue(
       formatDecimal(context, earthquake.magnitude),
     );
@@ -72,6 +73,11 @@ class EarthquakeCard extends StatelessWidget {
                 Text(magnitude, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 4),
                 Text(location),
+                if (burmese)
+                  Text(
+                    strings.originalSourceTextNotice,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 const SizedBox(height: 8),
                 Text(eventTime),
                 const SizedBox(height: 8),

@@ -50,12 +50,13 @@ void main() {
   Future<void> pumpList(
     WidgetTester tester, {
     ValueChanged<String>? onOpenEarthquake,
+    Locale locale = const Locale('en'),
   }) {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
-          locale: const Locale('en'),
+          locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -325,6 +326,24 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Updating earthquake information'), findsOneWidget);
+  });
+
+  testWidgets('Burmese list localizes chrome and keeps source place names', (
+    tester,
+  ) async {
+    await pumpList(tester, locale: const Locale('my'));
+    repository.emit(null);
+    await finishInitialRefresh(tester, snapshot: _snapshot());
+
+    expect(find.text('ငလျင်အချက်အလက်'), findsWidgets);
+    expect(find.textContaining('တည်နေရာ - Myanmar'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'ရင်းမြစ်က ပေးထားသော အမည်များနှင့် တိုက်ရိုက်သတိပေးစာသား',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('တိုက်ရိုက်အချက်အလက်'), findsWidgets);
   });
 }
 

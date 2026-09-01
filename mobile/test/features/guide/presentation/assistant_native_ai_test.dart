@@ -6,9 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/ai/native_ai_platform_service.dart';
 import 'package:mobile/features/guide/application/providers.dart';
 import 'package:mobile/features/guide/presentation/assistant_screen.dart';
+import 'package:mobile/features/settings/application/providers.dart';
+import 'package:mobile/features/settings/domain/app_language.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 
 import '../../../support/fake_emergency_guide_repository.dart';
+import '../../../support/fake_language_preference_repository.dart';
 import '../../../support/fake_native_ai_service.dart';
 
 void main() {
@@ -33,6 +36,14 @@ void main() {
         'Optional local Gemma 3 is unavailable. Missing model files are normal',
       ),
       findsOneWidget,
+    );
+    expect(
+      find.textContaining('This tool matches disaster questions'),
+      findsNothing,
+    );
+    expect(
+      find.textContaining('Gemma answers are generated on-device'),
+      findsNothing,
     );
   });
 
@@ -77,6 +88,12 @@ void main() {
     await tester.tap(find.byTooltip('Send question'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('Optional local rewording'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('APPROVED EARTHQUAKE ANSWER'), findsOneWidget);
     expect(find.text('Optional local rewording'), findsOneWidget);
     expect(find.text('Optional simpler wording.'), findsOneWidget);
@@ -88,10 +105,8 @@ void main() {
     expect(find.text('Content version: 1'), findsOneWidget);
     expect(
       find.textContaining('Burmese translations require review'),
-      findsOneWidget,
+      findsNothing,
     );
-    await tester.ensureVisible(find.text('Optional local rewording'));
-    await tester.pumpAndSettle();
     expect(
       tester.getSemantics(find.text('Optional local rewording')),
       matchesSemantics(
@@ -130,6 +145,12 @@ void main() {
     await tester.tap(find.byTooltip('Send question'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('Open Map'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(
       find.text('Response engine: optional local ONNX intent classifier'),
       findsOneWidget,
@@ -137,24 +158,62 @@ void main() {
     expect(find.text('Open Map'), findsOneWidget);
     expect(find.byKey(const Key('map-destination')), findsNothing);
   });
+
+  testWidgets('assistant chrome and answers stay Burmese at 200 percent', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      _app(
+        FakeNativeAiService(),
+        locale: const Locale('my'),
+        language: AppLanguage.burmese,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('အော့ဖ်လိုင်းအကူ'), findsOneWidget);
+    expect(find.text('အရေးပေါ်မေးခွန်း'), findsOneWidget);
+    expect(
+      tester.getSize(find.byTooltip('မေးခွန်းပေးပို့ရန်')).height,
+      greaterThanOrEqualTo(48),
+    );
+
+    await tester.tap(find.text('ငလျင်လှုပ်နေစဉ် ဘာလုပ်ရမလဲ။'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('အတည်ပြုထားသော အဖြေ'), findsOneWidget);
+    expect(find.text('APPROVED EARTHQUAKE ANSWER'), findsNothing);
+  });
 }
 
-Widget _app(FakeNativeAiService nativeAi) => ProviderScope(
+Widget _app(
+  FakeNativeAiService nativeAi, {
+  Locale locale = const Locale('en'),
+  AppLanguage language = AppLanguage.english,
+}) => ProviderScope(
   overrides: [
     emergencyGuideRepositoryProvider.overrideWithValue(
       FakeEmergencyGuideRepository(),
     ),
     nativeAiServiceProvider.overrideWithValue(nativeAi),
+    languagePreferenceRepositoryProvider.overrideWithValue(
+      FakeLanguagePreferenceRepository()..language = language,
+    ),
   ],
-  child: const MaterialApp(
-    localizationsDelegates: [
+  child: MaterialApp(
+    locale: locale,
+    localizationsDelegates: const [
       AppLocalizations.delegate,
       GlobalMaterialLocalizations.delegate,
       GlobalWidgetsLocalizations.delegate,
       GlobalCupertinoLocalizations.delegate,
     ],
     supportedLocales: AppLocalizations.supportedLocales,
-    home: AssistantScreen(),
+    home: const AssistantScreen(),
   ),
 );
 
@@ -165,6 +224,9 @@ Widget _routerApp(FakeNativeAiService nativeAi, GoRouter router) =>
           FakeEmergencyGuideRepository(),
         ),
         nativeAiServiceProvider.overrideWithValue(nativeAi),
+        languagePreferenceRepositoryProvider.overrideWithValue(
+          FakeLanguagePreferenceRepository(),
+        ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
