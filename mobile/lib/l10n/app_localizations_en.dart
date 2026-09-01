@@ -202,10 +202,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get simulationLabel => 'SIMULATION';
 
   @override
-  String get simulationNavigationHeading =>
-      'Simulation shelter and route information';
-
-  @override
   String navigationSource(String source) {
     return 'Source: $source';
   }
@@ -552,7 +548,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosBluetoothMapEventsHeading => 'Nearby SOS sources';
 
   @override
-  String sosBluetoothSourceLabel(Object index) {
+  String sosBluetoothSourceLabel(int index) {
     return 'SOS source $index';
   }
 
@@ -940,7 +936,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosSendUsingSim => 'Send using SIM';
 
   @override
-  String sosSimLabel(int slot, String label) => 'SIM $slot: $label';
+  String sosSimLabel(int slot, String label) {
+    return 'SIM $slot - $label';
+  }
 
   @override
   String get sosMaximumDrafts =>
@@ -1227,38 +1225,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantTitle => 'Offline assistant';
 
   @override
-  String get assistantOfflineVerified =>
-      'Offline verified-content retrieval (source-backed, not generative)';
-
-  @override
-  String get assistantDeterministicActive =>
-      'Deterministic offline verified-content retrieval is active.';
-
-  @override
-  String get assistantOnnxChecking =>
-      'Checking optional ONNX intent refinement availability.';
-
-  @override
-  String get assistantOnnxAvailable =>
-      'Optional ONNX intent refinement is available for deterministic unknown results.';
-
-  @override
-  String get assistantOnnxUnavailable =>
-      'Optional ONNX intent refinement is unavailable. Missing optional models are normal; deterministic retrieval remains active.';
-
-  @override
-  String get assistantGemmaChecking =>
-      'Checking optional Gemma 3 local assistant availability.';
-
-  @override
-  String get assistantGemmaAvailable =>
-      'Optional local Gemma 3 can answer general questions, with extra focus on disaster and preparedness topics.';
-
-  @override
-  String get assistantGemmaUnavailable =>
-      'Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.';
-
-  @override
   String get assistantSuggestedQuestions => 'Suggested questions';
 
   @override
@@ -1288,50 +1254,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantSend => 'Send question';
 
   @override
-  String get assistantVerifiedAnswer => 'Retrieved approved content';
-
-  @override
-  String assistantConfidence(int confidence, String explanation) {
-    return 'Intent confidence: $confidence%\n$explanation';
-  }
-
-  @override
-  String assistantClassifierMatched(String terms) {
-    return 'Matched weighted offline terms: $terms. No machine-learning model was used.';
-  }
-
-  @override
-  String get assistantClassifierLowConfidence =>
-      'The closest offline match was below the confidence threshold. No machine-learning model was used.';
-
-  @override
-  String get assistantClassifierNoMatch =>
-      'No approved offline intent terms matched. No machine-learning model was used.';
-
-  @override
-  String get assistantClassifierOnnx =>
-      'The deterministic classifier returned unknown, then the optional local ONNX classifier recognized this intent at or above the safety threshold.';
-
-  @override
-  String get assistantClassifierGemma =>
-      'Answered by the optional local Gemma 3 model. Relevant disaster guidance is grounded in approved offline content when available.';
-
-  @override
-  String get assistantEngineDeterministic =>
-      'Response engine: deterministic offline classifier';
-
-  @override
-  String get assistantEngineOnnx =>
-      'Response engine: optional local ONNX intent classifier';
-
-  @override
-  String get assistantEngineGemma => 'Response engine: local Gemma 3 assistant';
-
-  @override
   String get assistantGemmaAnswerTitle => 'Gemma 3 answer';
 
   @override
-  String get assistantLocalRewordingTitle => 'Optional local rewording';
+  String get assistantLocalRewordingTitle => 'Additional local wording';
 
   @override
   String get assistantLocalRewordingWarning =>
@@ -1339,7 +1265,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String assistantLocalRewordingSemantics(String text) {
-    return 'Optional model-generated local rewording. $text Warning: verify against the exact source-backed guidance.';
+    return 'Additional model-generated local wording. $text Warning: verify against the exact source-backed guidance.';
   }
 
   @override
@@ -1406,6 +1332,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get moreTitle => 'More';
+
+  @override
   String get languageSettingsTitle => 'Language';
 
   @override
@@ -1439,9 +1368,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get originalSourceTextNotice =>
       'Some source-provided names and live alert text are shown in the original language.';
-
-  @override
-  String get moreTitle => 'More';
 
   @override
   String get profileOverviewTitle => 'Your local profile';

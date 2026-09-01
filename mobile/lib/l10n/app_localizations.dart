@@ -440,12 +440,6 @@ abstract class AppLocalizations {
   /// **'SIMULATION'**
   String get simulationLabel;
 
-  /// No description provided for @simulationNavigationHeading.
-  ///
-  /// In en, this message translates to:
-  /// **'Simulation shelter and route information'**
-  String get simulationNavigationHeading;
-
   /// No description provided for @navigationSource.
   ///
   /// In en, this message translates to:
@@ -996,7 +990,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'SOS source {index}'**
-  String sosBluetoothSourceLabel(Object index);
+  String sosBluetoothSourceLabel(int index);
 
   /// No description provided for @sosBluetoothSelectedEventHeading.
   ///
@@ -1611,7 +1605,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosSimLabel.
   ///
   /// In en, this message translates to:
-  /// **'SIM {slot}: {label}'**
+  /// **'SIM {slot} - {label}'**
   String sosSimLabel(int slot, String label);
 
   /// No description provided for @sosMaximumDrafts.
@@ -2077,6 +2071,9 @@ abstract class AppLocalizations {
   String get guideContentWarning;
 
   /// No description provided for @guideTranslationWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The Myanmar translation is provided for convenience. Check important details against the approved source and authorized local instructions.'**
   String get guideTranslationWarning;
 
   /// No description provided for @guideSourceSemantics.
@@ -2090,54 +2087,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Offline assistant'**
   String get assistantTitle;
-
-  /// No description provided for @assistantOfflineVerified.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline verified-content retrieval (source-backed, not generative)'**
-  String get assistantOfflineVerified;
-
-  /// No description provided for @assistantDeterministicActive.
-  ///
-  /// In en, this message translates to:
-  /// **'Deterministic offline verified-content retrieval is active.'**
-  String get assistantDeterministicActive;
-
-  /// No description provided for @assistantOnnxChecking.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking optional ONNX intent refinement availability.'**
-  String get assistantOnnxChecking;
-
-  /// No description provided for @assistantOnnxAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional ONNX intent refinement is available for deterministic unknown results.'**
-  String get assistantOnnxAvailable;
-
-  /// No description provided for @assistantOnnxUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional ONNX intent refinement is unavailable. Missing optional models are normal; deterministic retrieval remains active.'**
-  String get assistantOnnxUnavailable;
-
-  /// No description provided for @assistantGemmaChecking.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking optional Gemma 3 local assistant availability.'**
-  String get assistantGemmaChecking;
-
-  /// No description provided for @assistantGemmaAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional local Gemma 3 can answer general questions, with extra focus on disaster and preparedness topics.'**
-  String get assistantGemmaAvailable;
-
-  /// No description provided for @assistantGemmaUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.'**
-  String get assistantGemmaUnavailable;
 
   /// No description provided for @assistantSuggestedQuestions.
   ///
@@ -2193,66 +2142,6 @@ abstract class AppLocalizations {
   /// **'Send question'**
   String get assistantSend;
 
-  /// No description provided for @assistantVerifiedAnswer.
-  ///
-  /// In en, this message translates to:
-  /// **'Retrieved approved content'**
-  String get assistantVerifiedAnswer;
-
-  /// No description provided for @assistantConfidence.
-  ///
-  /// In en, this message translates to:
-  /// **'Intent confidence: {confidence}%\n{explanation}'**
-  String assistantConfidence(int confidence, String explanation);
-
-  /// No description provided for @assistantClassifierMatched.
-  ///
-  /// In en, this message translates to:
-  /// **'Matched weighted offline terms: {terms}. No machine-learning model was used.'**
-  String assistantClassifierMatched(String terms);
-
-  /// No description provided for @assistantClassifierLowConfidence.
-  ///
-  /// In en, this message translates to:
-  /// **'The closest offline match was below the confidence threshold. No machine-learning model was used.'**
-  String get assistantClassifierLowConfidence;
-
-  /// No description provided for @assistantClassifierNoMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'No approved offline intent terms matched. No machine-learning model was used.'**
-  String get assistantClassifierNoMatch;
-
-  /// No description provided for @assistantClassifierOnnx.
-  ///
-  /// In en, this message translates to:
-  /// **'The deterministic classifier returned unknown, then the optional local ONNX classifier recognized this intent at or above the safety threshold.'**
-  String get assistantClassifierOnnx;
-
-  /// No description provided for @assistantClassifierGemma.
-  ///
-  /// In en, this message translates to:
-  /// **'Answered by the optional local Gemma 3 model. Relevant disaster guidance is grounded in approved offline content when available.'**
-  String get assistantClassifierGemma;
-
-  /// No description provided for @assistantEngineDeterministic.
-  ///
-  /// In en, this message translates to:
-  /// **'Response engine: deterministic offline classifier'**
-  String get assistantEngineDeterministic;
-
-  /// No description provided for @assistantEngineOnnx.
-  ///
-  /// In en, this message translates to:
-  /// **'Response engine: optional local ONNX intent classifier'**
-  String get assistantEngineOnnx;
-
-  /// No description provided for @assistantEngineGemma.
-  ///
-  /// In en, this message translates to:
-  /// **'Response engine: local Gemma 3 assistant'**
-  String get assistantEngineGemma;
-
   /// No description provided for @assistantGemmaAnswerTitle.
   ///
   /// In en, this message translates to:
@@ -2262,7 +2151,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantLocalRewordingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Optional local rewording'**
+  /// **'Additional local wording'**
   String get assistantLocalRewordingTitle;
 
   /// No description provided for @assistantLocalRewordingWarning.
@@ -2274,7 +2163,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantLocalRewordingSemantics.
   ///
   /// In en, this message translates to:
-  /// **'Optional model-generated local rewording. {text} Warning: verify against the exact source-backed guidance.'**
+  /// **'Additional model-generated local wording. {text} Warning: verify against the exact source-backed guidance.'**
   String assistantLocalRewordingSemantics(String text);
 
   /// No description provided for @assistantMapResponse.
@@ -2367,41 +2256,71 @@ abstract class AppLocalizations {
   /// **'Battery: {value}%'**
   String assistantDraftBattery(int value);
 
-  /// No description provided for @languageSettingsTitle.
-  String get languageSettingsTitle;
-
-  /// No description provided for @languageSettingsDescription.
-  String get languageSettingsDescription;
-
-  /// No description provided for @languageEnglish.
-  String get languageEnglish;
-
-  /// No description provided for @languageBurmese.
-  String get languageBurmese;
-
-  /// No description provided for @languageSaving.
-  String get languageSaving;
-
-  /// No description provided for @languageReadErrorTitle.
-  String get languageReadErrorTitle;
-
-  /// No description provided for @languageReadErrorDescription.
-  String get languageReadErrorDescription;
-
-  /// No description provided for @languageWriteErrorTitle.
-  String get languageWriteErrorTitle;
-
-  /// No description provided for @languageWriteErrorDescription.
-  String get languageWriteErrorDescription;
-
-  /// No description provided for @originalSourceTextNotice.
-  String get originalSourceTextNotice;
-
   /// No description provided for @moreTitle.
   ///
   /// In en, this message translates to:
   /// **'More'**
   String get moreTitle;
+
+  /// No description provided for @languageSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageSettingsTitle;
+
+  /// No description provided for @languageSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the language for app-owned screens and reviewed offline guidance.'**
+  String get languageSettingsDescription;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @languageBurmese.
+  ///
+  /// In en, this message translates to:
+  /// **'မြန်မာ'**
+  String get languageBurmese;
+
+  /// No description provided for @languageSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving language preference'**
+  String get languageSaving;
+
+  /// No description provided for @languageReadErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language preference temporarily unavailable'**
+  String get languageReadErrorTitle;
+
+  /// No description provided for @languageReadErrorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'SafeMyanmar could not read your saved language choice. English is active. Try again.'**
+  String get languageReadErrorDescription;
+
+  /// No description provided for @languageWriteErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language preference was not saved'**
+  String get languageWriteErrorTitle;
+
+  /// No description provided for @languageWriteErrorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'SafeMyanmar could not save your language choice. The previous language remains active. Try again.'**
+  String get languageWriteErrorDescription;
+
+  /// No description provided for @originalSourceTextNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Some source-provided names and live alert text are shown in the original language.'**
+  String get originalSourceTextNotice;
 
   /// No description provided for @profileOverviewTitle.
   ///

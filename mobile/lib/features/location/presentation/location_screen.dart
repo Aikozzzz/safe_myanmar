@@ -68,23 +68,26 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
             children: [
               SafePageHeader(title: strings.locationHeading),
               const SizedBox(height: 16),
-              _LocationStatusCard(state: state),
+              _LocationStatusCard(
+                state: state,
+                action: _showsRequestAction(state.phase)
+                    ? FilledButton.icon(
+                        onPressed: controller.requestLocation,
+                        icon: const Icon(Icons.my_location),
+                        label: Text(
+                          state.phase == ForegroundLocationPhase.notRequested
+                              ? strings.useMyLocation
+                              : strings.tryLocationAgain,
+                        ),
+                      )
+                    : null,
+              ),
               const SizedBox(height: 20),
               if (state.phase ==
                   ForegroundLocationPhase.permissionExplanationRequired)
                 _PermissionExplanation(
                   onAllow: () => controller.requestLocation(confirmed: true),
                   onNotNow: controller.dismissPermissionExplanation,
-                )
-              else if (_showsRequestAction(state.phase))
-                FilledButton.icon(
-                  onPressed: controller.requestLocation,
-                  icon: const Icon(Icons.my_location),
-                  label: Text(
-                    state.phase == ForegroundLocationPhase.notRequested
-                        ? strings.useMyLocation
-                        : strings.tryLocationAgain,
-                  ),
                 ),
               if (state.phase == ForegroundLocationPhase.denied ||
                   state.phase == ForegroundLocationPhase.permanentlyDenied)
@@ -772,13 +775,6 @@ class _SimulationStatus extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (isSimulation) ...[
-                const SizedBox(height: 8),
-                Text(
-                  strings.simulationNavigationHeading,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
               if (source != null) ...[
                 const SizedBox(height: 8),
                 Text(strings.navigationSource(source)),
@@ -1024,10 +1020,7 @@ class _ContextMetrics extends StatelessWidget {
     final strings = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toLanguageTag();
     final numberFormat = NumberFormat('0.#', locale);
-    final densityFormat = NumberFormat(
-      '0.#',
-      locale,
-    );
+    final densityFormat = NumberFormat('0.#', locale);
     final metrics = area.metrics;
     final rows = <Widget>[
       if (area.disasterType == DisasterType.earthquake) ...[
@@ -1490,10 +1483,7 @@ String _contextAreaSemanticsLabel(
 }) {
   final locale = Localizations.localeOf(context).toLanguageTag();
   final numberFormat = NumberFormat('0.#', locale);
-  final densityFormat = NumberFormat(
-    '0.#',
-    locale,
-  );
+  final densityFormat = NumberFormat('0.#', locale);
   final metrics = area.metrics;
   final details = <String>[
     strings.contextSuggestionRank(rank),
@@ -1711,9 +1701,10 @@ String _formatUtc(
 }
 
 class _LocationStatusCard extends StatelessWidget {
-  const _LocationStatusCard({required this.state});
+  const _LocationStatusCard({required this.state, this.action});
 
   final ForegroundLocationState state;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -1787,6 +1778,7 @@ class _LocationStatusCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(strings.locationPrivacyDescription),
               ],
+              if (action != null) ...[const SizedBox(height: 12), action!],
               if (state.phase == ForegroundLocationPhase.requesting) ...[
                 const SizedBox(height: 20),
                 Center(

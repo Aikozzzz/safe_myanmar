@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -18,6 +19,23 @@ enum NavigationMapLayer {
   route,
   nearbySos,
 }
+
+enum NavigationMapMarkerKind { location, shelter, contextArea, nearbySos }
+
+IconData navigationMapMarkerIcon(NavigationMapMarkerKind kind) =>
+    switch (kind) {
+      NavigationMapMarkerKind.location => Icons.my_location,
+      NavigationMapMarkerKind.shelter => Icons.home_work_outlined,
+      NavigationMapMarkerKind.contextArea => Icons.park_outlined,
+      NavigationMapMarkerKind.nearbySos => Icons.crisis_alert,
+    };
+
+Color navigationMapMarkerColor(NavigationMapMarkerKind kind) => switch (kind) {
+  NavigationMapMarkerKind.location => const Color(0xff0e7c78),
+  NavigationMapMarkerKind.shelter => const Color(0xff2e7d32),
+  NavigationMapMarkerKind.contextArea => const Color(0xffef6c00),
+  NavigationMapMarkerKind.nearbySos => const Color(0xffd32f2f),
+};
 
 List<NavigationMapLayer> visibleNavigationMapLayers({
   required bool hasLocation,
@@ -89,11 +107,12 @@ class NavigationMap extends StatefulWidget {
 
 class _NavigationMapState extends State<NavigationMap> {
   mapbox.MapboxMap? _map;
-  mapbox.CircleAnnotationManager? _locationManager;
-  mapbox.CircleAnnotationManager? _shelterManager;
+  mapbox.PointAnnotationManager? _locationManager;
+  mapbox.PointAnnotationManager? _shelterManager;
+  mapbox.PointAnnotationManager? _contextManager;
   mapbox.PolygonAnnotationManager? _hazardManager;
   mapbox.PolylineAnnotationManager? _routeManager;
-  mapbox.CircleAnnotationManager? _sosManager;
+  mapbox.PointAnnotationManager? _sosManager;
   mapbox.Cancelable? _locationTapEvents;
   mapbox.Cancelable? _sosTapEvents;
   Future<void>? _managerInitialization;
@@ -101,6 +120,7 @@ class _NavigationMapState extends State<NavigationMap> {
   bool _loadFailed = false;
   var _mapGeneration = 0;
   String? _cameraFocusedEventId;
+  Map<NavigationMapMarkerKind, Uint8List>? _markerImages;
 
   NavigationCoordinate get _mapCenter =>
       widget.initialCenter ??
@@ -358,6 +378,7 @@ class _NavigationMapState extends State<NavigationMap> {
       _map = null;
       _locationManager = null;
       _shelterManager = null;
+      _contextManager = null;
       _hazardManager = null;
       _routeManager = null;
       _sosManager = null;
@@ -378,17 +399,26 @@ class _NavigationMapState extends State<NavigationMap> {
     _routeManager = await map.annotations.createPolylineAnnotationManager(
       id: 'safe-routes',
     );
-    _shelterManager = await map.annotations.createCircleAnnotationManager(
+    _shelterManager = await map.annotations.createPointAnnotationManager(
       id: 'safe-shelters',
     );
-    _locationManager = await map.annotations.createCircleAnnotationManager(
+    _contextManager = await map.annotations.createPointAnnotationManager(
+      id: 'safe-context-areas',
+    );
+    _locationManager = await map.annotations.createPointAnnotationManager(
       id: 'safe-user-location',
     );
-    _sosManager = await map.annotations.createCircleAnnotationManager(
+    _sosManager = await map.annotations.createPointAnnotationManager(
       id: 'nearby-sos-events',
     );
     _initializeLocationTapEvents();
     _initializeSosTapEvents();
+    await Future.wait([
+      _shelterManager!.setIconAllowOverlap(true),
+      _contextManager!.setIconAllowOverlap(true),
+      _locationManager!.setIconAllowOverlap(true),
+      _sosManager!.setIconAllowOverlap(true),
+    ]);
     await _routeManager!.setLineCap(mapbox.LineCap.ROUND);
     await _updateAnnotations();
   }
@@ -405,24 +435,25 @@ class _NavigationMapState extends State<NavigationMap> {
     final hazardManager = _hazardManager;
     final routeManager = _routeManager;
     final sosManager = _sosManager;
+    final contextManager = _contextManager;
     if (!mounted ||
         locationManager == null ||
         shelterManager == null ||
+        contextManager == null ||
         hazardManager == null ||
         routeManager == null ||
         sosManager == null) {
       return;
     }
+    final markerImages = await _loadMarkerImages();
 
     await locationManager.deleteAll();
     if (widget.location case final location?) {
       await locationManager.create(
-        mapbox.CircleAnnotationOptions(
+        mapbox.PointAnnotationOptions(
           geometry: _point(location.longitude, location.latitude),
-          circleRadius: 10,
-          circleColor: const Color(0xff0e7c78).toARGB32(),
-          circleStrokeColor: Colors.white.toARGB32(),
-          circleStrokeWidth: 3,
+          image: markerImages[NavigationMapMarkerKind.location],
+          iconSize: 1,
           customData: {'location_marker': true},
         ),
       );
@@ -433,34 +464,31 @@ class _NavigationMapState extends State<NavigationMap> {
       await shelterManager.createMulti(
         widget.shelters
             .map(
-              (shelter) => mapbox.CircleAnnotationOptions(
+              (shelter) => mapbox.PointAnnotationOptions(
                 geometry: _point(
                   shelter.coordinate.longitude,
                   shelter.coordinate.latitude,
                 ),
-                circleRadius: 8,
-                circleColor: const Color(0xff2e7d32).toARGB32(),
-                circleStrokeColor: Colors.white.toARGB32(),
-                circleStrokeWidth: 2,
+                image: markerImages[NavigationMapMarkerKind.shelter],
+                iconSize: 1,
                 customData: {'shelter_id': shelter.id},
               ),
             )
             .toList(),
       );
     }
+    await contextManager.deleteAll();
     if (widget.contextAreas.isNotEmpty) {
-      await shelterManager.createMulti(
+      await contextManager.createMulti(
         widget.contextAreas
             .map(
-              (area) => mapbox.CircleAnnotationOptions(
+              (area) => mapbox.PointAnnotationOptions(
                 geometry: _point(
                   area.coordinate.longitude,
                   area.coordinate.latitude,
                 ),
-                circleRadius: area.id == widget.selectedContextAreaId ? 10 : 7,
-                circleColor: const Color(0xffef6c00).toARGB32(),
-                circleStrokeColor: Colors.white.toARGB32(),
-                circleStrokeWidth: 2,
+                image: markerImages[NavigationMapMarkerKind.contextArea],
+                iconSize: area.id == widget.selectedContextAreaId ? 1.2 : 1,
                 customData: {'context_area_id': area.id},
               ),
             )
@@ -513,13 +541,9 @@ class _NavigationMapState extends State<NavigationMap> {
                       .toList(),
                 ),
                 lineJoin: mapbox.LineJoin.ROUND,
-                lineColor:
-                    (route.id == widget.selectedRouteId
-                            ? const Color(0xff6750a4)
-                            : const Color(0xff5f6368))
-                        .toARGB32(),
+                lineColor: const Color(0xff6750a4).toARGB32(),
                 lineWidth: route.id == widget.selectedRouteId ? 8 : 4,
-                lineOpacity: route.id == widget.selectedRouteId ? 1 : 0.8,
+                lineOpacity: route.id == widget.selectedRouteId ? 1 : 0.55,
                 lineSortKey: route.id == widget.selectedRouteId ? 1 : 0,
                 customData: {'route_id': route.id},
               ),
@@ -533,17 +557,13 @@ class _NavigationMapState extends State<NavigationMap> {
     final mappedEvents = events
         .where((event) => event.hasLocation)
         .map(
-          (event) => mapbox.CircleAnnotationOptions(
+          (event) => mapbox.PointAnnotationOptions(
             geometry: _point(
               sosBleMapCoordinate(event)!.longitude,
               sosBleMapCoordinate(event)!.latitude,
             ),
-            circleRadius: event.eventId == widget.selectedEventId ? 17 : 12,
-            circleColor: event.eventId == widget.activeEvent?.eventId
-                ? const Color(0xffef6c00).toARGB32()
-                : const Color(0xffd32f2f).toARGB32(),
-            circleStrokeColor: Colors.white.toARGB32(),
-            circleStrokeWidth: event.eventId == widget.selectedEventId ? 4 : 2,
+            image: markerImages[NavigationMapMarkerKind.nearbySos],
+            iconSize: event.eventId == widget.selectedEventId ? 1.3 : 1,
             customData: {
               'sos_event_id': event.eventId,
               'active_broadcast': event.eventId == widget.activeEvent?.eventId,
@@ -573,6 +593,20 @@ class _NavigationMapState extends State<NavigationMap> {
       );
       _cameraFocusedEventId = widget.focusedEventId;
     }
+  }
+
+  Future<Map<NavigationMapMarkerKind, Uint8List>> _loadMarkerImages() async {
+    final cached = _markerImages;
+    if (cached != null) return cached;
+    final images = <NavigationMapMarkerKind, Uint8List>{};
+    for (final kind in NavigationMapMarkerKind.values) {
+      images[kind] = await _createMapMarkerImage(
+        navigationMapMarkerIcon(kind),
+        navigationMapMarkerColor(kind),
+      );
+    }
+    _markerImages = images;
+    return images;
   }
 
   Future<void> _handleLocationTap() async {
@@ -605,6 +639,48 @@ final class _MapLegendEntry {
   final IconData icon;
   final String label;
   final Color color;
+}
+
+Future<Uint8List> _createMapMarkerImage(IconData icon, Color color) async {
+  const canvasSize = 64.0;
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  final center = const ui.Offset(canvasSize / 2, canvasSize / 2);
+
+  void paintIcon(double size, Color iconColor) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+          color: iconColor,
+          fontFamily: icon.fontFamily,
+          package: icon.fontPackage,
+          fontSize: size,
+          height: 1,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(
+      canvas,
+      center - ui.Offset(painter.width / 2, painter.height / 2),
+    );
+  }
+
+  // Keep the symbol readable over both light and satellite map styles.
+  paintIcon(45, Colors.white);
+  paintIcon(36, color);
+
+  final image = await recorder.endRecording().toImage(
+    canvasSize.toInt(),
+    canvasSize.toInt(),
+  );
+  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  if (byteData == null) throw StateError('Could not render map marker.');
+  return Uint8List.fromList(
+    byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+  );
 }
 
 class _MapLegend extends StatelessWidget {

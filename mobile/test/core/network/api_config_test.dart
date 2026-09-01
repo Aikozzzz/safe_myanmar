@@ -29,6 +29,30 @@ void main() {
       }
     });
 
+    test('accepts private LAN HTTP only with explicit development opt-in', () {
+      for (final value in [
+        'http://10.12.0.5:8000',
+        'http://172.20.0.5:8000',
+        'http://192.168.1.25:8000',
+      ]) {
+        expect(
+          ApiConfig.fromRaw(value, allowInsecureLan: true).baseUri.toString(),
+          value,
+        );
+        expect(() => ApiConfig.fromRaw(value), throwsA(isA<ArgumentError>()));
+      }
+      for (final value in [
+        'http://8.8.8.8:8000',
+        'http://172.15.0.5:8000',
+        'http://192.167.1.25:8000',
+      ]) {
+        expect(
+          () => ApiConfig.fromRaw(value, allowInsecureLan: true),
+          throwsA(isA<ArgumentError>()),
+        );
+      }
+    });
+
     test('production rejects every HTTP URL without leaking its value', () {
       final cases = <String>[
         'http://localhost:8000/private-production-path',

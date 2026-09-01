@@ -73,7 +73,6 @@
     }
   },
   "simulationLabel": "SIMULATION",
-  "simulationNavigationHeading": "Simulation shelter and route information",
   "navigationSource": "Source: {source}",
   "@navigationSource": {
     "placeholders": {"source": {"type": "String"}}
@@ -242,7 +241,7 @@
   "sosBluetoothSourceLabel": "SOS source {index}",
   "@sosBluetoothSourceLabel": {
     "placeholders": {
-      "index": {}
+      "index": {"type": "int"}
     }
   },
   "sosBluetoothSelectedEventHeading": "Selected SOS details",
@@ -418,7 +417,7 @@
   "sosChooseSimDescription": "Select which active SIM should send this SOS message.",
   "sosRememberSim": "Remember my preferred SIM",
   "sosSendUsingSim": "Send using SIM",
-  "sosSimLabel": "SIM {slot}: {label}",
+  "sosSimLabel": "SIM {slot} - {label}",
   "@sosSimLabel": {
     "placeholders": {
       "slot": {"type": "int"},
@@ -535,14 +534,6 @@
   "guideSourceSemantics": "Approved source {source}, content version {version}",
   "@guideSourceSemantics": {"placeholders": {"source": {"type": "String"}, "version": {"type": "int"}}},
   "assistantTitle": "Offline assistant",
-  "assistantOfflineVerified": "Offline verified-content retrieval (source-backed, not generative)",
-  "assistantDeterministicActive": "Deterministic offline verified-content retrieval is active.",
-  "assistantOnnxChecking": "Checking optional ONNX intent refinement availability.",
-  "assistantOnnxAvailable": "Optional ONNX intent refinement is available for deterministic unknown results.",
-  "assistantOnnxUnavailable": "Optional ONNX intent refinement is unavailable. Missing optional models are normal; deterministic retrieval remains active.",
-  "assistantGemmaChecking": "Checking optional Gemma 3 local assistant availability.",
-  "assistantGemmaAvailable": "Optional local Gemma 3 can answer general questions, with extra focus on disaster and preparedness topics.",
-  "assistantGemmaUnavailable": "Optional local Gemma 3 is unavailable. Missing model files are normal; deterministic approved content remains available.",
   "assistantSuggestedQuestions": "Suggested questions",
   "assistantSuggestionEarthquake": "What should I do during an earthquake?",
   "assistantSuggestionTrapped": "I am trapped after an earthquake",
@@ -552,22 +543,10 @@
   "assistantInputLabel": "Emergency question",
   "assistantInputHint": "Type in English or Burmese",
   "assistantSend": "Send question",
-  "assistantVerifiedAnswer": "Retrieved approved content",
-  "assistantConfidence": "Intent confidence: {confidence}%\n{explanation}",
-  "@assistantConfidence": {"placeholders": {"confidence": {"type": "int"}, "explanation": {"type": "String"}}},
-  "assistantClassifierMatched": "Matched weighted offline terms: {terms}. No machine-learning model was used.",
-  "@assistantClassifierMatched": {"placeholders": {"terms": {"type": "String"}}},
-  "assistantClassifierLowConfidence": "The closest offline match was below the confidence threshold. No machine-learning model was used.",
-  "assistantClassifierNoMatch": "No approved offline intent terms matched. No machine-learning model was used.",
-  "assistantClassifierOnnx": "The deterministic classifier returned unknown, then the optional local ONNX classifier recognized this intent at or above the safety threshold.",
-  "assistantClassifierGemma": "Answered by the optional local Gemma 3 model. Relevant disaster guidance is grounded in approved offline content when available.",
-  "assistantEngineDeterministic": "Response engine: deterministic offline classifier",
-  "assistantEngineOnnx": "Response engine: optional local ONNX intent classifier",
-  "assistantEngineGemma": "Response engine: local Gemma 3 assistant",
   "assistantGemmaAnswerTitle": "Gemma 3 answer",
-  "assistantLocalRewordingTitle": "Optional local rewording",
+  "assistantLocalRewordingTitle": "Additional local wording",
   "assistantLocalRewordingWarning": "Model-generated wording may be inaccurate. Verify it against the exact source-backed guidance shown above.",
-  "assistantLocalRewordingSemantics": "Optional model-generated local rewording. {text} Warning: verify against the exact source-backed guidance.",
+  "assistantLocalRewordingSemantics": "Additional model-generated local wording. {text} Warning: verify against the exact source-backed guidance.",
   "@assistantLocalRewordingSemantics": {"placeholders": {"text": {"type": "String"}}},
   "assistantMapResponse": "SafeMyanmar does not calculate routes in the assistant. Open Map to view available shelters and request uncertain, timestamped route suggestions.",
   "assistantSosResponse": "The assistant cannot activate or send an SOS. Open SOS to review recipients, information, and explicit confirmation controls.",

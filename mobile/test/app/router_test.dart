@@ -210,10 +210,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(routerLocation(router), '/guide/assistant');
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(
-      find.text('Deterministic offline verified-content retrieval is active.'),
-      findsOneWidget,
-    );
+    expect(find.text('Suggested questions'), findsOneWidget);
   });
 
   testWidgets('assistant action routes require a tap and never activate SOS', (

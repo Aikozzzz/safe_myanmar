@@ -15,58 +15,16 @@ import '../../../support/fake_language_preference_repository.dart';
 import '../../../support/fake_native_ai_service.dart';
 
 void main() {
-  testWidgets('capability banner treats missing optional models as normal', (
+  testWidgets('assistant screen omits implementation status details', (
     tester,
   ) async {
     await tester.pumpWidget(_app(FakeNativeAiService()));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Deterministic offline verified-content retrieval is active.'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining(
-        'Optional ONNX intent refinement is unavailable. Missing optional models are normal',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining(
-        'Optional local Gemma 3 is unavailable. Missing model files are normal',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('This tool matches disaster questions'),
-      findsNothing,
-    );
-    expect(
-      find.textContaining('Gemma answers are generated on-device'),
-      findsNothing,
-    );
-  });
-
-  testWidgets('capability banner announces available ONNX and Gemma', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _app(
-        FakeNativeAiService(capabilitiesResult: availableNativeAiCapabilities),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.textContaining('Optional ONNX intent refinement is available'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining(
-        'Optional local Gemma 3 can answer general questions',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Suggested questions'), findsOneWidget);
+    expect(find.textContaining('Deterministic offline'), findsNothing);
+    expect(find.textContaining('Optional ONNX'), findsNothing);
+    expect(find.textContaining('Optional local Gemma'), findsNothing);
   });
 
   testWidgets('Gemma wording is a separate labeled block after exact guidance', (
@@ -75,7 +33,7 @@ void main() {
     final nativeAi = FakeNativeAiService(
       capabilitiesResult: availableNativeAiCapabilities,
       rewriteResult: const NativeAiResult.success(
-        NativeVerifiedRewrite('Optional simpler wording.'),
+        NativeVerifiedRewrite('Simpler wording.'),
       ),
     );
     await tester.pumpWidget(_app(nativeAi));
@@ -89,14 +47,14 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Optional local rewording'),
+      find.text('Additional local wording'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     expect(find.text('APPROVED EARTHQUAKE ANSWER'), findsOneWidget);
-    expect(find.text('Optional local rewording'), findsOneWidget);
-    expect(find.text('Optional simpler wording.'), findsOneWidget);
+    expect(find.text('Additional local wording'), findsOneWidget);
+    expect(find.text('Simpler wording.'), findsOneWidget);
     expect(
       find.textContaining('Verify it against the exact source-backed guidance'),
       findsOneWidget,
@@ -108,10 +66,10 @@ void main() {
       findsNothing,
     );
     expect(
-      tester.getSemantics(find.text('Optional local rewording')),
+      tester.getSemantics(find.text('Additional local wording')),
       matchesSemantics(
         label:
-            'Optional model-generated local rewording. Optional simpler wording. Warning: verify against the exact source-backed guidance.',
+            'Additional model-generated local wording. Simpler wording. Warning: verify against the exact source-backed guidance.',
       ),
     );
   });
@@ -151,10 +109,6 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(
-      find.text('Response engine: optional local ONNX intent classifier'),
-      findsOneWidget,
-    );
     expect(find.text('Open Map'), findsOneWidget);
     expect(find.byKey(const Key('map-destination')), findsNothing);
   });

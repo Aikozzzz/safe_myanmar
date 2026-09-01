@@ -26,10 +26,8 @@ enum AssistantCapabilityStatus { checking, available, unavailable }
 enum AssistantResponseEngine { deterministic, onnx, gemma }
 
 final class AssistantMessage {
-  const AssistantMessage.user(
-    this.text, {
-    this.language = AppLanguage.english,
-  }) : isUser = true,
+  const AssistantMessage.user(this.text, {this.language = AppLanguage.english})
+    : isUser = true,
       result = null,
       article = null,
       replyKind = null,
@@ -102,6 +100,8 @@ final class AssistantController extends Notifier<AssistantState> {
     _repository = ref.watch(emergencyGuideRepositoryProvider);
     _classifier = ref.watch(emergencyIntentClassifierProvider);
     _nativeAi = ref.watch(nativeAiServiceProvider);
+    // Initialize persisted language state before the first user question.
+    ref.read(languagePreferenceControllerProvider);
     ref.onDispose(() {
       _disposed = true;
       unawaited(_cancelNativeOperation());
@@ -133,7 +133,10 @@ final class AssistantController extends Notifier<AssistantState> {
         : classifiedResult;
     final extraction = extractSosDraft(text);
     state = state.copyWith(
-      messages: [...state.messages, AssistantMessage.user(text, language: language)],
+      messages: [
+        ...state.messages,
+        AssistantMessage.user(text, language: language),
+      ],
       isLoading: true,
     );
 
@@ -404,16 +407,12 @@ final _unsafeGeneratedTextPatterns = [
   RegExp(r'\brescue\s+(?:teams|services).{0,40}\b(?:will|definitely)\b'),
   RegExp(r'\b(?:i|we)\s+(?:have\s+)?sent\s+(?:an?\s+)?sos\b'),
   RegExp(r'လုံးဝ(?:ဘေးကင်း|လုံခြုံ)'),
-  RegExp(
-    r'(?:ဘေးကင်း|လုံခြုံ)(?:ပါသည်|ပါတယ်|တယ်|မယ်|ကြောင်း|ဖြစ်သည်)',
-  ),
+  RegExp(r'(?:ဘေးကင်း|လုံခြုံ)(?:ပါသည်|ပါတယ်|တယ်|မယ်|ကြောင်း|ဖြစ်သည်)'),
   RegExp(
     r'(?:ဤ|ဒီ).{0,40}(?:လမ်း|လမ်းကြောင်း|နေရာ|ဧရိယာ).{0,40}'
     r'(?:ဘေးကင်း|လုံခြုံ)(?:ပါသည်|ပါတယ်|တယ်|မယ်|ကြောင်း|ဖြစ်သည်)',
   ),
-  RegExp(
-    r'အာမခံ.{0,20}(?:ဘေးကင်း|လုံခြုံ|ကယ်ဆယ်|ရောက်)',
-  ),
+  RegExp(r'အာမခံ.{0,20}(?:ဘေးကင်း|လုံခြုံ|ကယ်ဆယ်|ရောက်)'),
   RegExp(r'(?:သေချာ|မုချ).{0,40}(?:ကယ်ဆယ်|ရောက်လာ)'),
   RegExp(
     r'(?:ကယ်ဆယ်ရေး|ကယ်ဆယ်သူ|ကယ်ဆယ်ရေးအဖွဲ့).{0,40}'
@@ -448,16 +447,19 @@ String _boundedQuestion(String input) {
 
 bool _isSafeGeneratedText(String text, {required AppLanguage language}) {
   final normalized = text.trim().toLowerCase();
-  if (_unsafeGeneratedTextPatterns.any((pattern) => pattern.hasMatch(normalized))) {
+  if (_unsafeGeneratedTextPatterns.any(
+    (pattern) => pattern.hasMatch(normalized),
+  )) {
     return false;
   }
   if (language.isBurmese) {
     final burmeseCharacters = RegExp(
       r'[\u1000-\u109f]',
     ).allMatches(text).length;
-    final latinCharacters = RegExp(r'[a-z]', caseSensitive: false)
-        .allMatches(text)
-        .length;
+    final latinCharacters = RegExp(
+      r'[a-z]',
+      caseSensitive: false,
+    ).allMatches(text).length;
     return burmeseCharacters >= 3 && burmeseCharacters >= latinCharacters;
   }
   return true;

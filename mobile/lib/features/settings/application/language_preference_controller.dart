@@ -45,9 +45,11 @@ final class LanguagePreferenceController
     state = const LanguagePreferenceState.loading();
     try {
       final language = await _repository.read();
+      if (!ref.mounted) return;
       _retryLanguage = null;
       state = LanguagePreferenceState.ready(language);
     } on Object {
+      if (!ref.mounted) return;
       _retryLanguage = null;
       state = const LanguagePreferenceState.error(
         kind: LanguagePreferenceErrorKind.read,
@@ -56,9 +58,7 @@ final class LanguagePreferenceController
     }
   }
 
-  Future<LanguagePreferenceOperationResult> _save(
-    AppLanguage language,
-  ) async {
+  Future<LanguagePreferenceOperationResult> _save(AppLanguage language) async {
     if (state.isBusy) return LanguagePreferenceOperationResult.busy;
     final previous = state.language;
     _retryLanguage = language;
@@ -68,10 +68,12 @@ final class LanguagePreferenceController
     );
     try {
       await _repository.write(language);
+      if (!ref.mounted) return LanguagePreferenceOperationResult.failed;
       _retryLanguage = null;
       state = LanguagePreferenceState.ready(language);
       return LanguagePreferenceOperationResult.success;
     } on Object {
+      if (!ref.mounted) return LanguagePreferenceOperationResult.failed;
       state = LanguagePreferenceState.error(
         kind: LanguagePreferenceErrorKind.write,
         language: previous,

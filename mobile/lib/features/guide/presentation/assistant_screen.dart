@@ -37,51 +37,46 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
         child: Column(
           children: [
             Expanded(
-              child: ListView(
+              child: SingleChildScrollView(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
-                children: [
-                  _AssistantNotice(
-                    icon: Icons.offline_bolt_outlined,
-                    text: strings.assistantDeterministicActive,
-                  ),
-                  const SizedBox(height: 8),
-                  _CapabilityBanner(state: state),
-                  const SizedBox(height: 12),
-                  Text(
-                    strings.assistantSuggestedQuestions,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final suggestion in [
-                        strings.assistantSuggestionEarthquake,
-                        strings.assistantSuggestionTrapped,
-                        strings.assistantSuggestionFirstAid,
-                        strings.assistantSuggestionFlood,
-                      ])
-                        ActionChip(
-                          label: Text(suggestion),
-                          onPressed: () => _send(suggestion),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  for (final message in state.messages) ...[
-                    _MessageCard(message: message),
-                    const SizedBox(height: 12),
-                  ],
-                  if (state.isLoading)
-                    Semantics(
-                      label: strings.assistantSearching,
-                      liveRegion: true,
-                      child: const Center(child: CircularProgressIndicator()),
+                child: Column(
+                  children: [
+                    Text(
+                      strings.assistantSuggestedQuestions,
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                  const SizedBox(height: 8),
-                ],
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final suggestion in [
+                          strings.assistantSuggestionEarthquake,
+                          strings.assistantSuggestionTrapped,
+                          strings.assistantSuggestionFirstAid,
+                          strings.assistantSuggestionFlood,
+                        ])
+                          ActionChip(
+                            label: Text(suggestion),
+                            onPressed: () => _send(suggestion),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    for (final message in state.messages) ...[
+                      _MessageCard(message: message),
+                      const SizedBox(height: 12),
+                    ],
+                    if (state.isLoading)
+                      Semantics(
+                        label: strings.assistantSearching,
+                        liveRegion: true,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
             ),
             Material(
@@ -107,6 +102,10 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                     ),
                     const SizedBox(width: 8),
                     IconButton.filled(
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
                       tooltip: strings.assistantSend,
                       onPressed: state.isLoading
                           ? null
@@ -171,11 +170,6 @@ class _MessageCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                strings.assistantVerifiedAnswer,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
               if (article != null) ...[
                 Text(article.answerForLanguage(burmese: burmese)),
                 const SizedBox(height: 12),
@@ -196,23 +190,6 @@ class _MessageCard extends StatelessWidget {
                 Text(answer),
               ] else
                 Text(_replyText(strings, message.replyKind!)),
-              const SizedBox(height: 10),
-              Text(
-                _responseEngineText(strings, message.responseEngine!),
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                strings.assistantConfidence(
-                  (result.confidence * 100).round(),
-                  _classifierExplanation(
-                    strings,
-                    result,
-                    message.responseEngine!,
-                  ),
-                ),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
               if (message.sosDraft case final draft?) ...[
                 const SizedBox(height: 12),
                 _SosDraftCard(draft: draft),
@@ -241,53 +218,6 @@ class _MessageCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CapabilityBanner extends StatelessWidget {
-  const _CapabilityBanner({required this.state});
-
-  final AssistantState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppLocalizations.of(context)!;
-    final onnx = _onnxStatusText(strings, state.onnxStatus);
-    final gemma = _gemmaStatusText(strings, state.gemmaStatus);
-    return Semantics(
-      container: true,
-      label: '$onnx $gemma',
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _CapabilityRow(icon: Icons.account_tree_outlined, text: onnx),
-              const SizedBox(height: 8),
-              _CapabilityRow(icon: Icons.notes_outlined, text: gemma),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CapabilityRow extends StatelessWidget {
-  const _CapabilityRow({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Icon(icon),
-      const SizedBox(width: 10),
-      Expanded(child: Text(text)),
-    ],
-  );
 }
 
 class _LocalRewordingCard extends StatelessWidget {
@@ -367,28 +297,6 @@ class _SosDraftCard extends StatelessWidget {
   }
 }
 
-class _AssistantNotice extends StatelessWidget {
-  const _AssistantNotice({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    ),
-  );
-}
-
 String _replyText(AppLocalizations strings, AssistantReplyKind kind) =>
     switch (kind) {
       AssistantReplyKind.mapAction => strings.assistantMapResponse,
@@ -399,48 +307,3 @@ String _replyText(AppLocalizations strings, AssistantReplyKind kind) =>
       AssistantReplyKind.unavailable => strings.assistantUnavailableResponse,
       AssistantReplyKind.article => strings.assistantUnavailableResponse,
     };
-
-String _classifierExplanation(
-  AppLocalizations strings,
-  IntentResult result,
-  AssistantResponseEngine engine,
-) {
-  if (engine == AssistantResponseEngine.gemma) {
-    return strings.assistantClassifierGemma;
-  }
-  if (engine == AssistantResponseEngine.onnx) {
-    return strings.assistantClassifierOnnx;
-  }
-  if (result.matchedTerms.isEmpty) return strings.assistantClassifierNoMatch;
-  if (result.intent == EmergencyIntent.unknown) {
-    return strings.assistantClassifierLowConfidence;
-  }
-  return strings.assistantClassifierMatched(result.matchedTerms.join(', '));
-}
-
-String _responseEngineText(
-  AppLocalizations strings,
-  AssistantResponseEngine engine,
-) => switch (engine) {
-  AssistantResponseEngine.deterministic => strings.assistantEngineDeterministic,
-  AssistantResponseEngine.onnx => strings.assistantEngineOnnx,
-  AssistantResponseEngine.gemma => strings.assistantEngineGemma,
-};
-
-String _onnxStatusText(
-  AppLocalizations strings,
-  AssistantCapabilityStatus status,
-) => switch (status) {
-  AssistantCapabilityStatus.checking => strings.assistantOnnxChecking,
-  AssistantCapabilityStatus.available => strings.assistantOnnxAvailable,
-  AssistantCapabilityStatus.unavailable => strings.assistantOnnxUnavailable,
-};
-
-String _gemmaStatusText(
-  AppLocalizations strings,
-  AssistantCapabilityStatus status,
-) => switch (status) {
-  AssistantCapabilityStatus.checking => strings.assistantGemmaChecking,
-  AssistantCapabilityStatus.available => strings.assistantGemmaAvailable,
-  AssistantCapabilityStatus.unavailable => strings.assistantGemmaUnavailable,
-};

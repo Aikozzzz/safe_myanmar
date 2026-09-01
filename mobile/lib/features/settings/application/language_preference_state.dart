@@ -38,10 +38,9 @@ final class LanguagePreferenceState {
 
   const LanguagePreferenceState.error({
     required LanguagePreferenceErrorKind kind,
-    required AppLanguage language,
+    required this.language,
     this.pendingLanguage,
   }) : phase = LanguagePreferencePhase.error,
-       language = language,
        errorKind = kind;
 
   final LanguagePreferencePhase phase;

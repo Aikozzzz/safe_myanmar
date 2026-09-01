@@ -42,9 +42,18 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000 `
 `API_BASE_URL` is required. Android emulator debug builds may use
 `http://10.0.2.2:8000`. A physical device may deliberately use
 `adb reverse tcp:8000 tcp:8000` with `http://127.0.0.1:8000` during debug
-development. Production/release builds reject HTTP and require HTTPS. The
-Android cleartext exception exists only under `android/app/src/debug` and is
-limited to `localhost`, `127.0.0.1`, and `10.0.2.2`.
+development. For a USB-installed debug app that calls the backend over Wi-Fi,
+run `..\tools\run-android-usb-wireless.ps1` from the repository root. It opts
+into a private RFC1918 host address only for that debug build. Production/release
+builds reject HTTP and require HTTPS. Android cleartext access exists only in
+the debug network policy; `ApiConfig` still rejects public or non-private LAN
+HTTP addresses.
+
+For fictional navigation demonstrations, set `ENABLE_SIMULATION_DATA=true` in
+`backend/.env` and add `-EnableSimulationData` to the runner. The switch passes
+the matching compile-time opt-in to Flutter; leaving it out keeps fictional
+navigation records hidden. Simulation route alternatives also require the
+backend-only `MAPBOX_DIRECTIONS_ACCESS_TOKEN`.
 
 `MAPBOX_PUBLIC_ACCESS_TOKEN` is optional and is validated as a `pk.*` public
 token. It is embedded in the built app, so restrict it by application/package

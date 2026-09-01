@@ -23,7 +23,7 @@ void main() {
     }
   });
 
-  test('debug cleartext exception is scoped to required local hosts', () {
+  test('debug cleartext exception is scoped to development builds', () {
     final debugManifest = File(
       'android/app/src/debug/AndroidManifest.xml',
     ).readAsStringSync();
@@ -45,7 +45,10 @@ void main() {
     ).allMatches(debugPolicy).map((match) => match.group(1)).toSet();
     expect(domains, {'localhost', '127.0.0.1', '10.0.2.2'});
     expect(debugPolicy, isNot(contains('includeSubdomains="true"')));
-    expect(debugPolicy, isNot(contains('<base-config')));
+    expect(
+      debugPolicy,
+      contains('<base-config cleartextTrafficPermitted="true" />'),
+    );
   });
 
   test('main manifest requests only declared app capabilities', () {

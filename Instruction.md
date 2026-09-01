@@ -322,6 +322,40 @@ phone's loopback API address reaches the backend on the development computer.
 It does not reinstall or clear the app. Add `-SkipDatabase` or
 `-SkipMigration` when those steps are already handled separately.
 
+### Install over USB and call the backend over Wi-Fi
+
+For a connected physical Android device, run this from the repository root:
+
+```powershell
+.\tools\run-android-usb-wireless.ps1
+```
+
+The runner selects exactly one online USB device, starts PostgreSQL and backend
+migrations, binds Uvicorn to the computer's private LAN address, and launches a
+debug APK configured to call that address over Wi-Fi. Use `-DeviceId` and
+`-HostAddress` when more than one USB device or private network address exists:
+
+```powershell
+.\tools\run-android-usb-wireless.ps1 `
+  -DeviceId R58M123456A `
+  -HostAddress 192.168.1.25 `
+  -EnableSimulationData `
+  -MapboxPublicAccessToken pk.replace_with_restricted_public_token
+```
+
+The `-EnableSimulationData` switch is optional and must be paired with
+`ENABLE_SIMULATION_DATA=true` in `backend/.env`. It passes the same explicit
+opt-in to Flutter so fictional navigation records are accepted by the mobile
+client. Leave the switch out for the default real-provider and collected-
+snapshot mode. Simulation route alternatives also require the backend-only
+`MAPBOX_DIRECTIONS_ACCESS_TOKEN`.
+
+Allow the selected port through Windows Firewall on the private network if the
+phone cannot connect. Use `-SkipDatabase` or `-SkipMigration` when those steps
+are already handled separately. Press `Ctrl+C` to stop Flutter and the local
+backend. This workflow uses an explicit debug-only private-LAN opt-in; release
+builds continue to require HTTPS.
+
 ## 8. First App Use
 
 1. Open **Home** to view current or cached USGS earthquake observations.

@@ -29,60 +29,57 @@ class MoreScreen extends ConsumerWidget {
         child: SafeContent(
           child: switch (profile) {
             null => _ProfileUnavailable(state: state, includeLanguage: true),
-            final value => ListView(
+            final value => SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              children: [
-                _LanguagePreferenceCard(),
-                const SizedBox(height: 16),
-                if (state.phase == LocalProfilePhase.saving) ...[
-                  const _SavingBanner(),
-                  const SizedBox(height: 12),
-                ],
-                if (state.errorKind == LocalProfileErrorKind.write) ...[
-                  _WriteErrorBanner(
-                    onRetry: () => ref
-                        .read(localProfileControllerProvider.notifier)
-                        .retry(),
+              child: Column(
+                children: [
+                  _LanguagePreferenceCard(),
+                  const SizedBox(height: 16),
+                  if (state.phase == LocalProfilePhase.saving) ...[
+                    const _SavingBanner(),
+                    const SizedBox(height: 12),
+                  ],
+                  if (state.errorKind == LocalProfileErrorKind.write) ...[
+                    _WriteErrorBanner(
+                      onRetry: () => ref
+                          .read(localProfileControllerProvider.notifier)
+                          .retry(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Text(
+                    strings.profileOverviewTitle,
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 12),
-                ],
-                Text(
-                  strings.profileOverviewTitle,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 12),
-                _OverviewCard(profile: value),
-                const SizedBox(height: 12),
-                _MoreActionCard(
-                  icon: Icons.person_outline,
-                  title: strings.editProfile,
-                  subtitle: value.displayName.isEmpty
-                      ? strings.profileNotSet
-                      : value.displayName,
-                  onTap: state.isBusy
-                      ? null
-                      : () => context.push('/more/profile'),
-                ),
-                const SizedBox(height: 12),
-                _MoreActionCard(
-                  icon: Icons.contact_phone_outlined,
-                  title: strings.manageContacts,
-                  subtitle: strings.contactsSummary(
-                    value.contacts.length,
-                    value.contacts
-                        .where((contact) => contact.selectedForSos)
-                        .length,
+                  _MoreActionCard(
+                    icon: Icons.person_outline,
+                    title: strings.editProfile,
+                    subtitle: value.displayName.isEmpty
+                        ? strings.profileNotSet
+                        : value.displayName,
+                    onTap: state.isBusy
+                        ? null
+                        : () => context.push('/more/profile'),
                   ),
-                  onTap: state.isBusy
-                      ? null
-                      : () => context.push('/more/contacts'),
-                ),
-                const SizedBox(height: 16),
-                _PrivacyCard(
-                  title: strings.profilePrivacyTitle,
-                  description: strings.profilePrivacyDescription,
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  _OverviewCard(profile: value),
+                  const SizedBox(height: 12),
+                  _MoreActionCard(
+                    icon: Icons.contact_phone_outlined,
+                    title: strings.manageContacts,
+                    subtitle: strings.contactsSummary(
+                      value.contacts.length,
+                      value.contacts
+                          .where((contact) => contact.selectedForSos)
+                          .length,
+                    ),
+                    onTap: state.isBusy
+                        ? null
+                        : () => context.push('/more/contacts'),
+                  ),
+                ],
+              ),
             ),
           },
         ),
@@ -738,10 +735,6 @@ class _ProfileUnavailable extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (includeLanguage) ...[
-          _LanguagePreferenceCard(),
-          const SizedBox(height: 16),
-        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -787,6 +780,10 @@ class _ProfileUnavailable extends ConsumerWidget {
             ),
           ),
         ),
+        if (includeLanguage) ...[
+          const SizedBox(height: 16),
+          _LanguagePreferenceCard(),
+        ],
       ],
     );
   }
@@ -847,29 +844,30 @@ class _LanguagePreferenceCard extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(strings.languageSettingsDescription),
               const SizedBox(height: 12),
-              DropdownButtonFormField<AppLanguage>(
-                key: ValueKey('language-${state.language.code}'),
-                initialValue: state.language,
-                decoration: InputDecoration(
-                  labelText: strings.languageSettingsTitle,
+              Semantics(
+                label: strings.languageSettingsTitle,
+                child: DropdownButtonFormField<AppLanguage>(
+                  key: ValueKey('language-${state.language.code}'),
+                  initialValue: state.language,
+                  decoration: const InputDecoration(),
+                  items: [
+                    DropdownMenuItem(
+                      value: AppLanguage.english,
+                      child: Text(strings.languageEnglish),
+                    ),
+                    DropdownMenuItem(
+                      value: AppLanguage.burmese,
+                      child: Text(strings.languageBurmese),
+                    ),
+                  ],
+                  onChanged: state.isBusy
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            unawaited(controller.setLanguage(value));
+                          }
+                        },
                 ),
-                items: [
-                  DropdownMenuItem(
-                    value: AppLanguage.english,
-                    child: Text(strings.languageEnglish),
-                  ),
-                  DropdownMenuItem(
-                    value: AppLanguage.burmese,
-                    child: Text(strings.languageBurmese),
-                  ),
-                ],
-                onChanged: state.isBusy
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          unawaited(controller.setLanguage(value));
-                        }
-                      },
               ),
               if (state.phase == LanguagePreferencePhase.saving) ...[
                 const SizedBox(height: 12),

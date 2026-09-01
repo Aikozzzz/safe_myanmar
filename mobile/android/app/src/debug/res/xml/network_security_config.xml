@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Debug-only LAN access is constrained by ApiConfig to private IPv4 ranges. -->
+    <base-config cleartextTrafficPermitted="true" />
     <domain-config cleartextTrafficPermitted="true">
         <domain>localhost</domain>
         <domain>127.0.0.1</domain>

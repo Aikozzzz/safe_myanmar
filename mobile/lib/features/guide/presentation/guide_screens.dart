@@ -33,160 +33,162 @@ class _GuideScreenState extends ConsumerState<GuideScreen> {
       appBar: AppBar(title: Text(strings.guideTitle)),
       body: SafeArea(
         child: SafeContent(
-          child: ListView(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            children: [
-              _OfflineBanner(text: strings.guideOfflineVerifiedLabel),
-              const SizedBox(height: 12),
-              Text(
-                strings.guideIntroduction,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 12),
-              _GuideQuickActions(
-                heading: strings.guideQuickActionsHeading,
-                actions: [
-                  _GuideAction(
-                    key: const Key('guide-quick-action-earthquake'),
-                    label: strings.guideActionEarthquake,
-                    icon: Icons.vibration,
-                    onPressed: () =>
-                        _openArticle(context, 'earthquake-drop-cover-hold'),
-                  ),
-                  _GuideAction(
-                    key: const Key('guide-quick-action-flood'),
-                    label: strings.guideActionFlood,
-                    icon: Icons.flood,
-                    onPressed: () => _openArticle(context, 'flood-avoidance'),
-                  ),
-                  _GuideAction(
-                    key: const Key('guide-quick-action-fire'),
-                    label: strings.guideActionFire,
-                    icon: Icons.local_fire_department_outlined,
-                    onPressed: () => _openArticle(context, 'fire-escape'),
-                  ),
-                  _GuideAction(
-                    key: const Key('guide-quick-action-first-aid'),
-                    label: strings.guideActionFirstAid,
-                    icon: Icons.medical_services_outlined,
-                    onPressed: () =>
-                        _openArticle(context, 'first-aid-assessment'),
-                  ),
-                  _GuideAction(
-                    key: const Key('guide-quick-action-map'),
-                    label: strings.guideActionMap,
-                    icon: Icons.map_outlined,
-                    onPressed: () => context.go('/map'),
-                  ),
-                  _GuideAction(
-                    key: const Key('guide-quick-action-sos'),
-                    label: strings.guideActionSos,
-                    icon: Icons.sos,
-                    onPressed: () => context.go('/sos'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _GuideNextSteps(
-                heading: strings.guideNextStepsHeading,
-                actions: [
-                  _GuideAction(
-                    key: const Key('guide-next-step-map'),
-                    label: strings.guideNextStepMap,
-                    icon: Icons.map_outlined,
-                    onPressed: () => context.go('/map'),
-                  ),
-                  _GuideAction(
-                    key: const Key('guide-next-step-sos'),
-                    label: strings.guideNextStepSos,
-                    icon: Icons.sos,
-                    onPressed: () => context.go('/sos'),
-                  ),
-                  _GuideAction(
-                    key: const Key('guide-next-step-assistant'),
-                    label: strings.guideNextStepAssistant,
-                    icon: Icons.chat_bubble_outline,
-                    onPressed: () => context.push('/guide/assistant'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  labelText: strings.guideSearchLabel,
-                  hintText: strings.guideSearchHint,
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    tooltip: strings.guideSearchAction,
-                    onPressed: () => ref
-                        .read(guideControllerProvider.notifier)
-                        .search(_searchController.text),
-                    icon: const Icon(Icons.arrow_forward),
-                  ),
+            child: Column(
+              children: [
+                _OfflineBanner(text: strings.guideOfflineVerifiedLabel),
+                const SizedBox(height: 12),
+                Text(
+                  strings.guideIntroduction,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                onSubmitted: (value) =>
-                    ref.read(guideControllerProvider.notifier).search(value),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                strings.guideCategories,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _CategoryChip(
-                    label: strings.guideCategoryAll,
-                    selected: state.category == null,
-                    onSelected: () => ref
-                        .read(guideControllerProvider.notifier)
-                        .selectCategory(null),
-                  ),
-                  for (final category in _categories)
-                    _CategoryChip(
-                      label: _categoryLabel(strings, category),
-                      selected: state.category == category,
-                      onSelected: () => ref
-                          .read(guideControllerProvider.notifier)
-                          .selectCategory(category),
+                const SizedBox(height: 12),
+                _GuideQuickActions(
+                  heading: strings.guideQuickActionsHeading,
+                  actions: [
+                    _GuideAction(
+                      key: const Key('guide-quick-action-earthquake'),
+                      label: strings.guideActionEarthquake,
+                      icon: Icons.vibration,
+                      onPressed: () =>
+                          _openArticle(context, 'earthquake-drop-cover-hold'),
                     ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              switch (state.phase) {
-                GuidePhase.loading => Semantics(
-                  label: strings.guideLoading,
-                  liveRegion: true,
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                GuidePhase.empty => _StatusCard(
-                  icon: Icons.search_off,
-                  text: strings.guideNoResults,
-                ),
-                GuidePhase.error => _StatusCard(
-                  icon: Icons.storage_outlined,
-                  text: strings.guideStorageError,
-                  action: OutlinedButton.icon(
-                    onPressed: () =>
-                        ref.read(guideControllerProvider.notifier).retry(),
-                    icon: const Icon(Icons.refresh),
-                    label: Text(strings.retry),
-                  ),
-                ),
-                GuidePhase.data => Column(
-                  children: [
-                    for (final article in state.articles) ...[
-                      _ArticleCard(article: article),
-                      const SizedBox(height: 12),
-                    ],
+                    _GuideAction(
+                      key: const Key('guide-quick-action-flood'),
+                      label: strings.guideActionFlood,
+                      icon: Icons.flood,
+                      onPressed: () => _openArticle(context, 'flood-avoidance'),
+                    ),
+                    _GuideAction(
+                      key: const Key('guide-quick-action-fire'),
+                      label: strings.guideActionFire,
+                      icon: Icons.local_fire_department_outlined,
+                      onPressed: () => _openArticle(context, 'fire-escape'),
+                    ),
+                    _GuideAction(
+                      key: const Key('guide-quick-action-first-aid'),
+                      label: strings.guideActionFirstAid,
+                      icon: Icons.medical_services_outlined,
+                      onPressed: () =>
+                          _openArticle(context, 'first-aid-assessment'),
+                    ),
+                    _GuideAction(
+                      key: const Key('guide-quick-action-map'),
+                      label: strings.guideActionMap,
+                      icon: Icons.map_outlined,
+                      onPressed: () => context.go('/map'),
+                    ),
+                    _GuideAction(
+                      key: const Key('guide-quick-action-sos'),
+                      label: strings.guideActionSos,
+                      icon: Icons.sos,
+                      onPressed: () => context.go('/sos'),
+                    ),
                   ],
                 ),
-              },
-            ],
+                const SizedBox(height: 16),
+                _GuideNextSteps(
+                  heading: strings.guideNextStepsHeading,
+                  actions: [
+                    _GuideAction(
+                      key: const Key('guide-next-step-map'),
+                      label: strings.guideNextStepMap,
+                      icon: Icons.map_outlined,
+                      onPressed: () => context.go('/map'),
+                    ),
+                    _GuideAction(
+                      key: const Key('guide-next-step-sos'),
+                      label: strings.guideNextStepSos,
+                      icon: Icons.sos,
+                      onPressed: () => context.go('/sos'),
+                    ),
+                    _GuideAction(
+                      key: const Key('guide-next-step-assistant'),
+                      label: strings.guideNextStepAssistant,
+                      icon: Icons.chat_bubble_outline,
+                      onPressed: () => context.push('/guide/assistant'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    labelText: strings.guideSearchLabel,
+                    hintText: strings.guideSearchHint,
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      tooltip: strings.guideSearchAction,
+                      onPressed: () => ref
+                          .read(guideControllerProvider.notifier)
+                          .search(_searchController.text),
+                      icon: const Icon(Icons.arrow_forward),
+                    ),
+                  ),
+                  onSubmitted: (value) =>
+                      ref.read(guideControllerProvider.notifier).search(value),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  strings.guideCategories,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _CategoryChip(
+                      label: strings.guideCategoryAll,
+                      selected: state.category == null,
+                      onSelected: () => ref
+                          .read(guideControllerProvider.notifier)
+                          .selectCategory(null),
+                    ),
+                    for (final category in _categories)
+                      _CategoryChip(
+                        label: _categoryLabel(strings, category),
+                        selected: state.category == category,
+                        onSelected: () => ref
+                            .read(guideControllerProvider.notifier)
+                            .selectCategory(category),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                switch (state.phase) {
+                  GuidePhase.loading => Semantics(
+                    label: strings.guideLoading,
+                    liveRegion: true,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  GuidePhase.empty => _StatusCard(
+                    icon: Icons.search_off,
+                    text: strings.guideNoResults,
+                  ),
+                  GuidePhase.error => _StatusCard(
+                    icon: Icons.storage_outlined,
+                    text: strings.guideStorageError,
+                    action: OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.read(guideControllerProvider.notifier).retry(),
+                      icon: const Icon(Icons.refresh),
+                      label: Text(strings.retry),
+                    ),
+                  ),
+                  GuidePhase.data => Column(
+                    children: [
+                      for (final article in state.articles) ...[
+                        _ArticleCard(article: article),
+                        const SizedBox(height: 12),
+                      ],
+                    ],
+                  ),
+                },
+              ],
+            ),
           ),
         ),
       ),
@@ -255,11 +257,7 @@ class ArticleDetailScreen extends ConsumerWidget {
 }
 
 class ArticleSourceCard extends StatelessWidget {
-  const ArticleSourceCard({
-    required this.article,
-    this.burmese,
-    super.key,
-  });
+  const ArticleSourceCard({required this.article, this.burmese, super.key});
 
   final EmergencyArticle article;
   final bool? burmese;

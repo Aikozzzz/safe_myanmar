@@ -25,7 +25,8 @@ void main() {
             .listSync()
             .whereType<File>()
             .map((file) => file.readAsStringSync())
-            .join();
+            .join()
+            .replaceAll('\r\n', '\n');
   });
 
   test('pins both native runtimes without floating selectors', () {

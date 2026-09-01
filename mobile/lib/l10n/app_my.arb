@@ -69,7 +69,6 @@
     "placeholders": {"time": {"type": "String"}}
   },
   "simulationLabel": "စမ်းသပ်မှု",
-  "simulationNavigationHeading": "စမ်းသပ်မှုအမိုးအကာနှင့် လမ်းကြောင်းအချက်အလက်",
   "navigationSource": "ရင်းမြစ် - {source}",
   "@navigationSource": {
     "placeholders": {"source": {"type": "String"}}
@@ -532,14 +531,6 @@
     }
   },
   "assistantTitle": "အော့ဖ်လိုင်းအကူ",
-  "assistantOfflineVerified": "အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု (ရင်းမြစ်အခြေပြု၊ ဖန်တီးမှုမဟုတ်)",
-  "assistantDeterministicActive": "ဆုံးဖြတ်ချက်သတ်မှတ်ထားသော အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု အလုပ်လုပ်နေသည်။",
-  "assistantOnnxChecking": "ရွေးချယ်နိုင်သော ONNX ရည်ရွယ်ချက်ပြင်ဆင်မှု ရရှိနိုင်မှုကို စစ်ဆေးနေသည်။",
-  "assistantOnnxAvailable": "ဆုံးဖြတ်ချက်သတ်မှတ်ထားသော ရလဒ်မသိရသောအခါ အသုံးပြုနိုင်သည့် ရွေးချယ်နိုင်သော ONNX ရည်ရွယ်ချက်ပြင်ဆင်မှု ရှိသည်။",
-  "assistantOnnxUnavailable": "ရွေးချယ်နိုင်သော ONNX ရည်ရွယ်ချက်ပြင်ဆင်မှု မရနိုင်ပါ။ ရွေးချယ်နိုင်သော model မရှိခြင်းသည် ပုံမှန်ဖြစ်ပြီး ဆုံးဖြတ်ချက်သတ်မှတ်ထားသော ရယူမှု ဆက်လက်အလုပ်လုပ်သည်။",
-  "assistantGemmaChecking": "ရွေးချယ်နိုင်သော Gemma 3 ဒေသတွင်းအကူ ရရှိနိုင်မှုကို စစ်ဆေးနေသည်။",
-  "assistantGemmaAvailable": "ရွေးချယ်နိုင်သော ဒေသတွင်း Gemma 3 သည် အထွေထွေမေးခွန်းများကို ဖြေနိုင်ပြီး ဘေးအန္တရာယ်နှင့် ကြိုတင်ပြင်ဆင်မှုအကြောင်းအရာများကို ပိုမိုအလေးပေးသည်။",
-  "assistantGemmaUnavailable": "ရွေးချယ်နိုင်သော ဒေသတွင်း Gemma 3 မရနိုင်ပါ။ model ဖိုင်မရှိခြင်းသည် ပုံမှန်ဖြစ်ပြီး အတည်ပြုထားသော အကြောင်းအရာကို ဆက်လက်အသုံးပြုနိုင်သည်။",
   "assistantSuggestedQuestions": "အကြံပြုမေးခွန်းများ",
   "assistantSuggestionEarthquake": "ငလျင်လှုပ်နေစဉ် ဘာလုပ်ရမလဲ။",
   "assistantSuggestionTrapped": "ငလျင်ပြီးနောက် ပိတ်မိနေသည်",
@@ -549,27 +540,10 @@
   "assistantInputLabel": "အရေးပေါ်မေးခွန်း",
   "assistantInputHint": "အင်္ဂလိပ် သို့မဟုတ် မြန်မာလို ရိုက်ပါ",
   "assistantSend": "မေးခွန်းပေးပို့ရန်",
-  "assistantVerifiedAnswer": "အတည်ပြုထားသော အကြောင်းအရာကို ရယူထားသည်",
-  "assistantConfidence": "ရည်ရွယ်ချက်ယုံကြည်မှု - {confidence}%\n{explanation}",
-  "@assistantConfidence": {
-    "placeholders": {
-      "confidence": {"type": "int"},
-      "explanation": {"type": "String"}
-    }
-  },
-  "assistantClassifierMatched": "ကိုက်ညီသော အော့ဖ်လိုင်းစကားလုံးများ - {terms}။ machine-learning model မသုံးထားပါ။",
-  "@assistantClassifierMatched": {"placeholders": {"terms": {"type": "String"}}},
-  "assistantClassifierLowConfidence": "အနီးစပ်ဆုံး အော့ဖ်လိုင်းကိုက်ညီမှုသည် ယုံကြည်မှုသတ်မှတ်ချက်အောက်တွင် ရှိသည်။ machine-learning model မသုံးထားပါ။",
-  "assistantClassifierNoMatch": "အတည်ပြုထားသော အော့ဖ်လိုင်းရည်ရွယ်ချက်စကားလုံး မကိုက်ညီပါ။ machine-learning model မသုံးထားပါ။",
-  "assistantClassifierOnnx": "ဆုံးဖြတ်ချက်သတ်မှတ်ထားသော classifier က မသိရဟု ပြန်ပြီးနောက် ရွေးချယ်နိုင်သော ဒေသတွင်း ONNX classifier က ဘေးကင်းရေးသတ်မှတ်ချက်နှင့်အထက် ဤရည်ရွယ်ချက်ကို သိရှိခဲ့သည်။",
-  "assistantClassifierGemma": "ရွေးချယ်နိုင်သော ဒေသတွင်း Gemma 3 model က ဖြေထားသည်။ ရရှိနိုင်ပါက သက်ဆိုင်ရာဘေးအန္တရာယ်လမ်းညွှန်ကို အတည်ပြုထားသော အော့ဖ်လိုင်းအကြောင်းအရာဖြင့် အခြေခံထားသည်။",
-  "assistantEngineDeterministic": "တုံ့ပြန်အင်ဂျင် - ဆုံးဖြတ်ချက်သတ်မှတ်ထားသော အော့ဖ်လိုင်း classifier",
-  "assistantEngineOnnx": "တုံ့ပြန်အင်ဂျင် - ရွေးချယ်နိုင်သော ဒေသတွင်း ONNX ရည်ရွယ်ချက် classifier",
-  "assistantEngineGemma": "တုံ့ပြန်အင်ဂျင် - ဒေသတွင်း Gemma 3 အကူ",
   "assistantGemmaAnswerTitle": "Gemma 3 အဖြေ",
-  "assistantLocalRewordingTitle": "ရွေးချယ်နိုင်သော ဒေသတွင်းပြန်လည်ရေးသားမှု",
+  "assistantLocalRewordingTitle": "ထပ်ဆောင်း ဒေသတွင်းစာသား",
   "assistantLocalRewordingWarning": "model ဖန်တီးသည့် စာသားသည် မှားနိုင်သည်။ အထက်တွင်ပြထားသော ရင်းမြစ်အခြေပြု လမ်းညွှန်အတိအကျနှင့် ပြန်စစ်ပါ။",
-  "assistantLocalRewordingSemantics": "ရွေးချယ်နိုင်သော model ဖန်တီးသည့် ဒေသတွင်းပြန်လည်ရေးသားမှု။ {text} သတိ - ရင်းမြစ်အခြေပြု လမ်းညွှန်အတိအကျနှင့် ပြန်စစ်ပါ။",
+  "assistantLocalRewordingSemantics": "ထပ်ဆောင်း model ဖန်တီးသည့် ဒေသတွင်းစာသား။ {text} သတိ - ရင်းမြစ်အခြေပြု လမ်းညွှန်အတိအကျနှင့် ပြန်စစ်ပါ။",
   "@assistantLocalRewordingSemantics": {"placeholders": {"text": {"type": "String"}}},
   "assistantMapResponse": "SafeMyanmar သည် အကူထဲတွင် လမ်းကြောင်းမတွက်ပါ။ ရရှိနိုင်သော အမိုးအကာများကို ကြည့်ပြီး မသေချာမှုနှင့် အချိန်ပါသော လမ်းကြောင်းအကြံပြုချက်များ တောင်းရန် မြေပုံဖွင့်ပါ။",
   "assistantSosResponse": "အကူသည် SOS ကို အလိုအလျောက်ဖွင့်ခြင်း သို့မဟုတ် ပေးပို့ခြင်း မပြုနိုင်ပါ။ လက်ခံသူများ၊ အချက်အလက်နှင့် အတိအလင်းအတည်ပြုထိန်းချုပ်မှုများကို စစ်ရန် SOS ဖွင့်ပါ။",

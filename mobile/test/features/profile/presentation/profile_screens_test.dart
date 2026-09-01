@@ -64,7 +64,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(languageRepository.language.code, 'my');
-    expect(find.text('နောက်ထပ်'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('နောက်ထပ်'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('ဘာသာစကား'), findsOneWidget);
   });
 
@@ -77,11 +83,10 @@ void main() {
     expect(find.text('Display name not set'), findsNWidgets(2));
     expect(find.text('Edit profile'), findsOneWidget);
     expect(find.text('Manage contacts'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Private by default'), 100);
-    expect(find.text('Private by default'), findsOneWidget);
+    expect(find.text('Private by default'), findsNothing);
     expect(
       find.textContaining('does not read your device contacts'),
-      findsOneWidget,
+      findsNothing,
     );
   });
 
