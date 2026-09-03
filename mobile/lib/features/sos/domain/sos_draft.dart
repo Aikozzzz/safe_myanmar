@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import '../../location/domain/foreground_location.dart';
 
 const maxSosDrafts = 5;
 const maxSosMessageLength = 240;
 const maxSosBodyLength = 4000;
 const maxSosProfileNameLength = 500;
+const maxSosBleAliasBytes = 16;
+const maxSosBleMessageBytes = 48;
 const sosDuplicateWindow = Duration(minutes: 5);
 
 enum SosDraftStatus {
@@ -93,6 +97,8 @@ final class SosDraft {
     required this.profileName,
     required this.body,
     required this.status,
+    this.bleAlias,
+    this.bleMessage,
     this.smsAttemptId,
     this.smsConfirmedParts = 0,
     this.smsTotalParts = 0,
@@ -108,6 +114,8 @@ final class SosDraft {
   final String profileName;
   final String body;
   final SosDraftStatus status;
+  final String? bleAlias;
+  final String? bleMessage;
   final String? smsAttemptId;
   final int smsConfirmedParts;
   final int smsTotalParts;
@@ -124,6 +132,8 @@ final class SosDraft {
     profileName: profileName,
     body: body,
     status: status,
+    bleAlias: bleAlias,
+    bleMessage: bleMessage,
     smsAttemptId: smsAttemptId,
     smsConfirmedParts: smsConfirmedParts,
     smsTotalParts: smsTotalParts,
@@ -144,6 +154,8 @@ final class SosDraft {
     profileName: profileName,
     body: body,
     status: status,
+    bleAlias: bleAlias,
+    bleMessage: bleMessage,
     smsAttemptId: attemptId,
     smsConfirmedParts: confirmedParts,
     smsTotalParts: totalParts,
@@ -154,11 +166,15 @@ final class SosDraft {
     required List<SosRecipientSnapshot> recipientSnapshots,
     required String? userMessage,
     required String bodySnapshot,
+    String? bleAlias,
+    String? bleMessage,
   }) =>
       _listEquals(selectedContactIds, contactIds) &&
       _sameRecipientTargets(recipients, recipientSnapshots) &&
       message == userMessage &&
-      body == bodySnapshot;
+      body == bodySnapshot &&
+      this.bleAlias == bleAlias &&
+      this.bleMessage == bleMessage;
 
   @override
   bool operator ==(Object other) =>
@@ -173,6 +189,8 @@ final class SosDraft {
           profileName == other.profileName &&
           body == other.body &&
           status == other.status &&
+          bleAlias == other.bleAlias &&
+          bleMessage == other.bleMessage &&
           smsAttemptId == other.smsAttemptId &&
           smsConfirmedParts == other.smsConfirmedParts &&
           smsTotalParts == other.smsTotalParts;
@@ -188,10 +206,28 @@ final class SosDraft {
     profileName,
     body,
     status,
+    bleAlias,
+    bleMessage,
     smsAttemptId,
     smsConfirmedParts,
     smsTotalParts,
   );
+}
+
+bool isValidSosBleAlias(String? value) =>
+    _isValidSosBleText(value, maxBytes: maxSosBleAliasBytes);
+
+bool isValidSosBleMessage(String? value) =>
+    _isValidSosBleText(value, maxBytes: maxSosBleMessageBytes);
+
+String? normalizeSosBleText(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
+}
+
+bool _isValidSosBleText(String? value, {required int maxBytes}) {
+  final normalized = normalizeSosBleText(value);
+  return normalized == null || utf8.encode(normalized).length <= maxBytes;
 }
 
 bool _listEquals(List<Object?> left, List<Object?> right) {

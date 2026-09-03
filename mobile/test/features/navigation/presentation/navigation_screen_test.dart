@@ -23,6 +23,7 @@ void main() {
   late FakeLocationRepository locationRepository;
   late FakeNavigationRepository navigationRepository;
   late FakeLocationPermissionPromptStore promptStore;
+  late ProviderContainer container;
 
   setUp(() {
     locationRepository = FakeLocationRepository()..currentLocation = location;
@@ -42,16 +43,20 @@ void main() {
     double textScale = 1,
     Locale locale = const Locale('en'),
   }) async {
+    container = ProviderContainer(
+      overrides: [
+        locationRepositoryProvider.overrideWithValue(locationRepository),
+        locationPermissionPromptStoreProvider.overrideWithValue(promptStore),
+        navigationRepositoryProvider.overrideWithValue(navigationRepository),
+        mapboxPublicAccessTokenProvider.overrideWithValue(
+          MapboxPublicAccessToken.fromRaw(''),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          locationRepositoryProvider.overrideWithValue(locationRepository),
-          locationPermissionPromptStoreProvider.overrideWithValue(promptStore),
-          navigationRepositoryProvider.overrideWithValue(navigationRepository),
-          mapboxPublicAccessTokenProvider.overrideWithValue(
-            MapboxPublicAccessToken.fromRaw(''),
-          ),
-        ],
+      UncontrolledProviderScope(
+        container: container,
         child: MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
           child: MaterialApp(
@@ -81,11 +86,12 @@ void main() {
   }
 
   Future<void> requestRoutes(WidgetTester tester) async {
-    final candidate = find.text('Select candidate').first;
-    await tester.scrollUntilVisible(candidate, 200);
-    await tester.ensureVisible(candidate);
-    await tester.pumpAndSettle();
-    await tester.tap(candidate);
+    final areas = container.read(navigationControllerProvider).contextAreas;
+    expect(areas, isNotNull);
+    expect(areas!.items, isNotEmpty);
+    container
+        .read(navigationControllerProvider.notifier)
+        .selectContextArea(areas.items.first.id);
     await tester.pumpAndSettle();
 
     final action = find.widgetWithText(
@@ -96,6 +102,16 @@ void main() {
     await tester.ensureVisible(action);
     await tester.pumpAndSettle();
     await tester.tap(action);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> selectContextArea(WidgetTester tester, int index) async {
+    final areas = container.read(navigationControllerProvider).contextAreas;
+    expect(areas, isNotNull);
+    expect(index, lessThan(areas!.items.length));
+    container
+        .read(navigationControllerProvider.notifier)
+        .selectContextArea(areas.items[index].id);
     await tester.pumpAndSettle();
   }
 
@@ -117,8 +133,12 @@ void main() {
     expect(find.byKey(const ValueKey('map-layer-legend')), findsNothing);
     expect(find.text('Hazard summary'), findsNothing);
     expect(find.text('Shelter and hazard information'), findsNothing);
-    expect(find.text('SIMULATION: Test Hazard'), findsOneWidget);
-    expect(find.text('SIMULATION'), findsWidgets);
+    expect(find.text('Test Hazard'), findsOneWidget);
+    expect(find.text('SIMULATION'), findsNothing);
+    expect(
+      find.textContaining('Demonstration data is shown here'),
+      findsOneWidget,
+    );
     expect(find.text('Disaster type'), findsNothing);
     expect(find.text('Earthquake context'), findsNothing);
     expect(find.text('Travel profile'), findsNothing);
@@ -126,17 +146,14 @@ void main() {
 
     await analyzeContext(tester);
 
-    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsNothing);
+    expect(find.text('Suggestion 1'), findsNothing);
     expect(find.text('Context summary'), findsOneWidget);
     expect(
       find.text(
         'No mapped hazards found. This does not confirm the area is safe.',
       ),
       findsNothing,
-    );
-    expect(
-      find.text('Building clearance: 120 m; tree clearance: 90 m'),
-      findsWidgets,
     );
     expect(find.text('Disaster type'), findsOneWidget);
     expect(find.text('Earthquake context'), findsOneWidget);
@@ -174,10 +191,10 @@ void main() {
     await enableLocation(tester);
     await analyzeContext(tester);
 
-    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
-    expect(find.text('Suggestion 1'), findsOneWidget);
-    expect(find.text('Suggestion 2'), findsOneWidget);
-    expect(find.text('Suggestion 3'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsNothing);
+    expect(find.text('Suggestion 1'), findsNothing);
+    expect(find.text('Suggestion 2'), findsNothing);
+    expect(find.text('Suggestion 3'), findsNothing);
     expect(
       tester
           .widget<FilledButton>(
@@ -187,8 +204,8 @@ void main() {
       isNull,
     );
 
+    await selectContextArea(tester, 0);
     final candidate = find.text("People's Park").first;
-    await tester.scrollUntilVisible(candidate, 200);
     await tester.ensureVisible(candidate);
     expect(find.text("People's Park"), findsWidgets);
     expect(find.text('Mapped comparison metrics'), findsWidgets);
@@ -213,15 +230,8 @@ void main() {
     );
     expect(find.bySemanticsLabel(RegExp("People's Park")), findsWidgets);
 
-    final secondCandidate = find.text('Bogyoke Sports Field').first;
-    final secondCard = find.ancestor(
-      of: secondCandidate,
-      matching: find.byType(Card),
-    );
-    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
-    await tester.pumpAndSettle();
-    await tester.tap(secondCard);
-    await tester.pumpAndSettle();
+    await selectContextArea(tester, 1);
+    expect(find.text('Bogyoke Sports Field'), findsWidgets);
     expect(find.text('Selected candidate'), findsWidgets);
     expect(
       tester
@@ -288,6 +298,7 @@ void main() {
 
     response = flood;
     await analyzeContext(tester);
+    await selectContextArea(tester, 0);
 
     final candidate = find.text('Yangon City Golf Course').first;
     await tester.scrollUntilVisible(candidate, 200);
@@ -376,11 +387,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Location access is off'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Top lower-exposure suggestions'),
-      200,
-    );
-    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsNothing);
     expect(
       find.text('No lower-exposure area was identified for this scenario.'),
       findsNothing,
@@ -394,11 +401,7 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester);
-    await tester.scrollUntilVisible(
-      find.text('Top lower-exposure suggestions'),
-      200,
-    );
-    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsNothing);
     expect(
       find.text('Building clearance: 120 m; tree clearance: 90 m'),
       findsNothing,
@@ -406,10 +409,7 @@ void main() {
     expect(locationRepository.permissionChecks, 0);
     await enableLocation(tester);
     await analyzeContext(tester);
-    expect(
-      find.text('Building clearance: 120 m; tree clearance: 90 m'),
-      findsWidgets,
-    );
+    expect(find.text('Context summary'), findsOneWidget);
   });
 
   testWidgets('cards identify status without color and selection changes', (
@@ -441,7 +441,7 @@ void main() {
       find.textContaining('Uncertainty: Map and hazard data may be incomplete'),
       findsWidgets,
     );
-    expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
 
     final alternative = find.byKey(const ValueKey('route-card-real-route-3'));
     await tester.scrollUntilVisible(alternative, 200);
@@ -449,7 +449,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(alternative);
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
     expect(
       tester
           .getSemantics(alternative)
@@ -473,7 +473,7 @@ void main() {
     await analyzeContext(tester);
     await requestRoutes(tester);
 
-    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
+    expect(find.text('Top lower-exposure suggestions'), findsNothing);
     expect(
       find.textContaining('Shelters and hazards remain visible; try again.'),
       findsOneWidget,
@@ -495,8 +495,8 @@ void main() {
     await analyzeContext(tester);
     await requestRoutes(tester);
 
-    expect(find.text('Top lower-exposure suggestions'), findsOneWidget);
-    expect(find.text('SIMULATION: Lower-exposure area 1'), findsWidgets);
+    expect(find.text('Top lower-exposure suggestions'), findsNothing);
+    expect(find.text('Lower-exposure area 1'), findsOneWidget);
     expect(
       find.text(
         'The server returned no route options. No alternative was created by SafeMyanmar.',
@@ -537,7 +537,7 @@ void main() {
       find.text('Route saved at: Jul 23, 2026 12:30:00 UTC'),
       findsOneWidget,
     );
-    expect(find.text('SIMULATION: Lower-exposure area 1'), findsWidgets);
+    expect(find.text('Lower-exposure area 1'), findsOneWidget);
     expect(find.text('Suggested'), findsOneWidget);
   });
 
@@ -548,9 +548,9 @@ void main() {
       data: ContextAreaCollectionDto.fromJson(
         contextAreaResponseJson(
           candidateNames: [
-            'SIMULATION: Lower-exposure area 1',
-            'SIMULATION: Lower-exposure area 2',
-            'SIMULATION: Lower-exposure area 3',
+            'Lower-exposure area 1',
+            'Lower-exposure area 2',
+            'Lower-exposure area 3',
           ],
         ),
       ).toDomain(),
@@ -569,9 +569,9 @@ void main() {
     await analyzeContext(tester);
     await requestRoutes(tester);
 
-    expect(find.text('Suggestion 1'), findsOneWidget);
-    expect(find.text('Suggestion 2'), findsOneWidget);
-    expect(find.text('Suggestion 3'), findsOneWidget);
+    expect(find.text('Suggestion 1'), findsNothing);
+    expect(find.text('Suggestion 2'), findsNothing);
+    expect(find.text('Suggestion 3'), findsNothing);
     await tester.scrollUntilVisible(find.text('Suggested'), 200);
     expect(tester.takeException(), isNull);
     final routeButton = find.ancestor(
@@ -592,7 +592,7 @@ void main() {
     final routeSemantics = tester.getSemantics(
       find.byKey(const ValueKey('route-card-simulation-route-1')),
     );
-    expect(routeSemantics.label, contains('Source: SafeMyanmar Demo'));
+    expect(routeSemantics.label, contains('Source: SafeMyanmar'));
     expect(routeSemantics.label, contains('Hazard data:'));
   });
 

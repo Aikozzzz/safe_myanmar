@@ -12,6 +12,7 @@ from app.providers.usgs.normalizer import InvalidProviderPayload
 from app.repositories.earthquakes import EarthquakeRepository, ProviderSyncRepository
 
 PROVIDER = "usgs"
+MAX_ALERT_RESULTS = 10
 SAFE_PROVIDER_ERROR_CODES = {
     "provider_timeout",
     "provider_unavailable",
@@ -42,13 +43,19 @@ class EarthquakeService:
         normalizer: Callable[[dict[str, object], datetime], NormalizationResult],
         refresh_minimum_seconds: int,
         current_max_age_seconds: int,
+        max_results: int = MAX_ALERT_RESULTS,
     ) -> None:
+        if not isinstance(max_results, int) or isinstance(max_results, bool):
+            raise ValueError("max_results must be an integer")
+        if max_results < 1:
+            raise ValueError("max_results must be positive")
         self._client = client
         self._earthquakes = earthquake_repository
         self._provider_sync = provider_sync_repository
         self._normalizer = normalizer
         self._refresh_minimum = timedelta(seconds=refresh_minimum_seconds)
         self._current_max_age = timedelta(seconds=current_max_age_seconds)
+        self._max_results = max_results
 
     def list_alerts(self, session: Session, now: datetime) -> AlertCollection:
         if now.tzinfo is None or now.utcoffset() is None:
@@ -62,7 +69,13 @@ class EarthquakeService:
             if sync is None or now - sync.last_attempt_at >= self._refresh_minimum:
                 self._refresh(session, now)
 
-        items = tuple(self._earthquakes.list_recent(session, PROVIDER))
+        items = tuple(
+            self._earthquakes.list_recent(
+                session,
+                PROVIDER,
+                limit=self._max_results,
+            )
+        )
         sync = self._provider_sync.get(session, PROVIDER)
         if sync is None or sync.last_successful_refresh_at is None:
             raise LiveDataUnavailable

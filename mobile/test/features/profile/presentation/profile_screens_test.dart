@@ -6,19 +6,23 @@ import 'package:mobile/app/router.dart';
 import 'package:mobile/features/profile/application/providers.dart';
 import 'package:mobile/features/profile/domain/local_profile.dart';
 import 'package:mobile/features/profile/domain/local_profile_repository.dart';
+import 'package:mobile/features/sos/application/providers.dart';
 import 'package:mobile/features/settings/application/providers.dart';
 
 import '../../../support/fake_local_profile_repository.dart';
 import '../../../support/fake_language_preference_repository.dart';
+import '../../../support/fake_sos_preferences_store.dart';
 
 void main() {
   late FakeLocalProfileRepository repository;
   late FakeLanguagePreferenceRepository languageRepository;
+  late FakeSosPreferencesStore preferencesStore;
   var nextId = 0;
 
   setUp(() {
     repository = FakeLocalProfileRepository();
     languageRepository = FakeLanguagePreferenceRepository();
+    preferencesStore = FakeSosPreferencesStore();
     nextId = 0;
   });
 
@@ -39,6 +43,7 @@ void main() {
           languagePreferenceRepositoryProvider.overrideWithValue(
             languageRepository,
           ),
+          sosPreferencesStoreProvider.overrideWithValue(preferencesStore),
         ],
         child: MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
@@ -54,6 +59,12 @@ void main() {
   ) async {
     await pumpRoute(tester, '/more');
 
+    expect(
+      find.byKey(const ValueKey('language-preference-card')),
+      findsNothing,
+    );
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('language-preference-card')),
       findsOneWidget,
@@ -83,10 +94,29 @@ void main() {
     expect(find.text('Display name not set'), findsNWidgets(2));
     expect(find.text('Edit profile'), findsOneWidget);
     expect(find.text('Manage contacts'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Private by default'), findsNothing);
     expect(
       find.textContaining('does not read your device contacts'),
       findsNothing,
+    );
+  });
+
+  testWidgets('More keeps Settings available when the profile cannot be read', (
+    tester,
+  ) async {
+    repository.readError = StateError('secure storage unavailable');
+    await pumpRoute(tester, '/more');
+
+    expect(find.text('Profile temporarily unavailable'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Manage language, SOS sharing, nearby alerts, and permissions.',
+      ),
+      findsOneWidget,
     );
   });
 

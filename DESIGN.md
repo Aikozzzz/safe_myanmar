@@ -73,9 +73,12 @@ under their corresponding shell branches.
   visual focus, a floating location action recenters on the user's available
   location, and tapping that action or the user marker opens a detail sheet
   with precision, coordinates, and capture time.
-- A compact map legend appears only for visible layers and pairs every marker
-  color with an icon and label. Hazard and context summaries state the source,
-  data time, cache state, rationale, and uncertainty in text outside the map.
+- An interactive map legend lists available layers, pairs every marker color
+  with an icon and label, and provides a visibility control for each layer.
+  Tapping a legend entry opens an in-map summary; tapping a shelter, hazard,
+  context-area candidate, route, or nearby SOS marker opens its details without
+  leaving the map. Hazard and context summaries state the source, data time,
+  cache state, rationale, and uncertainty in text outside the map as well.
 - Shelter, disaster type, and walking/driving selectors precede a separate
   route-request action. No route request occurs from changing a selector.
 - Up to three ranked route cards act as the route option selector. The selected
@@ -109,14 +112,22 @@ under their corresponding shell branches.
   SOS screen and does not replace SMS confirmation.
 - Nearby sharing broadcasts a temporary event ID, UTC timestamp, fixed-point
   latitude/longitude when available, location status, and battery value for ten
-  minutes. Profile data, contacts, and message text are excluded. Received
-  coordinates are peer-supplied and unverified; the Map tab plots them and the
-  SOS details can open a Google Maps query.
+  minutes. The user may optionally provide a short alias and message for nearby
+  receivers. These are limited to 16 and 48 UTF-8 bytes and are sent in
+  versioned metadata fragments; the alias is not the full profile name. Profile
+  data and contacts remain excluded. Received coordinates and metadata are
+  peer-supplied. The UI labels an event `Verified` only when alias and
+  coordinates are present, and `Unverified` otherwise; neither label confirms
+  peer identity or rescue delivery. The Map tab plots located events and the
+  SOS details can open a Google Maps query or explicitly request an in-app route
+  to a located, unexpired SOS event. The route is drawn on the Mapbox map only
+  after the user taps the route action and retains peer-coordinate uncertainty.
 - An opt-in foreground receiver shows peer-received events as unverified local
   alerts. A separate relay opt-in may rebroadcast each valid event once over
   Bluetooth only, limited to one hop. It does not merge them with official
   earthquake alerts or imply rescue acknowledgement. Optional sound is
-  user-controlled.
+  user-controlled. Receivers omit unavailable battery and RSSI values rather
+  than displaying placeholders.
 
 ### Guide And Assistant
 
@@ -146,7 +157,11 @@ under their corresponding shell branches.
 ### More, Profile, And Contacts
 
 - More summarizes the local profile and selected contact counts, then links to
-  profile and emergency-contact management.
+  profile, emergency-contact management, and Settings.
+- Settings contains the English/Myanmar choice and six persisted SOS
+  preferences for location sharing, nearby receiving, one-hop relay, alert
+  sound, and background receiving. Permission-dependent options request only
+  the relevant platform permission when enabled.
 - Profile edits one local display name. Contact forms validate name, phone
   number, relationship label, and explicit SOS selection.
 - Contact cards pair SOS selection text with a switch and provide separate edit
@@ -157,8 +172,10 @@ under their corresponding shell branches.
 
 ## Simulation And Stale Rules
 
-- Every fictional shelter, hazard, and route is labeled **SIMULATION**, sourced
-  to `SafeMyanmar Demo`, timestamped, and accompanied by an uncertainty notice.
+- Fictional or mixed shelter, hazard, and route data remains explicitly gated,
+  sourced to `SafeMyanmar Demo`, timestamped, and accompanied by an uncertainty
+  notice. The client keeps technical simulation markers out of normal cards and
+  uses a concise demonstration-data notice instead.
 - Simulation is an explicit non-production backend opt-in. The UI must never
   style simulation data as an official alert or silently mix it into the USGS
   earthquake feed.
@@ -175,7 +192,8 @@ under their corresponding shell branches.
   information."
 - Never use "safe route," "all clear," guaranteed arrival, guaranteed rescue,
   prediction, or guaranteed recovery language. "Suggested safer route" always
-  retains source, timestamps, simulation label, and uncertainty.
+  retains source, timestamps, and uncertainty; gated fictional or mixed data
+  also retains its demonstration notice.
 
 ## Responsive Reference
 

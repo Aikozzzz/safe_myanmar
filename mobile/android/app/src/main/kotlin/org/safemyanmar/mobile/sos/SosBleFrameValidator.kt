@@ -8,36 +8,44 @@ internal data class ValidatedSosBleFrame(
     val ttlMinutes: Int,
     val senderToken: String?,
     val eventSequence: Int?,
+    val metadata: Boolean,
 )
 
 /** Mirrors the Dart codec so untrusted frames are rejected before persistence. */
 internal object SosBleFrameValidator {
     private const val MARKER = 0x53
     private const val EXACT_VERSION = 3
+    private const val METADATA_VERSION = 4
+    private const val METADATA_FRAME_TYPE = 1
     private const val APPROXIMATE_VERSION = 2
     private const val LEGACY_VERSION = 1
     private const val MAX_HOPS = 1
+    private const val METADATA_FRAME_LENGTH = 26
+    private const val METADATA_CHUNK_SIZE = 6
+    private const val METADATA_MAX_BYTES = 66
+    private const val METADATA_MAX_FRAMES = 11
     private const val EPOCH_MINUTES = 1_704_067_200L / 60L
 
     fun validate(payload: ByteArray, nowMillis: Long = System.currentTimeMillis()): ValidatedSosBleFrame? {
         if (payload.size < 2 || payload[0].toInt() and 0xff != MARKER) return null
         val version = payload[1].toInt() and 0xff
         val exact = version == EXACT_VERSION
+        val metadata = version == METADATA_VERSION &&
+            payload.size >= 3 && payload[2].toInt() and 0xff == METADATA_FRAME_TYPE
         val approximate = version == APPROXIMATE_VERSION
         val legacy = version == LEGACY_VERSION
-        if (!exact && !approximate && !legacy) return null
+        if (!exact && !metadata && !approximate && !legacy) return null
 
-        val expectedLength = if (exact) 26 else 22
+        val expectedLength = if (exact || metadata) METADATA_FRAME_LENGTH else 22
         if (payload.size != expectedLength) return null
-        val checksumOffset = if (exact) 24 else 20
+        val checksumOffset = if (exact || metadata) 24 else 20
         val expectedChecksum = readUnsignedShort(payload, checksumOffset)
         if (crc16(payload, checksumOffset) != expectedChecksum) return null
 
-        val locationStatus = payload[2].toInt() and 0xff
         val flags = payload[3].toInt() and 0xff
         val ttlMinutes = flags and 0x0f
         val hopCount = if (legacy) 0 else flags ushr 4
-        if (locationStatus !in 0..2 || ttlMinutes !in 1..15 || hopCount > MAX_HOPS) return null
+        if (ttlMinutes !in 1..15 || hopCount > MAX_HOPS) return null
 
         val relativeMinutes = ((payload[12].toInt() and 0xff) shl 16) or
             ((payload[13].toInt() and 0xff) shl 8) or
@@ -45,6 +53,37 @@ internal object SosBleFrameValidator {
         val createdAtMillis = (EPOCH_MINUTES + relativeMinutes) * 60_000L
         val ageMillis = nowMillis - createdAtMillis
         if (ageMillis < 0L || ageMillis > ttlMinutes * 60_000L) return null
+
+        val eventId = eventId(payload) ?: return null
+        val senderMetadata = parseSenderMetadata(payload)
+        if (metadata) {
+            val index = payload[15].toInt() and 0xff
+            val total = payload[16].toInt() and 0xff
+            val totalDataLength = payload[17].toInt() and 0xff
+            if (index >= total ||
+                total !in 1..METADATA_MAX_FRAMES ||
+                totalDataLength !in 2..METADATA_MAX_BYTES ||
+                index * METADATA_CHUNK_SIZE >= totalDataLength
+            ) return null
+            val expectedDataLength = minOf(
+                METADATA_CHUNK_SIZE,
+                totalDataLength - index * METADATA_CHUNK_SIZE,
+            )
+            for (offset in expectedDataLength until METADATA_CHUNK_SIZE) {
+                if (payload[18 + offset].toInt() != 0) return null
+            }
+            return ValidatedSosBleFrame(
+                eventId = eventId,
+                createdAtMillis = createdAtMillis,
+                ttlMinutes = ttlMinutes,
+                senderToken = senderMetadata?.first,
+                eventSequence = senderMetadata?.second,
+                metadata = true,
+            )
+        }
+
+        val locationStatus = payload[2].toInt() and 0xff
+        if (locationStatus !in 0..2) return null
 
         val batteryOffset = if (exact) 23 else 19
         val battery = payload[batteryOffset].toInt() and 0xff
@@ -68,14 +107,13 @@ internal object SosBleFrameValidator {
             }
         }
 
-        val eventId = eventId(payload) ?: return null
-        val senderMetadata = parseSenderMetadata(payload)
         return ValidatedSosBleFrame(
             eventId = eventId,
             createdAtMillis = createdAtMillis,
             ttlMinutes = ttlMinutes,
             senderToken = senderMetadata?.first,
             eventSequence = senderMetadata?.second,
+            metadata = false,
         )
     }
 

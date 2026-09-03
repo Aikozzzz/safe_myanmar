@@ -5,10 +5,13 @@ from urllib.parse import urlparse
 from app.providers.usgs.models import NormalizationResult
 from app.schemas.earthquakes import NormalizedEarthquake
 
-MIN_LATITUDE = 8.284
-MAX_LATITUDE = 30.043
-MIN_LONGITUDE = 90.689
-MAX_LONGITUDE = 102.676
+# OCHA COD Yangon Region (MMR013) coverage envelope. This is a coarse
+# administrative retrieval boundary, not a political border or affected-area
+# calculation.
+MIN_LATITUDE = 14.04582802200008
+MAX_LATITUDE = 17.79695808500003
+MIN_LONGITUDE = 93.35195104000019
+MAX_LONGITUDE = 96.82662590900009
 PROVIDER = "usgs"
 KIND = "earthquake_information"
 

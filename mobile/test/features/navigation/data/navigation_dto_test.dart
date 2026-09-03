@@ -192,13 +192,19 @@ void main() {
       routeResponseJson(optionCount: 3),
     );
 
-    for (final payload in [shelters.toJson(), hazards.toJson(), routes.toJson()]) {
+    for (final payload in [
+      shelters.toJson(),
+      hazards.toJson(),
+      routes.toJson(),
+    ]) {
       expect(payload.containsKey('language'), isFalse);
       expect(payload.containsKey('locale'), isFalse);
     }
     expect(shelters.toDomain().items.single.name, 'SIMULATION: Test Shelter');
     expect(
-      ShelterCollectionDto.fromJson(shelters.toJson()).toDomain().items.single.name,
+      ShelterCollectionDto.fromJson(
+        shelters.toJson(),
+      ).toDomain().items.single.name,
       shelters.toDomain().items.single.name,
     );
   });

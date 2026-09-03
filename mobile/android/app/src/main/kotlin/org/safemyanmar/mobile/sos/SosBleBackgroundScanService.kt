@@ -118,7 +118,7 @@ class SosBleBackgroundScanService : Service() {
             sendBroadcast(
                 Intent(ACTION_EVENT).apply {
                     setPackage(packageName)
-                    putExtra(EXTRA_PAYLOAD, event.payload)
+                    putExtra(EXTRA_PAYLOADS, ArrayList(event.payloads))
                     putExtra(EXTRA_RSSI, event.rssi)
                     putExtra(EXTRA_BACKGROUND, true)
                 },
@@ -231,6 +231,7 @@ class SosBleBackgroundScanService : Service() {
     companion object {
         const val ACTION_EVENT = "org.safemyanmar.mobile.sos.BACKGROUND_EVENT"
         const val EXTRA_PAYLOAD = "payload"
+        const val EXTRA_PAYLOADS = "payloads"
         const val EXTRA_RSSI = "rssi"
         const val EXTRA_BACKGROUND = "background"
         private const val ACTION_STOP = "org.safemyanmar.mobile.sos.STOP_BACKGROUND_SCAN"

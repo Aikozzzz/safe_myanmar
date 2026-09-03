@@ -295,3 +295,30 @@ final class RouteSuggestionRequest {
       scenario == other.scenario &&
       searchRadiusM == other.searchRadiusM;
 }
+
+final class SosRouteRequest {
+  const SosRouteRequest({
+    required this.eventId,
+    required this.origin,
+    required this.destination,
+    required this.profile,
+  });
+
+  final String eventId;
+  final NavigationCoordinate origin;
+  final NavigationCoordinate destination;
+  final RouteProfile profile;
+
+  int get originLatitudeE5 => (origin.latitude * 100000).round();
+  int get originLongitudeE5 => (origin.longitude * 100000).round();
+  int get destinationLatitudeE5 => (destination.latitude * 100000).round();
+  int get destinationLongitudeE5 => (destination.longitude * 100000).round();
+
+  bool matches(SosRouteRequest other) =>
+      eventId == other.eventId &&
+      originLatitudeE5 == other.originLatitudeE5 &&
+      originLongitudeE5 == other.originLongitudeE5 &&
+      destinationLatitudeE5 == other.destinationLatitudeE5 &&
+      destinationLongitudeE5 == other.destinationLongitudeE5 &&
+      profile == other.profile;
+}

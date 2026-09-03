@@ -6,7 +6,7 @@ import '../domain/sos_draft.dart';
 import '../domain/sos_draft_repository.dart';
 
 abstract final class SosDraftCodec {
-  static const version = 3;
+  static const version = 4;
 
   static String encode(List<SosDraft> drafts) => jsonEncode({
     'version': version,
@@ -19,9 +19,7 @@ abstract final class SosDraftCodec {
       if (decoded is! Map<String, dynamic>) throw const FormatException();
       final storedVersion = decoded['version'];
       if (storedVersion is! int) throw const FormatException();
-      if (storedVersion != 1 &&
-          storedVersion != 2 &&
-          storedVersion != version) {
+      if (storedVersion < 1 || storedVersion > version) {
         throw const SosDraftReadException(
           SosDraftReadFailureKind.unsupportedVersion,
         );
@@ -68,6 +66,8 @@ abstract final class SosDraftCodec {
     'profileName': draft.profileName,
     'body': draft.body,
     'status': draft.status.name,
+    'bleAlias': draft.bleAlias,
+    'bleMessage': draft.bleMessage,
     'smsAttemptId': draft.smsAttemptId,
     'smsConfirmedParts': draft.smsConfirmedParts,
     'smsTotalParts': draft.smsTotalParts,
@@ -87,6 +87,8 @@ abstract final class SosDraftCodec {
     final status = _status(value['status']);
     final storedProfileName = value['profileName'];
     final storedBody = value['body'];
+    final bleAlias = value['bleAlias'];
+    final bleMessage = value['bleMessage'];
     final smsAttemptId = value['smsAttemptId'];
     final smsConfirmedParts = value['smsConfirmedParts'] ?? 0;
     final smsTotalParts = value['smsTotalParts'] ?? 0;
@@ -103,12 +105,17 @@ abstract final class SosDraftCodec {
             (message.isEmpty || message.length > maxSosMessageLength))) {
       throw const FormatException();
     }
-    if ((storedVersion == version &&
+    if ((storedVersion >= 3 &&
             (storedProfileName is! String ||
                 storedProfileName.length > maxSosProfileNameLength ||
                 storedBody is! String ||
                 storedBody.trim().isEmpty ||
                 storedBody.length > maxSosBodyLength)) ||
+        (storedVersion >= version &&
+            (bleAlias is! String? ||
+                bleMessage is! String? ||
+                !isValidSosBleAlias(bleAlias) ||
+                !isValidSosBleMessage(bleMessage))) ||
         smsAttemptId is! String? ||
         smsConfirmedParts is! int ||
         smsTotalParts is! int ||
@@ -165,10 +172,8 @@ abstract final class SosDraftCodec {
     }
 
     final location = _location(value['location']);
-    final profileName = storedVersion == version
-        ? storedProfileName! as String
-        : '';
-    final body = storedVersion == version
+    final profileName = storedVersion >= 3 ? storedProfileName! as String : '';
+    final body = storedVersion >= 3
         ? storedBody! as String
         : _legacyBody(location: location, message: message);
     return SosDraft(
@@ -181,9 +186,13 @@ abstract final class SosDraftCodec {
       profileName: profileName,
       body: body,
       status: status,
-      smsAttemptId: storedVersion == version ? smsAttemptId : null,
-      smsConfirmedParts: storedVersion == version ? smsConfirmedParts : 0,
-      smsTotalParts: storedVersion == version ? smsTotalParts : 0,
+      bleAlias: storedVersion >= version ? normalizeSosBleText(bleAlias) : null,
+      bleMessage: storedVersion >= version
+          ? normalizeSosBleText(bleMessage)
+          : null,
+      smsAttemptId: storedVersion >= 3 ? smsAttemptId : null,
+      smsConfirmedParts: storedVersion >= 3 ? smsConfirmedParts : 0,
+      smsTotalParts: storedVersion >= 3 ? smsTotalParts : 0,
     );
   }
 

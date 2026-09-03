@@ -68,12 +68,24 @@ class EarthquakeRepository:
         session.execute(statement)
         session.flush()
 
-    def list_recent(self, session: Session, provider: str) -> list[Earthquake]:
+    def list_recent(
+        self,
+        session: Session,
+        provider: str,
+        *,
+        limit: int | None = None,
+    ) -> list[Earthquake]:
+        if limit is not None and (
+            not isinstance(limit, int) or isinstance(limit, bool) or limit < 1
+        ):
+            raise ValueError("limit must be a positive integer")
         statement = (
             select(Earthquake)
             .where(Earthquake.provider == provider)
             .order_by(Earthquake.event_at.desc(), Earthquake.id)
         )
+        if limit is not None:
+            statement = statement.limit(limit)
         return list(session.scalars(statement))
 
     def get(self, session: Session, provider: str, event_id: str) -> Earthquake | None:

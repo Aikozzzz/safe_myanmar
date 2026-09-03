@@ -29,6 +29,12 @@ final class NavigationState {
     this.routeCachedAt,
     this.selectedRouteId,
     this.routeRequest,
+    this.loadingSosRoutes = false,
+    this.sosRoutes,
+    this.sosRouteFailed = false,
+    this.sosRouteEventId,
+    this.selectedSosRouteId,
+    this.sosRouteRequest,
   });
 
   final bool loadingMapData;
@@ -56,6 +62,12 @@ final class NavigationState {
   final DateTime? routeCachedAt;
   final String? selectedRouteId;
   final RouteSuggestionRequest? routeRequest;
+  final bool loadingSosRoutes;
+  final RouteSuggestions? sosRoutes;
+  final bool sosRouteFailed;
+  final String? sosRouteEventId;
+  final String? selectedSosRouteId;
+  final SosRouteRequest? sosRouteRequest;
 
   List<Hazard> get relevantHazards => List.unmodifiable(
     hazards?.items.where((item) => item.disasterType == disasterType) ??
@@ -88,6 +100,12 @@ final class NavigationState {
     Object? routeCachedAt = _notProvided,
     Object? selectedRouteId = _notProvided,
     Object? routeRequest = _notProvided,
+    bool? loadingSosRoutes,
+    Object? sosRoutes = _notProvided,
+    bool? sosRouteFailed,
+    Object? sosRouteEventId = _notProvided,
+    Object? selectedSosRouteId = _notProvided,
+    Object? sosRouteRequest = _notProvided,
   }) => NavigationState(
     loadingMapData: loadingMapData ?? this.loadingMapData,
     shelters: identical(shelters, _notProvided)
@@ -140,5 +158,19 @@ final class NavigationState {
     routeRequest: identical(routeRequest, _notProvided)
         ? this.routeRequest
         : routeRequest as RouteSuggestionRequest?,
+    loadingSosRoutes: loadingSosRoutes ?? this.loadingSosRoutes,
+    sosRoutes: identical(sosRoutes, _notProvided)
+        ? this.sosRoutes
+        : sosRoutes as RouteSuggestions?,
+    sosRouteFailed: sosRouteFailed ?? this.sosRouteFailed,
+    sosRouteEventId: identical(sosRouteEventId, _notProvided)
+        ? this.sosRouteEventId
+        : sosRouteEventId as String?,
+    selectedSosRouteId: identical(selectedSosRouteId, _notProvided)
+        ? this.selectedSosRouteId
+        : selectedSosRouteId as String?,
+    sosRouteRequest: identical(sosRouteRequest, _notProvided)
+        ? this.sosRouteRequest
+        : sosRouteRequest as SosRouteRequest?,
   );
 }

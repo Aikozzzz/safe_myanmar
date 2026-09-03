@@ -199,7 +199,8 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
-  String get simulationLabel => 'စမ်းသပ်မှု';
+  String get demoDataNotice =>
+      'ဤနေရာတွင် သရုပ်ပြအချက်အလက်ကို ပြသထားပြီး တိုက်ရိုက်အရေးပေါ်သတင်း မဟုတ်ပါ။ တရားဝင်ဒေသတွင်း ညွှန်ကြားချက်များကို လိုက်နာပါ။';
 
   @override
   String navigationSource(String source) {
@@ -259,7 +260,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get mapContentSemantics =>
-      'လက်ရှိ သို့မဟုတ် နောက်ဆုံးသိရှိထားသောတည်နေရာ၊ မြေပုံပေါ်ရှိအမိုးအကာများ၊ သက်ဆိုင်ရာအန္တရာယ်များနှင့် လမ်းကြောင်းရွေးချယ်စရာများကို ပြသသည့် အပြန်အလှန်မြေပုံ။ တည်နေရာခလုတ် သို့မဟုတ် တည်နေရာအမှတ်ကို နှိပ်၍ အသေးစိတ်ကြည့်ပါ။ ရွေးထားသောလမ်းကြောင်းသည် ပိုကျယ်သောမျဉ်းဖြစ်သည်။';
+      'လက်ရှိ သို့မဟုတ် နောက်ဆုံးသိရှိထားသောတည်နေရာ၊ မြေပုံပေါ်ရှိအမိုးအကာများ၊ သက်ဆိုင်ရာအန္တရာယ်များနှင့် လမ်းကြောင်းရွေးချယ်စရာများကို ပြသသည့် အပြန်အလှန်မြေပုံ။ မြေပုံပေါ်ရှိအရာ သို့မဟုတ် အညွှန်းကို နှိပ်၍ အသေးစိတ်ကြည့်ပါ။ ရွေးထားသောလမ်းကြောင်းသည် ပိုကျယ်သောမျဉ်းဖြစ်သည်။';
 
   @override
   String get mapLegendTitle => 'မြေပုံအညွှန်း';
@@ -280,7 +281,31 @@ class AppLocalizationsMy extends AppLocalizations {
   String get mapLegendRoute => 'အကြံပြုလမ်းကြောင်း';
 
   @override
-  String get mapLegendNearbySos => 'အတည်မပြုရသေးသော အနီးအနား SOS';
+  String get mapLegendNearbySos => 'အနီးအနား SOS';
+
+  @override
+  String get mapLegendShow => 'မြေပုံအညွှန်းကို ပြရန်';
+
+  @override
+  String get mapLegendHide => 'မြေပုံအညွှန်းကို ဖျောက်ရန်';
+
+  @override
+  String get mapLegendInteractionHint =>
+      'အလွှာအချက်အလက်ကြည့်ရန် အမည်ကိုနှိပ်ပါ။ မြေပုံပေါ်ရှိအရာများကို ပြရန် သို့မဟုတ် ဖျောက်ရန် မြင်နိုင်မှုခလုတ်ကို အသုံးပြုပါ။';
+
+  @override
+  String get mapLayerVisible => 'အလွှာကို ပြထားသည်';
+
+  @override
+  String get mapLayerHidden => 'အလွှာကို ဖျောက်ထားသည်';
+
+  @override
+  String mapLayerItemCount(int count) {
+    return 'မြေပုံပေါ်ရှိအရာ $count ခု';
+  }
+
+  @override
+  String get mapSelectRoute => 'ဤလမ်းကြောင်းကို ရွေးရန်';
 
   @override
   String get chooseShelter => 'အမိုးအကာ သို့မဟုတ် အကြံပြုနေရာ';
@@ -292,19 +317,11 @@ class AppLocalizationsMy extends AppLocalizations {
   String get shelterListEmpty => 'အော့ဖ်လိုင်းအမိုးအကာအသေးစိတ် မရရှိပါ။';
 
   @override
-  String get contextAreasHeading =>
-      'ထိတွေ့မှုနည်းနိုင်သော ထိပ်တန်းအကြံပြုချက်များ';
-
-  @override
-  String get contextAreasDescription =>
-      'ရရှိနိုင်ပါက မြေပုံပေါ်ရှိ ပန်းခြံ၊ ကွင်းနှင့် အခြားနေရာများ၏ အမည်များကို အသုံးပြုသည်။ ရရှိနိုင်သော မြေပုံတိုင်းတာချက်များနှင့် ကန့်သတ်ချက်များကို နှိုင်းယှဉ်ပါ။ ၎င်းတို့သည် တရားဝင်အမိုးအကာ သို့မဟုတ် အာမခံချက်များ မဟုတ်ပါ။';
-
-  @override
   String get contextSummaryTitle => 'ပတ်ဝန်းကျင်အနှစ်ချုပ်';
 
   @override
   String get contextSummaryDescription =>
-      'ရွေးထားသော ကိုယ်စားပြုဧရိယာ၏ မြေပုံတိုင်းတာချက်၊ အကြောင်းပြချက်၊ ရင်းမြစ်၊ အချိန်နှင့် ကန့်သတ်ချက်များကို စစ်ဆေးပါ။ တရားဝင်အမိုးအကာ သို့မဟုတ် အာမခံချက် မဟုတ်ပါ။';
+      'မြေပုံပေါ်တွင် ရွေးထားသော ဧရိယာ၏ မြေပုံတိုင်းတာချက်၊ အကြောင်းပြချက်၊ ရင်းမြစ်၊ အချိန်နှင့် ကန့်သတ်ချက်များကို စစ်ဆေးပါ။ တရားဝင်အမိုးအကာ သို့မဟုတ် အာမခံချက် မဟုတ်ပါ။';
 
   @override
   String get contextSummaryNoMappedHazards =>
@@ -324,20 +341,8 @@ class AppLocalizationsMy extends AppLocalizations {
   String get contextSelectedCandidate => 'ရွေးထားသော ကိုယ်စားပြုဧရိယာ';
 
   @override
-  String get contextSelectCandidate => 'ကိုယ်စားပြုဧရိယာ ရွေးရန်';
-
-  @override
-  String contextSuggestionRank(int rank) {
-    return 'အကြံပြုချက် $rank';
-  }
-
-  @override
-  String get contextCandidateSelectionHint =>
-      'အသေးစိတ်စစ်ဆေးရန် ဤကိုယ်စားပြုဧရိယာကို ရွေးပါ။ လမ်းကြောင်းတောင်းဆိုမှုသည် သီးခြားလုပ်ဆောင်ချက်ဖြစ်သည်။';
-
-  @override
   String get contextNoCandidateSelected =>
-      'ကိုယ်စားပြုဧရိယာ မရွေးရသေးပါ။ အသေးစိတ်စစ်ဆေးရန် အပေါ်မှတစ်ခုကို ရွေးပါ။';
+      'ကိုယ်စားပြုဧရိယာ မရွေးရသေးပါ။ အသေးစိတ်စစ်ဆေးရန် မြေပုံပေါ်မှ တစ်ခုကို ရွေးပါ။';
 
   @override
   String get chooseContextScenario => 'ငလျင်ပတ်ဝန်းကျင်';
@@ -403,15 +408,39 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sosBluetoothShareDescription =>
-      'ယာယီ ID၊ အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေနှင့် ဘက်ထရီအဆင့်ကို အနီးအနား SafeMyanmar အသုံးပြုသူများထံ ၁၀ မိနစ်ကြာ ထုတ်လွှင့်ပါ။';
+      'ယာယီ ID၊ အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသားကို အနီးအနား SafeMyanmar အသုံးပြုသူများထံ ၁၀ မိနစ်ကြာ ထုတ်လွှင့်ပါ။';
 
   @override
   String get sosBluetoothFields =>
-      'မျှဝေမည့်အရာ - ယာယီဖြစ်ရပ် ID၊ UTC အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေနှင့် ဘက်ထရီအဆင့်။';
+      'မျှဝေမည့်အရာ - ယာယီဖြစ်ရပ် ID၊ UTC အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသား။';
 
   @override
   String get sosBluetoothTenMinuteLimit =>
-      'ထုတ်လွှင့်မှုသည် ၁၀ မိနစ်အကြာတွင် အလိုအလျောက်ရပ်မည်။ အမည်၊ အဆက်အသွယ်နှင့် စာသားကို မထုတ်လွှင့်ပါ။';
+      'ထုတ်လွှင့်မှုသည် ၁၀ မိနစ်အကြာတွင် အလိုအလျောက်ရပ်မည်။ ရွေးချယ်ထားသော အမည်ပြောင်နှင့် စာသားကို အနီးအနားလက်ခံစက်များက မြင်နိုင်သဖြင့် လျှို့ဝှက်အချက်အလက်များ မထည့်ပါနှင့်။';
+
+  @override
+  String get sosBluetoothOptionalFieldsHeading =>
+      'အနီးအနား SOS အတွက် ရွေးချယ်နိုင်သော အသေးစိတ်';
+
+  @override
+  String get sosBluetoothOptionalFieldsDescription =>
+      'ဤတန်ဖိုးများကို ကုဒ်ဝှက်ခြင်းမရှိဘဲ အနီးအနား SafeMyanmar စက်များထံ ထုတ်လွှင့်မည်။ အမည်ပြောင်တိုနှင့် အရေးပေါ်အချက်အလက် မဟုတ်သော စာသားကိုသာ အသုံးပြုပါ။';
+
+  @override
+  String get sosBluetoothAliasLabel => 'ရွေးချယ်နိုင်သော BLE အမည်ပြောင်';
+
+  @override
+  String get sosBluetoothAliasHint => 'ဥပမာ - အောင်';
+
+  @override
+  String get sosBluetoothMessageLabel => 'ရွေးချယ်နိုင်သော BLE စာသား';
+
+  @override
+  String get sosBluetoothMessageHint => 'ဥပမာ - ဒုတိယထပ်တွင် ပိတ်မိနေသည်';
+
+  @override
+  String get sosBluetoothTextTooLong =>
+      'အနီးအနား အမည်ပြောင် သို့မဟုတ် စာသား ရှည်လွန်းသည်။ တိုအောင်ပြင်ပြီး ထပ်ကြိုးစားပါ။';
 
   @override
   String get sosBluetoothUnavailable =>
@@ -462,7 +491,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sosBluetoothSoundDescription =>
-      'အတည်မပြုရသေးသော အနီးအနား SOS တွေ့ရှိလျှင် အသံမြည်ရန် ခွင့်ပြုပါ။';
+      'အနီးအနား SOS တွေ့ရှိလျှင် အသံမြည်ရန် ခွင့်ပြုပါ။';
 
   @override
   String get sosBluetoothBroadcasting =>
@@ -476,14 +505,42 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sosBluetoothStop => 'ရပ်ရန်';
 
   @override
-  String get sosBluetoothNearbyAlert => 'အတည်မပြုရသေးသော အနီးအနား SOS';
+  String get sosBluetoothNearbyAlert => 'အနီးအနား SOS';
 
   @override
   String get sosBluetoothDismiss => 'အနီးအနား SOS ပယ်ဖျက်ရန်';
 
   @override
+  String get sosRouteLabel => 'ဤ SOS သို့ လမ်းကြောင်းပြရန်';
+
+  @override
+  String get sosRouteLoadingLabel => 'လမ်းကြောင်း တောင်းခံနေသည်...';
+
+  @override
+  String get sosRouteShownLabel => 'လမ်းကြောင်းကို မြေပုံပေါ်တွင် ပြထားသည်။';
+
+  @override
+  String get sosRouteUnavailableLabel =>
+      'လမ်းကြောင်းကို လောလောဆယ် မရနိုင်ပါ။ SOS တည်နေရာကို ဆက်လက်ကြည့်နိုင်သည်။';
+
+  @override
+  String get sosRouteNeedsLocationLabel =>
+      'လမ်းကြောင်းပြရန် သင့်တည်နေရာ လိုအပ်သည်။';
+
+  @override
+  String get sosRouteExpiredLabel =>
+      'ဤ SOS frame သက်တမ်းကုန်သွားသဖြင့် လမ်းကြောင်း မတောင်းနိုင်ပါ။';
+
+  @override
+  String get sosRouteResultsHeading => 'ရွေးထားသော SOS သို့ လမ်းကြောင်း';
+
+  @override
+  String get sosBluetoothVerified =>
+      'အတည်ပြုပြီး - အမည်ပြောင်နှင့် တည်နေရာ ရှိသည်။ ပေးပို့သူ၏အထောက်အထားနှင့် ကယ်ဆယ်ရေးထံ ရောက်ရှိမှုကို အတည်မပြုနိုင်ပါ။';
+
+  @override
   String get sosBluetoothUnverified =>
-      'အခြားစက်မှ လက်ခံရရှိခြင်းဖြစ်ပြီး ကယ်ဆယ်ရေးဝန်ဆောင်မှုထံ ရောက်ရှိကြောင်း အတည်မပြုပါ။';
+      'အတည်မပြုရသေး - အမည်ပြောင် သို့မဟုတ် တည်နေရာ မရှိပါ။ ပေးပို့သူ၏အထောက်အထားနှင့် ကယ်ဆယ်ရေးထံ ရောက်ရှိမှုကို အတည်မပြုနိုင်ပါ။';
 
   @override
   String sosBluetoothGridLocation(String latitude, String longitude) {
@@ -502,7 +559,14 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sosBluetoothLocationUnavailable => 'တည်နေရာ မရရှိပါ။';
 
   @override
-  String get sosBluetoothUnknownValue => 'မသိရသေးပါ';
+  String sosBluetoothAliasValue(String alias) {
+    return 'အမည်ပြောင် - $alias';
+  }
+
+  @override
+  String sosBluetoothMessageValue(String message) {
+    return 'စာသား - $message';
+  }
 
   @override
   String sosBluetoothEventId(String id) {
@@ -1265,15 +1329,15 @@ class AppLocalizationsMy extends AppLocalizations {
   String get assistantGemmaAnswerTitle => 'Gemma 3 အဖြေ';
 
   @override
-  String get assistantLocalRewordingTitle => 'ထပ်ဆောင်း ဒေသတွင်းစာသား';
+  String get assistantLocalRewordingTitle => 'ထပ်ဆောင်းလမ်းညွှန်ချက်';
 
   @override
   String get assistantLocalRewordingWarning =>
-      'model ဖန်တီးသည့် စာသားသည် မှားနိုင်သည်။ အထက်တွင်ပြထားသော ရင်းမြစ်အခြေပြု လမ်းညွှန်အတိအကျနှင့် ပြန်စစ်ပါ။';
+      'ဤစာသားကို အထက်ရှိ အတည်ပြုထားသော လမ်းညွှန်ချက်နှင့် နှိုင်းယှဉ်ပါ။';
 
   @override
   String assistantLocalRewordingSemantics(String text) {
-    return 'ထပ်ဆောင်း model ဖန်တီးသည့် ဒေသတွင်းစာသား။ $text သတိ - ရင်းမြစ်အခြေပြု လမ်းညွှန်အတိအကျနှင့် ပြန်စစ်ပါ။';
+    return 'ထပ်ဆောင်းလမ်းညွှန်ချက်။ $text ဤစာသားကို အထက်ရှိ အတည်ပြုထားသော လမ်းညွှန်ချက်နှင့် နှိုင်းယှဉ်ပါ။';
   }
 
   @override
@@ -1341,6 +1405,24 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get moreTitle => 'နောက်ထပ်';
+
+  @override
+  String get settingsTitle => 'ဆက်တင်များ';
+
+  @override
+  String get settingsDescription =>
+      'ဘာသာစကား၊ SOS မျှဝေမှု၊ အနီးအနားသတိပေးချက်များနှင့် ခွင့်ပြုချက်များကို စီမံရန်။';
+
+  @override
+  String get settingsSosTitle => 'SOS နှင့် အနီးအနားသတိပေးချက်များ';
+
+  @override
+  String get settingsSosDescription =>
+      'ဤရွေးချယ်မှုများကို ဤစက်တွင် သိမ်းထားပြီး SOS ပြင်ဆင်ခြင်း သို့မဟုတ် လက်ခံခြင်းတွင် ပြန်လည်အသုံးပြုမည်။';
+
+  @override
+  String get sosSettingsSaveFailed =>
+      'ဤဆက်တင်ကို မသိမ်းနိုင်ပါ။ ထပ်ကြိုးစားပါ။';
 
   @override
   String get languageSettingsTitle => 'ဘာသာစကား';

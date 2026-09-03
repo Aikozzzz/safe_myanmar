@@ -135,6 +135,14 @@ def valid_request():
     }
 
 
+def valid_sos_request():
+    return {
+        "origin": {"latitude": 21.95, "longitude": 96.08},
+        "destination": {"latitude": 21.958, "longitude": 96.091},
+        "profile": "walking",
+    }
+
+
 def configure_real_route_service(application, provider):
     current_service = application.state.navigation_service
     retrieved_at = current_service._real_data.retrieved_at
@@ -310,6 +318,43 @@ def test_real_route_endpoint_resolves_explicit_selected_context_area(
     assert analyzer.calls[0][0].origin == Coordinate(
         latitude=16.856152, longitude=96.130522
     )
+
+
+def test_real_sos_route_endpoint_uses_the_supplied_coordinate(real_navigation_app):
+    route = DirectionsRoute(
+        LineStringGeometry(
+            type="LineString",
+            coordinates=[(96.130522, 16.856152), (96.134, 16.858)],
+        ),
+        2100.0,
+        900.0,
+    )
+    provider = StubProvider((route,))
+    service = real_navigation_app.state.navigation_service
+    real_navigation_app.dependency_overrides[get_navigation_service] = lambda: (
+        NavigationService(
+            False,
+            provider,
+            clock=lambda: NOW,
+            real_data=service._real_data,
+        )
+    )
+
+    with TestClient(real_navigation_app) as client:
+        response = client.post(
+            "/api/v1/sos-route",
+            json={
+                "origin": {"latitude": 16.856152, "longitude": 96.130522},
+                "destination": {"latitude": 16.858, "longitude": 96.134},
+                "profile": "walking",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["simulation"] is False
+    assert payload["source"] == "Peer-reported SOS coordinate"
+    assert provider.calls[0][1] == Coordinate(latitude=16.858, longitude=96.134)
 
 
 def test_real_route_endpoint_keeps_unknown_destination_as_safe_not_found(
@@ -630,6 +675,29 @@ def test_route_response_includes_required_safety_metadata(enabled_navigation_app
         assert field in option
 
 
+def test_sos_route_endpoint_returns_required_route_metadata(enabled_navigation_app):
+    route = DirectionsRoute(
+        LineStringGeometry(
+            type="LineString",
+            coordinates=[(96.08, 21.95), (96.091, 21.958)],
+        ),
+        1000.0,
+        600.0,
+    )
+    provider = enable_simulation(enabled_navigation_app, (route,))
+
+    with TestClient(enabled_navigation_app) as client:
+        response = client.post("/api/v1/sos-route", json=valid_sos_request())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["simulation"] is True
+    assert body["source"] == "SafeMyanmar Demo"
+    assert body["options"][0]["recommended"] is True
+    assert body["options"][0]["uncertainty_notice"]
+    assert provider.calls[0][1] == Coordinate(latitude=21.958, longitude=96.091)
+
+
 def test_openapi_has_strict_navigation_contract(enabled_navigation_app):
     openapi = enabled_navigation_app.openapi()
     schemas = openapi["components"]["schemas"]
@@ -647,11 +715,15 @@ def test_openapi_has_strict_navigation_contract(enabled_navigation_app):
         "/api/v1/shelters",
         "/api/v1/hazards",
         "/api/v1/route-suggestions",
+        "/api/v1/sos-route",
     }
     route_schema = openapi["paths"]["/api/v1/route-suggestions"]["post"]["responses"][
         "200"
     ]["content"]["application/json"]["schema"]
     assert route_schema == {"$ref": "#/components/schemas/RouteSuggestionsResponse"}
+    sos_request = schemas["SosRouteRequest"]
+    assert set(sos_request["required"]) == {"origin", "destination"}
+    assert sos_request["additionalProperties"] is False
 
 
 def test_outside_coverage_is_safe_and_does_not_call_provider(enabled_navigation_app):

@@ -203,7 +203,9 @@ commands.
 - Runtime isolation checks found no test fixture/server references, fixture ID,
   local fixture URL, simulation records, or Mapbox token access in
   `backend/app` or `mobile/lib`.
-- The backend runtime default remains the live USGS all-day feed.
+- At the time of this historical verification, the backend runtime default was
+  the live USGS all-day feed. The current implementation uses the USGS FDSN
+  catalog query for the Yangon Region latest-ten behavior.
 - Real `.env` files remain ignored and untracked.
 - Android main requests only Internet permission; it requests no location, SMS,
   call, camera, microphone, contacts, notification, or background permission.

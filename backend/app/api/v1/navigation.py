@@ -16,6 +16,7 @@ from app.schemas.navigation import (
     RouteSuggestionRequest,
     RouteSuggestionsResponse,
     ShelterListResponse,
+    SosRouteRequest,
 )
 from app.services.navigation import (
     NavigationService,
@@ -231,6 +232,38 @@ def suggest_routes(
             404,
             "shelter_not_found",
             "The requested shelter or analyzed destination was not found.",
+        ) from error
+    except RoutingUnavailable as error:
+        raise ApiError(
+            503,
+            "routing_unavailable",
+            "Route suggestions are currently unavailable. Current shelter and "
+            "hazard information remains available.",
+        ) from error
+
+
+@router.post("/sos-route", response_model=RouteSuggestionsResponse)
+def suggest_sos_route(
+    route_request: SosRouteRequest,
+    service: NavigationService = Depends(get_navigation_service),
+    guard: SimulationRouteGuard = Depends(enforce_route_rate_limit),
+) -> RouteSuggestionsResponse:
+    try:
+        with guard.provider_slot():
+            return service.suggest_sos_routes(route_request)
+    except RouteCapacityExceeded as error:
+        raise ApiError(
+            503,
+            "routing_busy",
+            "Route suggestions are busy. Try again shortly.",
+            headers={"Retry-After": "1"},
+        ) from error
+    except OutsideSimulationArea as error:
+        raise ApiError(
+            400,
+            "outside_simulation_area",
+            "The origin or SOS coordinate is outside the available navigation "
+            "coverage area.",
         ) from error
     except RoutingUnavailable as error:
         raise ApiError(

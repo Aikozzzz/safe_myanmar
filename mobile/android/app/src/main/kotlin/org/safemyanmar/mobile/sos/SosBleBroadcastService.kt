@@ -31,6 +31,8 @@ class SosBleBroadcastService : Service() {
     private var startResultReceiver: ResultReceiver? = null
     private var stopResultReceiver: ResultReceiver? = null
     private var activeStartId: Int? = null
+    private var activePayloads: List<ByteArray> = emptyList()
+    private var payloadIndex = 0
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
@@ -38,7 +40,7 @@ class SosBleBroadcastService : Service() {
             stopBroadcast(startId)
             return START_NOT_STICKY
         }
-        val payload = intent?.getByteArrayExtra(EXTRA_PAYLOAD)
+        val payloads = intent?.let(::payloadsFromIntent)
             ?: return START_NOT_STICKY.also { stopSelfResult(startId) }
         val durationMs = intent.getLongExtra(
             EXTRA_DURATION_MS,
@@ -58,8 +60,8 @@ class SosBleBroadcastService : Service() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-            startBroadcast(payload, startId)
             handler.removeCallbacksAndMessages(null)
+            startBroadcast(payloads, startId)
             handler.postDelayed({
                 if (activeStartId == startId) stopBroadcast(startId)
             }, durationMs)
@@ -78,6 +80,8 @@ class SosBleBroadcastService : Service() {
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         stopAdvertising()
+        activePayloads = emptyList()
+        payloadIndex = 0
         startResultReceiver?.send(
             RESULT_FAILED,
             Bundle().apply { putInt(EXTRA_ERROR_CODE, ERROR_STOPPED_BEFORE_START) },
@@ -91,15 +95,27 @@ class SosBleBroadcastService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startBroadcast(payload: ByteArray, startId: Int) {
+    private fun startBroadcast(payloads: List<ByteArray>, startId: Int) {
         val adapter = (getSystemService(BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
             ?: throw IllegalStateException("Bluetooth advertising is unavailable.")
         if (!adapter.isEnabled) throw IllegalStateException("Bluetooth is disabled.")
         val currentAdvertiser = adapter.bluetoothLeAdvertiser
             ?: throw IllegalStateException("Bluetooth advertising is unavailable.")
+        activePayloads = payloads.map { it.copyOf() }
+        payloadIndex = 0
         // A restart should replace only the advertiser, not terminate this service.
         stopAdvertising()
         activeStartId = startId
+        startAdvertisingFrame(currentAdvertiser, activePayloads.first())
+        if (activePayloads.size > 1) {
+            handler.postDelayed({ rotatePayload(startId, currentAdvertiser) }, FRAME_INTERVAL_MS)
+        }
+    }
+
+    private fun startAdvertisingFrame(
+        currentAdvertiser: android.bluetooth.le.BluetoothLeAdvertiser,
+        payload: ByteArray,
+    ) {
         val settings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
@@ -132,10 +148,31 @@ class SosBleBroadcastService : Service() {
         currentAdvertiser.startAdvertising(settings, data, advertiseCallback)
     }
 
+    private fun rotatePayload(
+        startId: Int,
+        currentAdvertiser: android.bluetooth.le.BluetoothLeAdvertiser,
+    ) {
+        if (activeStartId != startId || activePayloads.size < 2) return
+        payloadIndex = (payloadIndex + 1) % activePayloads.size
+        try {
+            stopAdvertising()
+            startAdvertisingFrame(currentAdvertiser, activePayloads[payloadIndex])
+            handler.postDelayed(
+                { rotatePayload(startId, currentAdvertiser) },
+                FRAME_INTERVAL_MS,
+            )
+        } catch (error: Throwable) {
+            android.util.Log.e(TAG, "Unable to rotate BLE SOS frame", error)
+            stopBroadcast(startId)
+        }
+    }
+
     private fun stopBroadcast(stopSelfId: Int?) {
         handler.removeCallbacksAndMessages(null)
         val hadBroadcastState = activeStartId != null || advertiser != null || callback != null
         stopAdvertising()
+        activePayloads = emptyList()
+        payloadIndex = 0
         startResultReceiver?.send(
             RESULT_FAILED,
             Bundle().apply { putInt(EXTRA_ERROR_CODE, ERROR_STOPPED_BEFORE_START) },
@@ -227,11 +264,13 @@ class SosBleBroadcastService : Service() {
         private const val ACTION_START = "org.safemyanmar.mobile.sos.START_BROADCAST"
         private const val ACTION_STOP = "org.safemyanmar.mobile.sos.STOP_BROADCAST"
         private const val EXTRA_PAYLOAD = "payload"
+        private const val EXTRA_PAYLOADS = "payloads"
         private const val EXTRA_DURATION_MS = "duration_ms"
         private const val EXTRA_LANGUAGE = "language"
         private const val CHANNEL_ID = "nearby_sos_sharing"
         private const val NOTIFICATION_ID = 4402
         private const val BROADCAST_DURATION_MS = 10 * 60 * 1000L
+        private const val FRAME_INTERVAL_MS = 500L
         private const val EXTRA_RESULT_RECEIVER = "result_receiver"
         private const val EXTRA_ERROR_CODE = "error_code"
         private const val TAG = "SosBleBroadcastService"
@@ -242,14 +281,14 @@ class SosBleBroadcastService : Service() {
 
         fun start(
             context: Context,
-            payload: ByteArray,
+            payloads: List<ByteArray>,
             resultReceiver: ResultReceiver,
             durationMs: Long = BROADCAST_DURATION_MS,
             languageCode: String = "en",
         ) {
             val intent = Intent(context, SosBleBroadcastService::class.java).apply {
                 action = ACTION_START
-                putExtra(EXTRA_PAYLOAD, payload)
+                putExtra(EXTRA_PAYLOADS, ArrayList(payloads))
                 putExtra(EXTRA_RESULT_RECEIVER, resultReceiver)
                 putExtra(EXTRA_DURATION_MS, durationMs)
                 putExtra(EXTRA_LANGUAGE, languageCode)
@@ -272,6 +311,14 @@ class SosBleBroadcastService : Service() {
                     putExtra(EXTRA_RESULT_RECEIVER, resultReceiver)
                 },
             )
+        }
+
+        @Suppress("DEPRECATION")
+        private fun payloadsFromIntent(intent: Intent): List<ByteArray>? {
+            val payloads = (intent.getSerializableExtra(EXTRA_PAYLOADS) as? ArrayList<*>)
+                ?.mapNotNull { it as? ByteArray }
+            if (!payloads.isNullOrEmpty()) return payloads
+            return intent.getByteArrayExtra(EXTRA_PAYLOAD)?.let { listOf(it) }
         }
     }
 }

@@ -10,8 +10,13 @@
   a PostgreSQL advisory lock.
 - Item objects deliberately have no `severity` or `freshness` field. Magnitude
   is an observation, not an inferred impact assessment.
-- Coverage is the inclusive box latitude `8.284` to `30.043`, longitude `90.689`
-  to `102.676`. This coarse buffer is not an affected area or political border.
+- Coverage is the inclusive Yangon Region envelope: latitude
+  `14.04582802200008` to `17.79695808500003`, longitude `93.35195104000019` to
+  `96.82662590900009`. This coarse administrative envelope is not an affected
+  area or political border.
+- A refresh searches the latest ten years and the list returns at most ten items,
+  ordered by descending event time. Fewer items are returned when fewer records
+  are available in the coverage envelope.
 
 ## Health
 
@@ -33,12 +38,13 @@ body. Database failure returns the safe `503` error shape below with code
 
 ### `GET /api/v1/alerts`
 
-Returns the most recent successful normalized USGS snapshot and may refresh it
-when the 60-second throttle permits. Exact response fields:
+Returns up to the ten latest successful normalized USGS observations in the
+Yangon Region coverage envelope and may refresh the snapshot when the 60-second
+throttle permits. Exact response fields:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `items` | array of alert items | In-bounds USGS observations, event time descending |
+| `items` | array of alert items | Up to ten in-bounds USGS observations, event time descending |
 | `data_status` | `current` or `stale` | Age of the last successful backend snapshot |
 | `last_successful_refresh_at` | UTC timestamp | Successful provider retrieval time |
 | `provider` | `usgs` | Snapshot provider |
@@ -112,7 +118,8 @@ paths, or provider payloads.
 
 ## Provider Limitations
 
-The API currently represents only live USGS earthquake observations from the
-all-day feed that fall within the coarse coverage bounds. It does not provide
-official warnings, predictions, evacuation orders, complete all-disaster
-coverage, impact/severity classification, or guaranteed safety information.
+The API currently represents USGS earthquake observations from a ten-year FDSN
+catalog query that fall within the coarse Yangon Region coverage envelope. It
+does not provide official warnings, predictions, evacuation orders, complete
+all-disaster coverage, impact/severity classification, or guaranteed safety
+information.

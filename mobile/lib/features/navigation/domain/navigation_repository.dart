@@ -28,4 +28,7 @@ abstract interface class NavigationRepository {
   Future<NavigationResource<RouteSuggestions>> suggestRoutes(
     RouteSuggestionRequest request,
   );
+  Future<NavigationResource<RouteSuggestions>> suggestSosRoute(
+    SosRouteRequest request,
+  );
 }

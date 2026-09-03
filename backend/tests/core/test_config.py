@@ -81,6 +81,12 @@ def test_simulation_data_is_disabled_by_default():
     assert settings.enable_simulation_data is False
     assert settings.enable_simulation_analysis is False
     assert settings.mapbox_directions_access_token is None
+    assert settings.usgs_lookback_days == 3650
+
+
+def test_settings_reject_non_positive_usgs_lookback():
+    with pytest.raises(ValidationError, match="USGS_LOOKBACK_DAYS"):
+        Settings(database_url=DEVELOPMENT_DATABASE_URL, usgs_lookback_days=0)
 
 
 def test_production_rejects_enabled_simulation_data():

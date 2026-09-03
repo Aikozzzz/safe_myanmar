@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../settings/application/providers.dart';
 import '../data/sos_ble_sender_identity.dart';
+import '../data/sos_preferences.dart';
 import '../domain/sos_ble.dart';
 import '../domain/sos_draft.dart';
 import 'providers.dart';
@@ -13,15 +14,20 @@ import 'sos_ble_state.dart';
 final class SosBleController extends Notifier<SosBleState> {
   late SosBlePlatformService _platform;
   late SosBleSenderIdentitySource _senderIdentityStore;
+  late SosPreferencesStore _preferenceStore;
   final _codec = const SosBlePayloadCodec();
   StreamSubscription<SosBleAdvertisement>? _payloadSubscription;
   StreamSubscription<String>? _notificationSubscription;
   final _seenEventIds = <String>{};
   final _originatedEventIds = <String>{};
   final _relayedEventIds = <String>{};
+  final _relayedMetadataEventIds = <String>{};
   final _latestEventSequenceBySender = <String, int>{};
-  final _relayQueue = Queue<SosBleEvent>();
+  final _relayQueue = Queue<_RelayRequest>();
   final _expiryTimers = <String, Timer>{};
+  final _metadataTimers = <String, Timer>{};
+  final _metadataAssemblies = <String, _MetadataAssembly>{};
+  final _completedMetadata = <String, _CompletedMetadata>{};
   var _relayLoopRunning = false;
   var _backgroundRestoreRunning = false;
   String? _pendingFocusEventId;
@@ -31,6 +37,7 @@ final class SosBleController extends Notifier<SosBleState> {
   SosBleState build() {
     _platform = ref.watch(sosBlePlatformProvider);
     _senderIdentityStore = ref.watch(sosBleSenderIdentityStoreProvider);
+    _preferenceStore = ref.watch(sosPreferencesStoreProvider);
     ref.listen(languagePreferenceControllerProvider, (previous, next) {
       if (previous?.language == next.language || !state.backgroundListening) {
         return;
@@ -54,16 +61,22 @@ final class SosBleController extends Notifier<SosBleState> {
         timer.cancel();
       }
       _expiryTimers.clear();
+      for (final timer in _metadataTimers.values) {
+        timer.cancel();
+      }
+      _metadataTimers.clear();
+      _metadataAssemblies.clear();
+      _completedMetadata.clear();
       unawaited(_payloadSubscription?.cancel());
       unawaited(_notificationSubscription?.cancel());
       unawaited(_platform.stopScan());
       unawaited(_platform.stopBroadcast());
     });
-    unawaited(Future<void>.microtask(_checkSupport));
+    unawaited(Future<void>.microtask(_initialize));
     return const SosBleState();
   }
 
-  Future<void> setListening(bool enabled) async {
+  Future<void> setListening(bool enabled, {bool persist = true}) async {
     if (!enabled) {
       await _platform.stopScan();
       _relayQueue.clear();
@@ -72,6 +85,14 @@ final class SosBleController extends Notifier<SosBleState> {
         relayEnabled: false,
         error: null,
       );
+      if (persist) {
+        await _persistPreferences(
+          (preferences) => preferences.copyWith(
+            receiveNearbySos: false,
+            relayNearbySos: false,
+          ),
+        );
+      }
       return;
     }
     if (state.supported != true) {
@@ -96,6 +117,11 @@ final class SosBleController extends Notifier<SosBleState> {
         permissions: await _refreshPermissions(),
         error: null,
       );
+      if (persist) {
+        await _persistPreferences(
+          (preferences) => preferences.copyWith(receiveNearbySos: true),
+        );
+      }
     } on PlatformException catch (error) {
       state = state.copyWith(
         listening: false,
@@ -113,11 +139,19 @@ final class SosBleController extends Notifier<SosBleState> {
     }
   }
 
-  Future<void> setBackgroundListening(bool enabled) async {
+  Future<void> setBackgroundListening(
+    bool enabled, {
+    bool persist = true,
+  }) async {
     if (!enabled) {
       await _platform.stopBackgroundScan();
       if (_disposed) return;
       state = state.copyWith(backgroundListening: false, error: null);
+      if (persist) {
+        await _persistPreferences(
+          (preferences) => preferences.copyWith(backgroundReceive: false),
+        );
+      }
       return;
     }
     if (state.supported != true) {
@@ -137,7 +171,10 @@ final class SosBleController extends Notifier<SosBleState> {
         return;
       }
       await _platform.startBackgroundScan(
-        languageCode: ref.read(languagePreferenceControllerProvider).language.code,
+        languageCode: ref
+            .read(languagePreferenceControllerProvider)
+            .language
+            .code,
       );
       state = state.copyWith(
         backgroundListening: true,
@@ -145,6 +182,11 @@ final class SosBleController extends Notifier<SosBleState> {
         error: null,
       );
       await restoreBackgroundEvents();
+      if (persist) {
+        await _persistPreferences(
+          (preferences) => preferences.copyWith(backgroundReceive: true),
+        );
+      }
     } on PlatformException catch (error) {
       state = state.copyWith(backgroundListening: false, error: error.code);
       unawaited(_refreshPermissions());
@@ -168,6 +210,29 @@ final class SosBleController extends Notifier<SosBleState> {
       if (_disposed) return;
       final permissions = await _refreshPermissions();
       await _stopInvalidOperations(permissions);
+      if (_disposed) return;
+      SosPreferences savedPreferences;
+      try {
+        savedPreferences = await _preferenceStore.read();
+      } on Object {
+        savedPreferences = const SosPreferences();
+      }
+      if (savedPreferences.receiveNearbySos &&
+          !state.listening &&
+          permissions.canReceive) {
+        await setListening(true, persist: false);
+      }
+      if (savedPreferences.backgroundReceive &&
+          !state.backgroundListening &&
+          permissions.canBackgroundReceive) {
+        await setBackgroundListening(true, persist: false);
+      }
+      if (savedPreferences.relayNearbySos &&
+          !state.relayEnabled &&
+          permissions.canReceive &&
+          permissions.canBroadcast) {
+        await setRelayEnabled(true, persist: false);
+      }
       if (_disposed) return;
       if (enabled && !permissions.canBackgroundReceive) {
         await _platform.stopBackgroundScan();
@@ -215,10 +280,15 @@ final class SosBleController extends Notifier<SosBleState> {
     }
   }
 
-  Future<void> setRelayEnabled(bool enabled) async {
+  Future<void> setRelayEnabled(bool enabled, {bool persist = true}) async {
     if (!enabled) {
       _relayQueue.clear();
       state = state.copyWith(relayEnabled: false, error: null);
+      if (persist) {
+        await _persistPreferences(
+          (preferences) => preferences.copyWith(relayNearbySos: false),
+        );
+      }
       return;
     }
     if (state.isBroadcasting) {
@@ -230,7 +300,7 @@ final class SosBleController extends Notifier<SosBleState> {
       return;
     }
     if (!state.listening) {
-      await setListening(true);
+      await setListening(true, persist: false);
     }
     if (!state.listening) return;
     try {
@@ -252,13 +322,64 @@ final class SosBleController extends Notifier<SosBleState> {
         return;
       }
       state = state.copyWith(relayEnabled: true, error: null);
+      if (persist) {
+        await _persistPreferences(
+          (preferences) => preferences.copyWith(
+            receiveNearbySos: true,
+            relayNearbySos: true,
+          ),
+        );
+      }
     } on Object {
       state = state.copyWith(relayEnabled: false, error: 'permission_denied');
     }
   }
 
-  void setSoundEnabled(bool enabled) {
+  Future<void> setSoundEnabled(bool enabled, {bool persist = true}) async {
     state = state.copyWith(soundEnabled: enabled);
+    if (persist) {
+      await _persistPreferences(
+        (preferences) => preferences.copyWith(soundEnabled: enabled),
+      );
+    }
+  }
+
+  Future<void> setSharingEnabled(bool enabled) async {
+    if (!enabled) {
+      await _persistPreferences(
+        (preferences) => preferences.copyWith(shareNearbySos: false),
+      );
+      return;
+    }
+    if (state.supported == false) {
+      state = state.copyWith(error: 'unsupported');
+      return;
+    }
+    try {
+      if (!await _platform.requestPermissions(
+        receive: false,
+        broadcast: true,
+        background: true,
+      )) {
+        final permissions = await _refreshPermissions();
+        state = state.copyWith(
+          error: _permissionError(
+            permissions,
+            broadcast: true,
+            background: true,
+          ),
+        );
+        return;
+      }
+      await _refreshPermissions();
+      await _persistPreferences(
+        (preferences) => preferences.copyWith(shareNearbySos: true),
+      );
+    } on PlatformException catch (error) {
+      state = state.copyWith(error: error.code);
+    } on Object {
+      state = state.copyWith(error: 'permission_denied');
+    }
   }
 
   Future<void> broadcast(SosDraft draft) async {
@@ -301,11 +422,16 @@ final class SosBleController extends Notifier<SosBleState> {
         batteryPercent: await _platform.batteryPercent(),
         senderToken: identity.senderToken,
         eventSequence: identity.eventSequence,
+        alias: draft.bleAlias,
+        message: draft.bleMessage,
       );
       _rememberEventId(_originatedEventIds, event.eventId);
       await _platform.startBroadcast(
-        _codec.encode(event),
-        languageCode: ref.read(languagePreferenceControllerProvider).language.code,
+        _codec.encodeFrames(event),
+        languageCode: ref
+            .read(languagePreferenceControllerProvider)
+            .language
+            .code,
       );
       state = state.copyWith(
         broadcastStatus: SosBleBroadcastStatus.active,
@@ -364,6 +490,28 @@ final class SosBleController extends Notifier<SosBleState> {
     state = state.copyWith(selectedEventId: eventId);
   }
 
+  Future<void> _initialize() async {
+    SosPreferences preferences;
+    try {
+      preferences = await _preferenceStore.read();
+    } on Object {
+      preferences = const SosPreferences();
+    }
+    if (_disposed) return;
+    state = state.copyWith(soundEnabled: preferences.soundEnabled);
+    await _checkSupport();
+    if (_disposed) return;
+    if (preferences.receiveNearbySos) {
+      await setListening(true, persist: false);
+    }
+    if (preferences.backgroundReceive) {
+      await setBackgroundListening(true, persist: false);
+    }
+    if (preferences.relayNearbySos) {
+      await setRelayEnabled(true, persist: false);
+    }
+  }
+
   Future<void> _checkSupport() async {
     try {
       final permissions = await _platform.getPermissionState();
@@ -379,8 +527,10 @@ final class SosBleController extends Notifier<SosBleState> {
       final backgroundEnabled = await _platform.isBackgroundScanEnabled();
       if (backgroundEnabled && permissions.canBackgroundReceive) {
         await _platform.startBackgroundScan(
-          languageCode:
-              ref.read(languagePreferenceControllerProvider).language.code,
+          languageCode: ref
+              .read(languagePreferenceControllerProvider)
+              .language
+              .code,
         );
         await restoreBackgroundEvents();
       } else if (backgroundEnabled) {
@@ -400,15 +550,30 @@ final class SosBleController extends Notifier<SosBleState> {
     bool allowRelay = true,
   }) {
     try {
-      final event = _codec.decode(
+      if (_codec.isMetadataFrame(advertisement.payload)) {
+        _handleMetadataAdvertisement(advertisement, allowRelay: allowRelay);
+        return;
+      }
+      final decodedEvent = _codec.decode(
         advertisement.payload,
         rssi: advertisement.rssi,
       );
-      final age = DateTime.now().toUtc().difference(event.createdAt);
-      if (age.isNegative || event.isExpired) return;
+      final age = DateTime.now().toUtc().difference(decodedEvent.createdAt);
+      if (age.isNegative || decodedEvent.isExpired) return;
       // A device may scan its own advertisement. The sender already shows
       // this event in its broadcast status and should not retain a peer copy.
-      if (_originatedEventIds.contains(event.eventId)) return;
+      if (_originatedEventIds.contains(decodedEvent.eventId)) return;
+      final completedMetadata = _completedMetadata.remove(decodedEvent.eventId);
+      final event =
+          completedMetadata == null ||
+              completedMetadata.createdAt != decodedEvent.createdAt ||
+              completedMetadata.hopCount != decodedEvent.hopCount ||
+              completedMetadata.ttlMinutes != decodedEvent.ttlMinutes
+          ? decodedEvent
+          : decodedEvent.copyWithMetadata(
+              alias: completedMetadata.metadata.alias,
+              message: completedMetadata.metadata.message,
+            );
       final senderToken = event.senderToken;
       final eventSequence = event.eventSequence;
       SosBleEvent? replacement;
@@ -461,6 +626,78 @@ final class SosBleController extends Notifier<SosBleState> {
     }
   }
 
+  void _handleMetadataAdvertisement(
+    SosBleAdvertisement advertisement, {
+    required bool allowRelay,
+  }) {
+    try {
+      final fragment = _codec.decodeMetadataFrame(advertisement.payload);
+      final age = DateTime.now().toUtc().difference(fragment.createdAt);
+      if (age.isNegative || age > Duration(minutes: fragment.ttlMinutes)) {
+        return;
+      }
+      if (_originatedEventIds.contains(fragment.eventId)) return;
+      final assembly = _metadataAssemblies[fragment.eventId];
+      if (assembly == null ||
+          assembly.createdAt != fragment.createdAt ||
+          assembly.total != fragment.total ||
+          assembly.totalDataLength != fragment.totalDataLength ||
+          assembly.hopCount != fragment.hopCount ||
+          assembly.ttlMinutes != fragment.ttlMinutes) {
+        _metadataTimers.remove(fragment.eventId)?.cancel();
+        final created = _MetadataAssembly.fromFragment(fragment);
+        _metadataAssemblies[fragment.eventId] = created;
+        _metadataTimers[fragment.eventId] = Timer(
+          Duration(minutes: fragment.ttlMinutes) - age,
+          () {
+            _metadataTimers.remove(fragment.eventId);
+            _metadataAssemblies.remove(fragment.eventId);
+          },
+        );
+      }
+      final current = _metadataAssemblies[fragment.eventId]!;
+      current.fragments[fragment.index] = fragment;
+      if (current.fragments.length != current.total) return;
+      final metadata = _codec.decodeMetadata(current.fragments.values);
+      _metadataTimers.remove(fragment.eventId)?.cancel();
+      _metadataAssemblies.remove(fragment.eventId);
+      final eventIndex = state.nearbyEvents.indexWhere(
+        (event) => event.eventId == fragment.eventId,
+      );
+      if (eventIndex < 0) {
+        _completedMetadata[fragment.eventId] = _CompletedMetadata(
+          metadata: metadata,
+          createdAt: fragment.createdAt,
+          hopCount: fragment.hopCount,
+          ttlMinutes: fragment.ttlMinutes,
+        );
+        while (_completedMetadata.length > sosBleMaximumRetainedEvents) {
+          _completedMetadata.remove(_completedMetadata.keys.first);
+        }
+        return;
+      }
+      final existing = state.nearbyEvents[eventIndex];
+      if (existing.createdAt != fragment.createdAt ||
+          existing.hopCount != fragment.hopCount ||
+          existing.ttlMinutes != fragment.ttlMinutes) {
+        return;
+      }
+      final updated = existing.copyWithMetadata(
+        alias: metadata.alias,
+        message: metadata.message,
+      );
+      final events = state.nearbyEvents.toList()..[eventIndex] = updated;
+      state = state.copyWith(nearbyEvents: events);
+      if (allowRelay && _relayedEventIds.contains(fragment.eventId)) {
+        _queueRelay(updated, metadataOnly: true);
+      }
+    } on FormatException {
+      // Invalid metadata is ignored and never shown to users.
+    } on Object {
+      // Malformed platform data must not interrupt the foreground receiver.
+    }
+  }
+
   void _scheduleExpiry(SosBleEvent event, Duration age) {
     _expiryTimers.remove(event.eventId)?.cancel();
     final remaining = Duration(minutes: event.ttlMinutes) - age;
@@ -479,6 +716,9 @@ final class SosBleController extends Notifier<SosBleState> {
 
   void _removeNearbyEvent(String eventId) {
     _expiryTimers.remove(eventId)?.cancel();
+    _metadataTimers.remove(eventId)?.cancel();
+    _metadataAssemblies.remove(eventId);
+    _completedMetadata.remove(eventId);
     if (_disposed) return;
     final events = state.nearbyEvents
         .where((event) => event.eventId != eventId)
@@ -492,18 +732,30 @@ final class SosBleController extends Notifier<SosBleState> {
     );
   }
 
-  void _queueRelay(SosBleEvent event) {
+  void _queueRelay(SosBleEvent event, {bool metadataOnly = false}) {
     if (!state.relayEnabled ||
         state.isBroadcasting ||
         event.isExpired ||
         event.hopCount >= sosBleMaxRelayHops ||
         _originatedEventIds.contains(event.eventId) ||
         _relayQueue.length >= 10 ||
-        _relayedEventIds.contains(event.eventId)) {
+        (!metadataOnly && _relayedEventIds.contains(event.eventId)) ||
+        (metadataOnly &&
+            (!_eventHasMetadata(event) ||
+                _relayedMetadataEventIds.contains(event.eventId)))) {
       return;
     }
-    _rememberEventId(_relayedEventIds, event.eventId);
-    _relayQueue.add(event.copyWithHopCount(event.hopCount + 1));
+    if (metadataOnly) {
+      _rememberEventId(_relayedMetadataEventIds, event.eventId);
+    } else {
+      _rememberEventId(_relayedEventIds, event.eventId);
+    }
+    _relayQueue.add(
+      _RelayRequest(
+        event: event.copyWithHopCount(event.hopCount + 1),
+        metadataOnly: metadataOnly,
+      ),
+    );
     unawaited(_drainRelayQueue());
   }
 
@@ -512,19 +764,30 @@ final class SosBleController extends Notifier<SosBleState> {
     _relayLoopRunning = true;
     try {
       while (_relayQueue.isNotEmpty && state.relayEnabled) {
-        final event = _relayQueue.removeFirst();
+        final request = _relayQueue.removeFirst();
         await Future<void>.delayed(const Duration(milliseconds: 250));
         if (_disposed ||
             !state.relayEnabled ||
             state.isBroadcasting ||
-            event.isExpired) {
+            request.event.isExpired) {
           continue;
         }
         try {
+          var current = request.event;
+          for (final event in state.nearbyEvents) {
+            if (event.eventId == request.event.eventId) {
+              current = event.copyWithHopCount(request.event.hopCount);
+              break;
+            }
+          }
           await _platform.startRelayBroadcast(
-            _codec.encode(event),
-            languageCode:
-                ref.read(languagePreferenceControllerProvider).language.code,
+            request.metadataOnly
+                ? _codec.encodeMetadataFrames(current)
+                : _codec.encodeFrames(current),
+            languageCode: ref
+                .read(languagePreferenceControllerProvider)
+                .language
+                .code,
           );
           state = state.copyWith(relayCount: state.relayCount + 1, error: null);
           await Future<void>.delayed(
@@ -539,6 +802,9 @@ final class SosBleController extends Notifier<SosBleState> {
       _relayLoopRunning = false;
     }
   }
+
+  bool _eventHasMetadata(SosBleEvent event) =>
+      event.alias != null || event.message != null;
 
   bool _rememberEventId(Set<String> ids, String eventId) {
     if (!ids.add(eventId)) return false;
@@ -557,6 +823,20 @@ final class SosBleController extends Notifier<SosBleState> {
       );
     }
     return permissions;
+  }
+
+  Future<void> _persistPreferences(
+    SosPreferences Function(SosPreferences preferences) update,
+  ) async {
+    try {
+      final current = await _preferenceStore.read();
+      await _preferenceStore.write(update(current));
+      if (ref.mounted) {
+        unawaited(ref.read(sosPreferencesControllerProvider.notifier).reload());
+      }
+    } on Object {
+      if (!_disposed) state = state.copyWith(error: 'preference_write_failed');
+    }
   }
 
   Future<void> _stopInvalidOperations(SosBlePermissionState permissions) async {
@@ -622,4 +902,51 @@ final class SosBleController extends Notifier<SosBleState> {
     }
     return 'permission_denied';
   }
+}
+
+final class _RelayRequest {
+  const _RelayRequest({required this.event, required this.metadataOnly});
+
+  final SosBleEvent event;
+  final bool metadataOnly;
+}
+
+final class _CompletedMetadata {
+  const _CompletedMetadata({
+    required this.metadata,
+    required this.createdAt,
+    required this.hopCount,
+    required this.ttlMinutes,
+  });
+
+  final SosBleEventMetadata metadata;
+  final DateTime createdAt;
+  final int hopCount;
+  final int ttlMinutes;
+}
+
+final class _MetadataAssembly {
+  _MetadataAssembly({
+    required this.createdAt,
+    required this.hopCount,
+    required this.ttlMinutes,
+    required this.total,
+    required this.totalDataLength,
+  });
+
+  factory _MetadataAssembly.fromFragment(SosBleMetadataFragment fragment) =>
+      _MetadataAssembly(
+        createdAt: fragment.createdAt,
+        hopCount: fragment.hopCount,
+        ttlMinutes: fragment.ttlMinutes,
+        total: fragment.total,
+        totalDataLength: fragment.totalDataLength,
+      );
+
+  final DateTime createdAt;
+  final int hopCount;
+  final int ttlMinutes;
+  final int total;
+  final int totalDataLength;
+  final fragments = <int, SosBleMetadataFragment>{};
 }

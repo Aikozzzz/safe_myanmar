@@ -11,6 +11,7 @@ from app.schemas.navigation import (
     Coordinate,
     LineStringGeometry,
     RouteSuggestionRequest,
+    SosRouteRequest,
 )
 from app.services.navigation import (
     HAZARDS,
@@ -59,6 +60,14 @@ def yangon_request(profile=None):
         origin=Coordinate(latitude=16.856152, longitude=96.130522),
         shelter_id="simulation-yangon-shelter-1",
         disaster_type="earthquake",
+        profile=profile,
+    )
+
+
+def sos_request(profile=None):
+    return SosRouteRequest(
+        origin=Coordinate(latitude=21.95, longitude=96.08),
+        destination=Coordinate(latitude=21.958, longitude=96.091),
         profile=profile,
     )
 
@@ -132,6 +141,39 @@ def test_yangon_routes_stay_inside_the_yangon_region():
     assert len(response.options) == 1
     assert response.options[0].recommended is True
     assert response.options[0].geometry.coordinates[-1] == (96.132, 16.838)
+
+
+def test_sos_routes_target_the_supplied_coordinate():
+    route = directions_route([(96.08, 21.95), (96.091, 21.958)], 1000.0, 600.0)
+    provider = StubProvider((route,))
+    service = NavigationService(True, provider, clock=lambda: NOW)
+
+    response = service.suggest_sos_routes(sos_request())
+
+    assert len(response.options) == 1
+    assert response.options[0].recommended is True
+    assert response.options[0].source == "SafeMyanmar Demo"
+    assert "peer-reported SOS coordinate" in response.options[0].rationale
+    assert provider.calls == [
+        (
+            Coordinate(latitude=21.95, longitude=96.08),
+            Coordinate(latitude=21.958, longitude=96.091),
+            "walking",
+        )
+    ]
+
+
+def test_sos_routes_reject_a_destination_outside_simulation_coverage():
+    provider = StubProvider(())
+    service = NavigationService(True, provider, clock=lambda: NOW)
+    outside = sos_request().model_copy(
+        update={"destination": Coordinate(latitude=16.85, longitude=96.13)}
+    )
+
+    with pytest.raises(OutsideSimulationArea):
+        service.suggest_sos_routes(outside)
+
+    assert provider.calls == []
 
 
 def test_context_analysis_prioritizes_open_space_for_outdoor_earthquake():

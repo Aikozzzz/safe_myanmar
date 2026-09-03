@@ -34,8 +34,8 @@ def test_root_environment_example_matches_cross_layer_contract():
         "DATABASE_URL=postgresql+psycopg://safemyanmar_dev:"
         "safemyanmar_dev_password@localhost:5432/safemyanmar\n"
         "ENVIRONMENT=development\n"
-        "USGS_FEED_URL=https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/"
-        "all_day.geojson\n"
+        "USGS_FEED_URL=https://earthquake.usgs.gov/fdsnws/event/1/query\n"
+        "USGS_LOOKBACK_DAYS=3650\n"
         "PROVIDER_TIMEOUT_SECONDS=10.0\n"
         "REFRESH_MINIMUM_SECONDS=60\n"
         "CURRENT_MAX_AGE_SECONDS=300\n"
@@ -75,6 +75,7 @@ def test_backend_environment_example_lists_only_consumed_settings():
     assert "PROVIDER_TIMEOUT_SECONDS=10.0" in backend_example
     assert "REFRESH_MINIMUM_SECONDS=60" in backend_example
     assert "CURRENT_MAX_AGE_SECONDS=300" in backend_example
+    assert "USGS_LOOKBACK_DAYS=3650" in backend_example
     assert "ENVIRONMENT=development" in backend_example
     assert "API_BASE_URL" not in backend_example
     assert "ENABLE_SIMULATION_DATA=false" in backend_example

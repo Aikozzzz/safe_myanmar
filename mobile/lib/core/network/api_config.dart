@@ -51,6 +51,8 @@ final class ApiConfig {
 
   Uri get routeSuggestionsUri => _apiV1Uri('route-suggestions');
 
+  Uri get sosRouteUri => _apiV1Uri('sos-route');
+
   Uri _apiV1Uri(String resource) {
     final segments = baseUri.pathSegments.where(
       (segment) => segment.isNotEmpty,

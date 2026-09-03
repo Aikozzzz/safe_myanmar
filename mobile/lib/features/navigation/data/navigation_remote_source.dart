@@ -87,6 +87,34 @@ final class NavigationRemoteSource {
     return response;
   }
 
+  Future<RouteSuggestionsDto> fetchSosRouteSuggestions(
+    SosRouteRequest request,
+  ) async {
+    final body = jsonEncode({
+      'origin': {
+        'latitude': request.origin.latitude,
+        'longitude': request.origin.longitude,
+      },
+      'destination': {
+        'latitude': request.destination.latitude,
+        'longitude': request.destination.longitude,
+      },
+      'profile': request.profile.name,
+    });
+    final json = await _request(
+      () => client.post(
+        config.sosRouteUri,
+        headers: const {'content-type': 'application/json'},
+        body: body,
+      ),
+    );
+    final response = RouteSuggestionsDto.fromJson(json);
+    if (response.profile != request.profile) {
+      throw const NavigationProtocolException();
+    }
+    return response;
+  }
+
   Future<Map<String, Object?>> _get(Uri uri) => _request(() => client.get(uri));
 
   Future<Map<String, Object?>> _request(

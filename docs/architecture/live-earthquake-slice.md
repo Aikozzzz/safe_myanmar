@@ -4,7 +4,7 @@
 
 This document isolates the implemented live-earthquake subsystem: an Android
 Flutter client backed by FastAPI and PostgreSQL that displays USGS observations
-within an approximate Myanmar coverage box and persists them on server and
+within an approximate Yangon Region coverage envelope and persists them on server and
 device. The wider app also implements foreground location, opt-in fictional
 SIMULATION navigation, local SOS drafts, offline Guide content, constrained
 assistance, and secure local profile/contact storage. Those features are covered
@@ -13,16 +13,18 @@ in [the context-aware mobile flow](context-aware-mobile-flow.md).
 The alert subsystem itself does not provide warnings, prediction, severity,
 authentication, notifications, or simulated earthquake records.
 
-The inclusive coverage bounds are latitude `8.284` to `30.043` and longitude
-`90.689` to `102.676`. They include a coarse 1.5-degree border buffer. They are
-not a political border, affected-area calculation, or statement that locations
-outside the box are safe.
+The inclusive Yangon Region coverage envelope is latitude `14.04582802200008` to
+`17.79695808500003` and longitude `93.35195104000019` to `96.82662590900009`.
+It is a coarse administrative retrieval envelope, not a political border,
+affected-area calculation, or statement that locations outside the box are safe.
+Each provider refresh searches the latest ten years and the API returns at most
+ten records in descending event-time order.
 
 ## Data Flow
 
 ```mermaid
 flowchart LR
-    A[Live USGS all-day GeoJSON] --> B[USGS client]
+    A[Live USGS FDSN GeoJSON query] --> B[USGS client]
     B --> C[Validator and normalizer]
     C --> D[PostgreSQL successful snapshot]
     D --> E[FastAPI alert API]
@@ -67,7 +69,8 @@ from failure and cautions that no result does not guarantee no danger.
 
 ## Configuration And Transport
 
-The earthquake provider default is the production USGS all-day feed. The
+The earthquake provider default is the production USGS FDSN earthquake catalog
+query. The
 controlled `integration-fixture` provider is under `backend/tests/fixtures/`, is
 started only by test tooling, and is never imported or referenced by
 `backend/app` or `mobile/lib`. Separately, runtime shelter, hazard, and route

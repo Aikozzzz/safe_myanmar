@@ -29,9 +29,8 @@ class Settings(BaseSettings):
 
     database_url: str
     environment: Literal["development", "test", "production"] = "development"
-    usgs_feed_url: str = (
-        "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
-    )
+    usgs_feed_url: str = "https://earthquake.usgs.gov/fdsnws/event/1/query"
+    usgs_lookback_days: int = 3650
     provider_timeout_seconds: float = 10.0
     refresh_minimum_seconds: int = 60
     current_max_age_seconds: int = 300
@@ -51,6 +50,8 @@ class Settings(BaseSettings):
 
         if url.drivername != "postgresql+psycopg":
             raise ValueError("DATABASE_URL must use postgresql+psycopg.")
+        if self.usgs_lookback_days < 1:
+            raise ValueError("USGS_LOOKBACK_DAYS must be positive.")
         if self.environment != "production":
             return self
 

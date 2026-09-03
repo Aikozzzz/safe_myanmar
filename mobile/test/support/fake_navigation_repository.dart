@@ -19,6 +19,11 @@ final class FakeNavigationRepository implements NavigationRepository {
     isCached: false,
     remoteFailed: false,
   );
+  NavigationResource<RouteSuggestions> sosRoutes = NavigationResource(
+    data: routeSuggestions(),
+    isCached: false,
+    remoteFailed: false,
+  );
   NavigationResource<ContextAreaCollection> contextAreas =
       const NavigationResource(
         data: null,
@@ -32,10 +37,15 @@ final class FakeNavigationRepository implements NavigationRepository {
         remoteFailed: false,
       );
   final List<RouteSuggestionRequest> requests = [];
+  final List<SosRouteRequest> sosRouteRequests = [];
   Future<NavigationResource<RouteSuggestions>> Function(
     RouteSuggestionRequest request,
   )?
   routesHandler;
+  Future<NavigationResource<RouteSuggestions>> Function(
+    SosRouteRequest request,
+  )?
+  sosRoutesHandler;
   Future<NavigationResource<ShelterCollection>> Function()? sheltersHandler;
   Future<NavigationResource<HazardCollection>> Function()? hazardsHandler;
   Future<NavigationResource<ContextAreaCollection>> Function(
@@ -86,5 +96,13 @@ final class FakeNavigationRepository implements NavigationRepository {
   ) async {
     requests.add(request);
     return routesHandler?.call(request) ?? routes;
+  }
+
+  @override
+  Future<NavigationResource<RouteSuggestions>> suggestSosRoute(
+    SosRouteRequest request,
+  ) async {
+    sosRouteRequests.add(request);
+    return sosRoutesHandler?.call(request) ?? sosRoutes;
   }
 }

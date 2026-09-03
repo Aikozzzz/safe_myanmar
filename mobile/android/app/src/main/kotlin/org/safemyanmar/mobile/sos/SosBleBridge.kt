@@ -59,19 +59,20 @@ class SosBleBridge(private val activity: Activity) :
 
     private val backgroundEventReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val payload = intent?.getByteArrayExtra(SosBleBackgroundScanService.EXTRA_PAYLOAD)
-                ?: return
-            eventSink?.success(
-                mapOf(
-                    "data" to payload,
-                    "rssi" to if (intent.hasExtra(SosBleBackgroundScanService.EXTRA_RSSI)) {
-                        intent.getIntExtra(SosBleBackgroundScanService.EXTRA_RSSI, 0)
-                    } else {
-                        null
-                    },
-                    "background" to true,
-                ),
-            )
+            val payloads = intent?.let { backgroundPayloadsFromIntent(it) } ?: return
+            for (payload in payloads) {
+                eventSink?.success(
+                    mapOf(
+                        "data" to payload,
+                        "rssi" to if (intent.hasExtra(SosBleBackgroundScanService.EXTRA_RSSI)) {
+                            intent.getIntExtra(SosBleBackgroundScanService.EXTRA_RSSI, 0)
+                        } else {
+                            null
+                        },
+                        "background" to true,
+                    ),
+                )
+            }
         }
     }
 
@@ -131,13 +132,21 @@ class SosBleBridge(private val activity: Activity) :
                 pendingNotificationEventId = null
             }
             "startBroadcast" -> {
-                val payload = call.argument<ByteArray>("payload")
-                if (payload == null || payload.size != PAYLOAD_SIZE) {
-                    result.error("invalid_payload", "SOS BLE payload must contain $PAYLOAD_SIZE bytes.", null)
+                val payloads = readPayloads(call)
+                val frames = payloads?.map { SosBleFrameValidator.validate(it) }
+                if (payloads == null ||
+                    payloads.isEmpty() ||
+                    payloads.size > MAX_BROADCAST_FRAMES ||
+                    frames == null ||
+                    frames.any { it == null } ||
+                    frames.mapNotNull { it?.eventId }.toSet().size != 1
+                ) {
+                    result.error("invalid_payload", "SOS BLE frames are invalid.", null)
                 } else {
-                    val frame = SosBleFrameValidator.validate(payload)
-                    if (frame == null) {
-                        result.error("invalid_payload", "SOS BLE payload is invalid or expired.", null)
+                    val frame = frames.first()!!
+                    val eventId = frame.eventId
+                    if (eventId.isEmpty()) {
+                        result.error("invalid_payload", "SOS BLE event ID is invalid.", null)
                     } else {
                         try {
                             if (bluetoothAdapter?.isEnabled != true ||
@@ -158,8 +167,8 @@ class SosBleBridge(private val activity: Activity) :
                                     durationSeconds * 1000L + ORIGIN_SUPPRESSION_GRACE_MS,
                             )
                             if (!backgroundEventStore.rememberOriginatedEvent(
-                                    frame.eventId,
-                                    suppressionExpiry,
+                                     eventId,
+                                     suppressionExpiry,
                                 )
                             ) {
                                 result.error(
@@ -188,7 +197,7 @@ class SosBleBridge(private val activity: Activity) :
                             }
                             SosBleBroadcastService.start(
                                 activity,
-                                payload,
+                                payloads,
                                 receiver,
                                 durationSeconds * 1000L,
                                 languageCode(call.argument<String>("language")),
@@ -392,6 +401,19 @@ class SosBleBridge(private val activity: Activity) :
 
     private fun languageCode(value: String?): String = if (value == "my") "my" else "en"
 
+    @Suppress("DEPRECATION")
+    private fun backgroundPayloadsFromIntent(intent: Intent): List<ByteArray>? {
+        val payloads = (intent.getSerializableExtra(SosBleBackgroundScanService.EXTRA_PAYLOADS)
+            as? ArrayList<*>)?.mapNotNull { it as? ByteArray }
+        if (!payloads.isNullOrEmpty()) return payloads
+        return intent.getByteArrayExtra(SosBleBackgroundScanService.EXTRA_PAYLOAD)?.let { listOf(it) }
+    }
+
+    private fun readPayloads(call: MethodCall): List<ByteArray>? {
+        call.argument<List<ByteArray>>("payloads")?.let { return it }
+        return call.argument<ByteArray>("payload")?.let { listOf(it) }
+    }
+
     private fun openAppSettings(): Boolean = try {
         activity.startActivity(
             Intent(
@@ -467,7 +489,7 @@ class SosBleBridge(private val activity: Activity) :
             "org.safemyanmar.mobile/sos_ble_notification_events"
         const val MANUFACTURER_ID = 0xffff
         const val EXTRA_NOTIFICATION_EVENT_ID = "sos_event_id"
-        private const val PAYLOAD_SIZE = 26
+        private const val MAX_BROADCAST_FRAMES = 12
         private const val PERMISSION_REQUEST_CODE = 4401
         private const val BROADCAST_START_TIMEOUT_MS = 5_000L
         private const val STOP_TIMEOUT_MS = 5_000L

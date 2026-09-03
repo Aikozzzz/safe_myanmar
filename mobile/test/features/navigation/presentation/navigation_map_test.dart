@@ -30,6 +30,81 @@ void main() {
     );
   });
 
+  testWidgets('legend entries open details and expose visibility controls', (
+    tester,
+  ) async {
+    NavigationMapLayer? selectedLayer;
+    NavigationMapLayer? visibilityChanged;
+    var legendExpanded = true;
+    const layer = NavigationMapLayer.nearbySos;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => NavigationMapLegend(
+              title: 'Map legend',
+              entries: const [
+                NavigationMapLegendEntry(
+                  layer: layer,
+                  icon: Icons.crisis_alert,
+                  label: 'Nearby SOS',
+                  color: Color(0xffd32f2f),
+                  visible: true,
+                ),
+              ],
+              interactionHint: 'Tap for details',
+              visibleLabel: 'Layer shown',
+              hiddenLabel: 'Layer hidden',
+              showLabel: 'Show map legend',
+              hideLabel: 'Hide map legend',
+              isExpanded: legendExpanded,
+              onSelected: (value) => selectedLayer = value,
+              onVisibilityChanged: (value) => visibilityChanged = value,
+              onToggleExpanded: () => setState(() {
+                legendExpanded = !legendExpanded;
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-layer-nearbySos')));
+    expect(selectedLayer, layer);
+    expect(find.text('Nearby SOS'), findsOneWidget);
+    expect(find.byTooltip('Layer shown'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Layer shown'));
+    expect(visibilityChanged, layer);
+
+    await tester.tap(find.byTooltip('Hide map legend'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nearby SOS'), findsNothing);
+    expect(find.byTooltip('Show map legend'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Show map legend'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nearby SOS'), findsOneWidget);
+    expect(find.byTooltip('Hide map legend'), findsOneWidget);
+  });
+
+  test('navigation notices hide technical demo and confidence wording', () {
+    final notice = navigationUserFacingNotice(
+      'SIMULATION information is incomplete. '
+      'Some environment metadata was incomplete, so confidence in this '
+      'terrain comparison is lower.',
+    );
+
+    expect(
+      notice,
+      'Some information may be incomplete. Follow authorized local '
+      'instructions when available.',
+    );
+    expect(notice, isNot(contains('SIMULATION')));
+    expect(notice, isNot(contains('confidence')));
+  });
+
   test(
     'point markers use the symbols and colors represented by the legend',
     () {

@@ -23,6 +23,7 @@ from app.schemas.navigation import (
     RouteSuggestionsResponse,
     Shelter,
     ShelterListResponse,
+    SosRouteRequest,
 )
 from app.services.environment_provider import ContextAnalysisUnavailable
 from app.services.real_context_analysis import RealContextAnalyzer
@@ -83,6 +84,11 @@ UNCERTAINTY_NOTICE = (
     "the fictional Mandalay region (latitude 21.9300 through 21.9900 and "
     "longitude 96.0600 through 96.1200) and fictional Yangon region (latitude "
     "16.8000 through 16.9200 and longitude 96.0800 through 96.2000)."
+)
+SOS_ROUTE_UNCERTAINTY_NOTICE = (
+    "This route targets a peer-reported SOS coordinate. Sender identity, "
+    "coordinate accuracy, road access, current conditions, and rescue response "
+    "are not confirmed."
 )
 
 SHELTERS = (
@@ -585,6 +591,147 @@ class NavigationService:
             profile=profile,
             profile_selection_reason=reason,
             uncertainty_notice=UNCERTAINTY_NOTICE,
+        )
+
+    def suggest_sos_routes(self, request: SosRouteRequest) -> RouteSuggestionsResponse:
+        if self._real_data is not None:
+            return self._suggest_real_sos_routes(request)
+        self._require_simulation()
+        origin_region = _simulation_region_for_coordinate(request.origin)
+        destination_region = _simulation_region_for_coordinate(request.destination)
+        if origin_region is None or destination_region != origin_region:
+            raise OutsideSimulationArea
+        try:
+            routes = self._directions.get_routes(
+                request.origin,
+                request.destination,
+                request.profile
+                or self._select_profile(
+                    request.origin, request.destination, request.profile
+                )[0],
+            )
+        except DirectionsProviderError:
+            raise RoutingUnavailable from None
+        routes = tuple(
+            route for route in routes if _route_in_simulation_area(route, origin_region)
+        )
+        if not routes:
+            raise RoutingUnavailable
+        generated_at = _utc_datetime_or_none(self._clock())
+        if generated_at is None:
+            raise RoutingUnavailable
+        return self._build_sos_route_response(
+            request.origin,
+            request.destination,
+            request.profile,
+            routes,
+            HAZARDS,
+            generated_at,
+            SOS_ROUTE_UNCERTAINTY_NOTICE,
+            simulation=True,
+        )
+
+    def _suggest_real_sos_routes(
+        self, request: SosRouteRequest
+    ) -> RouteSuggestionsResponse:
+        real_data = self._real_data
+        if real_data is None:
+            raise RoutingUnavailable
+        now = _utc_datetime_or_none(self._clock())
+        retrieved_at = _utc_datetime_or_none(real_data.retrieved_at)
+        if (
+            now is None
+            or retrieved_at is None
+            or now - retrieved_at > timedelta(seconds=DEFAULT_SNAPSHOT_MAX_AGE_SECONDS)
+            or _has_stale_metadata(real_data.uncertainty_notice)
+        ):
+            raise RoutingUnavailable
+        try:
+            routes = tuple(
+                self._directions.get_routes(
+                    request.origin,
+                    request.destination,
+                    request.profile
+                    or self._select_profile(
+                        request.origin, request.destination, request.profile
+                    )[0],
+                )
+            )
+        except (DirectionsProviderError, TypeError):
+            raise RoutingUnavailable from None
+        if not routes:
+            raise RoutingUnavailable
+        generated_at = _utc_datetime_or_none(self._clock())
+        if generated_at is None:
+            raise RoutingUnavailable
+        return self._build_sos_route_response(
+            request.origin,
+            request.destination,
+            request.profile,
+            routes,
+            real_data.hazards,
+            generated_at,
+            _append_notice(real_data.uncertainty_notice, SOS_ROUTE_UNCERTAINTY_NOTICE),
+            simulation=False,
+            hazard_data_at=retrieved_at,
+            source="Peer-reported SOS coordinate",
+        )
+
+    def _build_sos_route_response(
+        self,
+        origin: Coordinate,
+        destination: Coordinate,
+        requested_profile: RouteProfile | None,
+        routes: Sequence[DirectionsRoute],
+        hazards: Sequence[Hazard],
+        generated_at: datetime,
+        uncertainty_notice: str,
+        *,
+        simulation: bool,
+        hazard_data_at: datetime = SIMULATION_DATA_AT,
+        source: str = "SafeMyanmar Demo",
+    ) -> RouteSuggestionsResponse:
+        profile, reason = self._select_profile(origin, destination, requested_profile)
+        ranked = sorted(
+            routes,
+            key=lambda route: (
+                _intersection_count(route, hazards),
+                route.duration_seconds,
+                route.distance_m,
+            ),
+        )[:3]
+        options = [
+            RouteOption(
+                id=f"sos-route-{index}",
+                generated_at=generated_at,
+                hazard_data_at=hazard_data_at,
+                profile=profile,
+                source=source,
+                simulation=simulation,
+                geometry=route.geometry,
+                distance_m=route.distance_m,
+                duration_seconds=route.duration_seconds,
+                hazard_intersection_count=_intersection_count(route, hazards),
+                rationale=(
+                    "Route to the peer-reported SOS coordinate ranked by currently "
+                    "mapped hazard intersections, then duration and distance; "
+                    "conditions may differ."
+                ),
+                recommended=index == 1,
+                uncertainty_notice=uncertainty_notice,
+            )
+            for index, route in enumerate(ranked, start=1)
+        ]
+        return RouteSuggestionsResponse(
+            options=options,
+            generated_at=generated_at,
+            hazard_data_at=hazard_data_at,
+            profile=profile,
+            profile_selection_reason=reason,
+            source=source,
+            directions_provider="Mapbox Directions",
+            simulation=simulation,
+            uncertainty_notice=uncertainty_notice,
         )
 
     def _suggest_real_routes(

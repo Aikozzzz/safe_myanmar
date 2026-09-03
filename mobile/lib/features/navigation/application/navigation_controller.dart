@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../location/domain/foreground_location.dart';
+import '../../sos/domain/sos_ble.dart';
 import '../domain/navigation_models.dart';
 import '../domain/navigation_repository.dart';
 import 'navigation_state.dart';
@@ -10,8 +11,10 @@ final class NavigationController extends Notifier<NavigationState> {
   NavigationRepository? _repository;
   Future<void>? _mapLoad;
   Future<void>? _routeLoad;
+  Future<void>? _sosRouteLoad;
   Future<void>? _contextLoad;
   var _routeGeneration = 0;
+  var _sosRouteGeneration = 0;
   var _contextGeneration = 0;
 
   @override
@@ -106,6 +109,7 @@ final class NavigationController extends Notifier<NavigationState> {
     if (state.profile == value) return;
     state = state.copyWith(profile: value);
     _invalidateRoutes();
+    _invalidateSosRoutes();
   }
 
   void updateLocation(ForegroundLocation? location) {
@@ -142,6 +146,21 @@ final class NavigationController extends Notifier<NavigationState> {
         );
       }
     }
+    final sosRequest = state.sosRouteRequest;
+    if (sosRequest == null || location == null) {
+      if (location == null && sosRequest != null) _invalidateSosRoutes();
+    } else {
+      final nextSosRequest = SosRouteRequest(
+        eventId: sosRequest.eventId,
+        origin: NavigationCoordinate(
+          latitude: location.latitude,
+          longitude: location.longitude,
+        ),
+        destination: sosRequest.destination,
+        profile: sosRequest.profile,
+      );
+      if (!sosRequest.matches(nextSosRequest)) _invalidateSosRoutes();
+    }
     final request = state.routeRequest;
     if (request == null || location == null) {
       if (location == null && request != null) _invalidateRoutes();
@@ -165,6 +184,42 @@ final class NavigationController extends Notifier<NavigationState> {
   void selectRoute(String routeId) {
     if (state.routes?.options.any((item) => item.id == routeId) != true) return;
     state = state.copyWith(selectedRouteId: routeId);
+  }
+
+  void selectSosRoute(String routeId) {
+    if (state.sosRoutes?.options.any((item) => item.id == routeId) != true) {
+      return;
+    }
+    state = state.copyWith(selectedSosRouteId: routeId);
+  }
+
+  void clearSosRouteIfTargetChanged(String eventId) {
+    if (state.sosRouteEventId != null && state.sosRouteEventId != eventId) {
+      _invalidateSosRoutes();
+    }
+  }
+
+  Future<void> requestSosRoute(ForegroundLocation location, SosBleEvent event) {
+    if (!event.hasLocation || event.isExpired) return Future.value();
+    final request = SosRouteRequest(
+      eventId: event.eventId,
+      origin: NavigationCoordinate(
+        latitude: location.latitude,
+        longitude: location.longitude,
+      ),
+      destination: NavigationCoordinate(
+        latitude: event.latitude!,
+        longitude: event.longitude!,
+      ),
+      profile: state.profile,
+    );
+    final generation = ++_sosRouteGeneration;
+    late Future<void> pending;
+    pending = _requestSosRoute(request, generation).whenComplete(() {
+      if (identical(_sosRouteLoad, pending)) _sosRouteLoad = null;
+    });
+    _sosRouteLoad = pending;
+    return pending;
   }
 
   Future<void> requestRoutes(ForegroundLocation location) {
@@ -350,6 +405,49 @@ final class NavigationController extends Notifier<NavigationState> {
     );
   }
 
+  Future<void> _requestSosRoute(SosRouteRequest request, int generation) async {
+    final sameRequest = state.sosRouteRequest?.matches(request) == true;
+    state = state.copyWith(
+      loadingSosRoutes: true,
+      sosRouteFailed: false,
+      sosRoutes: sameRequest ? state.sosRoutes : null,
+      selectedSosRouteId: sameRequest ? state.selectedSosRouteId : null,
+      sosRouteEventId: request.eventId,
+      sosRouteRequest: request,
+    );
+    late final NavigationRepository repository;
+    try {
+      _repository ??= ref.read(navigationRepositoryProvider);
+      repository = _repository!;
+    } catch (_) {
+      if (generation != _sosRouteGeneration) return;
+      state = state.copyWith(loadingSosRoutes: false, sosRouteFailed: true);
+      return;
+    }
+    final result = await repository.suggestSosRoute(request);
+    if (generation != _sosRouteGeneration ||
+        state.sosRouteRequest?.matches(request) != true) {
+      return;
+    }
+    final existingRoutes = state.sosRouteRequest?.matches(request) == true
+        ? state.sosRoutes
+        : null;
+    final routes = result.data ?? existingRoutes;
+    final currentSelection = state.selectedSosRouteId;
+    final selectedRouteId =
+        routes?.options.any((item) => item.id == currentSelection) == true
+        ? currentSelection
+        : routes?.options.firstOrNull?.id;
+    state = state.copyWith(
+      loadingSosRoutes: false,
+      sosRoutes: routes,
+      sosRouteFailed: result.remoteFailed,
+      selectedSosRouteId: selectedRouteId,
+      sosRouteEventId: request.eventId,
+      sosRouteRequest: request,
+    );
+  }
+
   void _invalidateRoutes() {
     _routeGeneration++;
     _routeLoad = null;
@@ -361,6 +459,19 @@ final class NavigationController extends Notifier<NavigationState> {
       routeCachedAt: null,
       selectedRouteId: null,
       routeRequest: null,
+    );
+  }
+
+  void _invalidateSosRoutes() {
+    _sosRouteGeneration++;
+    _sosRouteLoad = null;
+    state = state.copyWith(
+      loadingSosRoutes: false,
+      sosRoutes: null,
+      sosRouteFailed: false,
+      sosRouteEventId: null,
+      selectedSosRouteId: null,
+      sosRouteRequest: null,
     );
   }
 

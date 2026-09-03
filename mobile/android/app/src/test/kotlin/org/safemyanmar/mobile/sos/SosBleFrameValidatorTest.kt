@@ -98,6 +98,26 @@ class SosBleFrameValidatorTest {
         assertNull(SosBleFrameValidator.validate(invalid, now))
     }
 
+    @Test
+    fun acceptsMetadataExtensionFrames() {
+        val now = EPOCH_MILLIS + 10 * MINUTE_MILLIS
+        val metadata = metadataFrame(
+            eventId = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8),
+            createdAtMillis = now - MINUTE_MILLIS,
+            index = 0,
+            total = 2,
+            totalDataLength = 8,
+            data = byteArrayOf(3, 'A'.code.toByte(), 'u'.code.toByte(), 'n'.code.toByte()),
+        )
+
+        val result = SosBleFrameValidator.validate(metadata, now)
+
+        assertNotNull(result)
+        assertEquals("0102030405060708", result?.eventId)
+        assertEquals(true, result?.metadata)
+        assertEquals(5, result?.ttlMinutes)
+    }
+
     private fun frame(
         eventId: ByteArray = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8),
         version: Int = 3,
@@ -134,6 +154,35 @@ class SosBleFrameValidatorTest {
         val checksum = crc16(payload, checksumOffset)
         payload[checksumOffset] = (checksum ushr 8).toByte()
         payload[checksumOffset + 1] = checksum.toByte()
+        return payload
+    }
+
+    private fun metadataFrame(
+        eventId: ByteArray,
+        createdAtMillis: Long,
+        index: Int,
+        total: Int,
+        totalDataLength: Int,
+        data: ByteArray,
+        ttlMinutes: Int = 5,
+    ): ByteArray {
+        val payload = ByteArray(26)
+        payload[0] = 0x53
+        payload[1] = 4
+        payload[2] = 1
+        payload[3] = ttlMinutes.toByte()
+        eventId.copyInto(payload, 4)
+        val relativeMinutes = ((createdAtMillis - EPOCH_MILLIS) / MINUTE_MILLIS).toInt()
+        payload[12] = (relativeMinutes ushr 16).toByte()
+        payload[13] = (relativeMinutes ushr 8).toByte()
+        payload[14] = relativeMinutes.toByte()
+        payload[15] = index.toByte()
+        payload[16] = total.toByte()
+        payload[17] = totalDataLength.toByte()
+        data.copyInto(payload, 18)
+        val checksum = crc16(payload, 24)
+        payload[24] = (checksum ushr 8).toByte()
+        payload[25] = checksum.toByte()
         return payload
     }
 

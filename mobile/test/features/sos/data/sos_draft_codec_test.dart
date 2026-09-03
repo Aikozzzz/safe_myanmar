@@ -29,20 +29,22 @@ void main() {
     profileName: 'Test User',
     body: 'Exact immutable body for Test User.',
     status: SosDraftStatus.composerOpened,
+    bleAlias: 'Aung',
+    bleMessage: 'Trapped upstairs.',
   );
 
   test('round trips one small versioned secure queue document', () {
     final encoded = SosDraftCodec.encode([draft]);
     final json = jsonDecode(encoded) as Map<String, dynamic>;
 
-    expect(json['version'], 3);
+    expect(json['version'], 4);
     expect(json.keys, {'version', 'drafts'});
     expect(SosDraftCodec.decode(encoded), [draft]);
   });
 
   test('rejects unsupported and corrupt values without exposing payload', () {
     for (final payload in [
-      '{"version":4,"drafts":[]}',
+      '{"version":5,"drafts":[]}',
       'Sensitive Name +12025550123',
       '{"version":2,"drafts":[{"id":"bad"}]}',
     ]) {
@@ -75,7 +77,7 @@ void main() {
     );
     expect(migrated.body, contains('I need help.'));
     expect(migrated.body, isNot(contains('Test User')));
-    expect((jsonDecode(SosDraftCodec.encode([migrated])) as Map)['version'], 3);
+    expect((jsonDecode(SosDraftCodec.encode([migrated])) as Map)['version'], 4);
   });
 
   test('rejects unknown statuses and preserves the SMS lifecycle statuses', () {

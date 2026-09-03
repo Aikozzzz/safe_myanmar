@@ -104,9 +104,14 @@ and model identifiers are preserved.
 - The Mapbox view uses a readable street-map style with a floating location
   action. Tapping the action or the user marker recenters the map and shows
   precision, coordinates, and capture-time details in a bottom sheet.
-- The map legend lists only visible layers and never relies on color alone.
-  Hazard and context summaries remain readable without map tiles and retain
-  source, timestamp, cached-data, simulation, and uncertainty labels.
+- The interactive map legend lists available layers, pairs every marker color
+  with an icon and label, and provides a visibility control for each layer.
+  Tapping a legend entry opens an in-map summary; tapping a shelter, hazard,
+  context-area candidate, route, or nearby SOS marker opens its details without
+  leaving the map. Hazard and context summaries remain readable without map
+   tiles and retain source, timestamp, cached-data, and uncertainty labels.
+   Backend simulation metadata remains available for development gating but is
+   not presented as a user-facing simulation label.
 - The flow distinguishes not requested, requesting, approximate, precise,
   denied, permanently denied, service disabled, last known, and recoverable
   error states. Permanent denial and disabled services link to settings.
@@ -131,14 +136,24 @@ and model identifiers are preserved.
   review the preview, and can continue without coordinates if location becomes
   unavailable. The frame broadcasts a structured temporary sender token,
   sequence, UTC timestamp, fixed-point coordinates when available,
-  current/last-known location status, and battery value. The sender token is
-  stored securely and rotates daily; it is an event correlation identifier, not
-  authentication. Names, contacts, and message text are never broadcast.
+  current/last-known location status, and battery value. The user may also
+  enter an optional short BLE alias and message; these are sent as separate
+  versioned metadata frames, limited to 16 and 48 UTF-8 bytes respectively.
+  The alias is not the full profile name. Nearby receivers reassemble the
+  metadata and label an event `Verified` only when its alias and coordinates are
+  present; otherwise it is `Unverified`. These labels do not authenticate the
+  peer or confirm delivery. The sender token is stored securely and rotates
+  daily; it is an event correlation identifier, not authentication. Profile
+  data and contacts are never broadcast.
   Advertising stops after ten minutes and is controlled by a foreground service
   notification. Coordinates received over Bluetooth are peer-supplied and
-  unverified; the Map tab plots all retained located sources, supports selecting
-  a source and fitting the camera to all markers, and the SOS details provide a
-  Google Maps query link.
+  not identity- or delivery-verified; the Map tab plots all retained located
+  sources, shows the per-event `Verified`/`Unverified` label, supports selecting
+   a source and fitting the camera to all markers, and the SOS details provide a
+   Google Maps query link. A located, unexpired SOS marker also exposes an
+   explicit `Show route to this SOS` action. The route is requested from the
+   current foreground location through `/api/v1/sos-route` and drawn on the
+   Mapbox map; it is never requested automatically.
 - Nearby SOS receiving is opt-in. Foreground receiving listens only while the
   app session has enabled it; the separate Android background receiver uses a
   visible connected-device foreground-service notification and restores only
@@ -147,10 +162,15 @@ and model identifiers are preserved.
   the same sender, and sends an unverified notification for each new sender
   event. Tapping that notification opens the Map tab and focuses the retained
   event when it has coordinates. Background receiving never relays or uploads
-  frames. A separate foreground-only relay opt-in can rebroadcast each valid
-  frame once over Bluetooth; frames are limited to one relay hop and are not
-  uploaded or dispatched. Optional sound is controlled by the foreground
-  receiver.
+   frames. A separate foreground-only relay opt-in can rebroadcast each valid
+   frame once over Bluetooth; frames are limited to one relay hop and are not
+   uploaded or dispatched. Optional sound is controlled by the foreground
+   receiver.
+- The More tab opens Settings for the English/Myanmar choice and six SOS
+  preferences covering location sharing, nearby receiving, one-hop relay,
+  alert sound, and background receiving. These preferences are stored locally
+  and restored on startup; enabling a permission-dependent option requests only
+  the permission needed for that option.
 - Profile, emergency contacts, and SOS drafts are stored locally with
   `flutter_secure_storage`. They are not uploaded by the implemented app.
 - Alert/navigation caches and Guide articles use app-private Drift/SQLite
@@ -188,11 +208,13 @@ and model identifiers are preserved.
   generation need network access. Previously cached map data can still be shown
   with a warning; there is no bundled offline basemap. The map uses Mapbox
   satellite-streets imagery, displays the active broadcast area in orange, and
-  displays nearby SOS sources as unverified red markers at the coordinates
-  received in the BLE frame when location data is available. The source list
-  below the map exposes timestamp, location status, battery, signal, protocol,
-  and relay details for the selected event. RSSI is only an approximate
-  proximity signal.
+  displays nearby SOS sources as red markers at the coordinates received in the
+  BLE frame when location data is available. The source list below the map
+  exposes the per-event `Verified`/`Unverified` status, timestamp, location
+  status, optional alias/message, battery, signal, protocol, and relay details
+  for the selected event. Missing battery and RSSI values are omitted; RSSI is
+   only an approximate proximity signal. SOS coordinate routes are not cached,
+   and unavailable or expired frames remain listable without a route.
 - Background SOS events are retained only until their advertised TTL and are
   capped at 64 encrypted app-private frames. Same-sender sequence high-water
   marks prevent delayed older frames from returning after replacement. Android
@@ -214,18 +236,19 @@ and model identifiers are preserved.
   explicit selection, and then displays up to three route alternatives. The
   selected context-area ID is sent explicitly; the backend revalidates it
   before requesting directions. Route cards show source, directions provider,
-  profile, generated time, hazard-data time, ranking rationale, simulation
-  state, and uncertainty. Missing token, stale data, unavailable destinations,
+  profile, generated time, hazard-data time, ranking rationale, and uncertainty.
+  Missing token, stale data, unavailable destinations,
   and empty route results remain unavailable rather than becoming straight-line
   guidance. Fictional navigation records remain separately gated behind
   `ENABLE_SIMULATION_DATA=true`; `ENABLE_SIMULATION_ANALYSIS=true` is a
   backend-only development option that augments context-area analysis without
   adding simulation records to mobile hazard or shelter lists.
 - Navigation DTOs preserve the backend's explicit `simulation` marker,
-  including mixed real-plus-simulation analysis responses. The client displays
-  the simulation label and accepts such responses only when the development
-  `--dart-define=ENABLE_SIMULATION_DATA=true` opt-in is also supplied; real
-  responses remain usable by default.
+  including mixed real-plus-simulation analysis responses. The client accepts
+  such responses only when the development
+  `--dart-define=ENABLE_SIMULATION_DATA=true` opt-in is also supplied and keeps
+  the marker out of normal user-facing labels; real responses remain usable by
+  default.
 - SOS persists at most five drafts, suppresses equivalent active drafts within
   five minutes, previews shared data, and requires hold/accessibility
   confirmation. Status means prepared, SMS sending, SMS accepted by the device,

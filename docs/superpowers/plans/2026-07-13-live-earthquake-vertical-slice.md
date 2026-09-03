@@ -13,7 +13,9 @@
 - Use only live USGS data in the running application; bundled, seeded, or visible simulated alerts are prohibited.
 - Test fixtures are allowed only under test directories and must not be imported by runtime code.
 - Describe records as `Earthquake information`, never official Myanmar warnings, evacuation orders, or predictions.
-- Use inclusive coverage bounds: latitude `8.284..30.043`, longitude `90.689..102.676`.
+- Use the inclusive Yangon Region coverage envelope: latitude
+  `14.04582802200008..17.79695808500003`, longitude
+  `93.35195104000019..96.82662590900009`.
 - Poll USGS no more frequently than once every 60 seconds.
 - API data is `current` when the latest successful refresh is no more than five minutes old; older persisted data is `stale`.
 - Provider failure with no previous successful refresh returns `503 Service Unavailable`, not an empty list.
@@ -139,7 +141,8 @@ ruff>=0.9,<1
 Set exact defaults:
 
 ```python
-usgs_feed_url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
+usgs_feed_url = "https://earthquake.usgs.gov/fdsnws/event/1/query"
+usgs_lookback_days = 3650
 provider_timeout_seconds = 10.0
 refresh_minimum_seconds = 60
 current_max_age_seconds = 300
@@ -219,10 +222,10 @@ Expected: import failure for the missing normalizer.
 Define exact constants:
 
 ```python
-MIN_LATITUDE = 8.284
-MAX_LATITUDE = 30.043
-MIN_LONGITUDE = 90.689
-MAX_LONGITUDE = 102.676
+MIN_LATITUDE = 14.04582802200008
+MAX_LATITUDE = 17.79695808500003
+MIN_LONGITUDE = 93.35195104000019
+MAX_LONGITUDE = 96.82662590900009
 PROVIDER = "usgs"
 KIND = "earthquake_information"
 ```

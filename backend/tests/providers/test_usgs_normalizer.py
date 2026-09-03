@@ -31,7 +31,7 @@ def feature(**overrides):
             "status": "reviewed",
             "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000test",
         },
-        "geometry": {"type": "Point", "coordinates": [96.1, 21.9, 12.5]},
+        "geometry": {"type": "Point", "coordinates": [96.1, 16.7, 12.5]},
     }
     value.update(overrides)
     return value
@@ -59,7 +59,7 @@ def test_valid_feature_maps_exact_normalized_contract():
     assert event.place == "SIMULATION: 10 km NW of Test City"
     assert event.magnitude == 5.2
     assert event.depth_km == 12.5
-    assert event.latitude == 21.9
+    assert event.latitude == 16.7
     assert event.longitude == 96.1
     assert event.event_at == datetime(2024, 3, 9, 16, 0, tzinfo=UTC)
     assert event.provider_updated_at == datetime(2024, 3, 9, 16, 1, tzinfo=UTC)

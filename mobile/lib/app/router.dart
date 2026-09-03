@@ -8,6 +8,7 @@ import '../features/guide/presentation/guide_screens.dart';
 import '../features/location/presentation/location_screen.dart';
 import '../features/navigation/presentation/app_shell.dart';
 import '../features/profile/presentation/profile_screens.dart';
+import '../features/settings/presentation/settings_screen.dart';
 import '../l10n/app_localizations.dart';
 
 GoRouter createRouter({String initialLocation = '/home'}) {
@@ -72,6 +73,10 @@ GoRouter createRouter({String initialLocation = '/home'}) {
                   GoRoute(
                     path: 'profile',
                     builder: (_, _) => const EditProfileScreen(),
+                  ),
+                  GoRoute(
+                    path: 'settings',
+                    builder: (_, _) => const SettingsScreen(),
                   ),
                   GoRoute(
                     path: 'contacts',

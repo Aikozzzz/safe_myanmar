@@ -154,43 +154,43 @@ void main() {
     final reply = container.read(assistantControllerProvider).messages.last;
 
     expect(reply.result!.intent, EmergencyIntent.earthquakeGuidance);
-    expect(reply.article!.answerForLanguage(burmese: true), 'အတည်ပြုထားသော အဖြေ');
+    expect(
+      reply.article!.answerForLanguage(burmese: true),
+      'အတည်ပြုထားသော အဖြေ',
+    );
     expect(reply.article!.answerEn, 'APPROVED EARTHQUAKE ANSWER');
     expect(reply.localRewording, isNull);
   });
 
-  test('Burmese critical questions stay deterministic and use Burmese content', () async {
-    final nativeAi = FakeNativeAiService(
-      capabilitiesResult: availableNativeAiCapabilities,
-    );
-    final container = _container(
-      nativeAi,
-      language: AppLanguage.burmese,
-    );
-    addTearDown(container.dispose);
-    await _loadLanguage(container, AppLanguage.burmese);
-    await _loadCapabilities(container);
+  test(
+    'Burmese critical questions stay deterministic and use Burmese content',
+    () async {
+      final nativeAi = FakeNativeAiService(
+        capabilitiesResult: availableNativeAiCapabilities,
+      );
+      final container = _container(nativeAi, language: AppLanguage.burmese);
+      addTearDown(container.dispose);
+      await _loadLanguage(container, AppLanguage.burmese);
+      await _loadCapabilities(container);
 
-    await container
-        .read(assistantControllerProvider.notifier)
-        .send('ဒဏ်ရာရသူအတွက် ရှေးဦးသူနာပြု');
-    final reply = container.read(assistantControllerProvider).messages.last;
+      await container
+          .read(assistantControllerProvider.notifier)
+          .send('ဒဏ်ရာရသူအတွက် ရှေးဦးသူနာပြု');
+      final reply = container.read(assistantControllerProvider).messages.last;
 
-    expect(reply.result!.intent, EmergencyIntent.firstAid);
-    expect(reply.article!.answerMy, 'အတည်ပြုထားသော ရှေးဦးသူနာပြုအဖြေ');
-    expect(reply.responseEngine, AssistantResponseEngine.deterministic);
-    expect(nativeAi.initializationCalls, 0);
-    expect(nativeAi.rewriteCalls, 0);
-  });
+      expect(reply.result!.intent, EmergencyIntent.firstAid);
+      expect(reply.article!.answerMy, 'အတည်ပြုထားသော ရှေးဦးသူနာပြုအဖြေ');
+      expect(reply.responseEngine, AssistantResponseEngine.deterministic);
+      expect(nativeAi.initializationCalls, 0);
+      expect(nativeAi.rewriteCalls, 0);
+    },
+  );
 
   test(
     'Burmese general disaster questions use a reviewed fallback when Gemma is unavailable',
     () async {
       final nativeAi = FakeNativeAiService();
-      final container = _container(
-        nativeAi,
-        language: AppLanguage.burmese,
-      );
+      final container = _container(nativeAi, language: AppLanguage.burmese);
       addTearDown(container.dispose);
       await _loadLanguage(container, AppLanguage.burmese);
       await _loadCapabilities(container);
@@ -208,65 +208,62 @@ void main() {
     },
   );
 
-  test('Burmese Gemma rewriting receives Burmese content and language', () async {
-    final nativeAi = FakeNativeAiService(
-      capabilitiesResult: availableNativeAiCapabilities,
-      rewriteResult: const NativeAiResult.success(
-        NativeVerifiedRewrite('အရေးပေါ်လမ်းညွှန်ကို အတိုချုံးရှင်းပြထားသည်။'),
-      ),
-    );
-    final container = _container(
-      nativeAi,
-      language: AppLanguage.burmese,
-    );
-    addTearDown(container.dispose);
-    await _loadLanguage(container, AppLanguage.burmese);
-    await _loadCapabilities(container);
+  test(
+    'Burmese Gemma rewriting receives Burmese content and language',
+    () async {
+      final nativeAi = FakeNativeAiService(
+        capabilitiesResult: availableNativeAiCapabilities,
+        rewriteResult: const NativeAiResult.success(
+          NativeVerifiedRewrite('အရေးပေါ်လမ်းညွှန်ကို အတိုချုံးရှင်းပြထားသည်။'),
+        ),
+      );
+      final container = _container(nativeAi, language: AppLanguage.burmese);
+      addTearDown(container.dispose);
+      await _loadLanguage(container, AppLanguage.burmese);
+      await _loadCapabilities(container);
 
-    await container
-        .read(assistantControllerProvider.notifier)
-        .send('ငလျင်အတွက် လမ်းညွှန်ချက်');
-    final reply = container.read(assistantControllerProvider).messages.last;
+      await container
+          .read(assistantControllerProvider.notifier)
+          .send('ငလျင်အတွက် လမ်းညွှန်ချက်');
+      final reply = container.read(assistantControllerProvider).messages.last;
 
-    expect(reply.localRewording, 'အရေးပေါ်လမ်းညွှန်ကို အတိုချုံးရှင်းပြထားသည်။');
-    expect(nativeAi.lastRewrite!.languageCode, 'my');
-    expect(
-      nativeAi.lastRewrite!.verifiedContent,
-      reply.article!.answerMy,
-    );
-    expect(reply.language, AppLanguage.burmese);
-  });
+      expect(
+        reply.localRewording,
+        'အရေးပေါ်လမ်းညွှန်ကို အတိုချုံးရှင်းပြထားသည်။',
+      );
+      expect(nativeAi.lastRewrite!.languageCode, 'my');
+      expect(nativeAi.lastRewrite!.verifiedContent, reply.article!.answerMy);
+      expect(reply.language, AppLanguage.burmese);
+    },
+  );
 
   test(
     'English-only Burmese Gemma answers fall back to a reviewed Burmese article',
     () async {
-    final nativeAi = FakeNativeAiService(
-      capabilitiesResult: availableNativeAiCapabilities,
-      answerResult: const NativeAiResult.success(
-        NativeVerifiedRewrite('This is an English-only answer.'),
-      ),
-    );
-    final container = _container(
-      nativeAi,
-      language: AppLanguage.burmese,
-    );
-    addTearDown(container.dispose);
-    await _loadLanguage(container, AppLanguage.burmese);
-    await _loadCapabilities(container);
+      final nativeAi = FakeNativeAiService(
+        capabilitiesResult: availableNativeAiCapabilities,
+        answerResult: const NativeAiResult.success(
+          NativeVerifiedRewrite('This is an English-only answer.'),
+        ),
+      );
+      final container = _container(nativeAi, language: AppLanguage.burmese);
+      addTearDown(container.dispose);
+      await _loadLanguage(container, AppLanguage.burmese);
+      await _loadCapabilities(container);
 
-    await container
-        .read(assistantControllerProvider.notifier)
-        .send('ငလျင်အကြောင်း ရှင်းပြပါ');
-    final reply = container.read(assistantControllerProvider).messages.last;
+      await container
+          .read(assistantControllerProvider.notifier)
+          .send('ငလျင်အကြောင်း ရှင်းပြပါ');
+      final reply = container.read(assistantControllerProvider).messages.last;
 
-    expect(reply.result!.intent, EmergencyIntent.unknown);
-    expect(reply.replyKind, AssistantReplyKind.article);
-    expect(reply.article!.answerMy, 'အတည်ပြုထားသော အဖြေ');
-    expect(reply.gemmaAnswer, isNull);
-    expect(reply.responseEngine, AssistantResponseEngine.deterministic);
-    expect(nativeAi.answerCalls, 1);
-    expect(nativeAi.lastAnswerLanguage, 'my');
-    expect(nativeAi.lastApprovedContext, contains('အတည်ပြုထားသော အဖြေ'));
+      expect(reply.result!.intent, EmergencyIntent.unknown);
+      expect(reply.replyKind, AssistantReplyKind.article);
+      expect(reply.article!.answerMy, 'အတည်ပြုထားသော အဖြေ');
+      expect(reply.gemmaAnswer, isNull);
+      expect(reply.responseEngine, AssistantResponseEngine.deterministic);
+      expect(nativeAi.answerCalls, 1);
+      expect(nativeAi.lastAnswerLanguage, 'my');
+      expect(nativeAi.lastApprovedContext, contains('အတည်ပြုထားသော အဖြေ'));
     },
   );
 
@@ -275,10 +272,7 @@ void main() {
     final nativeAi = FakeNativeAiService(
       capabilitiesResult: availableNativeAiCapabilities,
     )..rewriteHandler = () => rewrite.future;
-    final container = _container(
-      nativeAi,
-      language: AppLanguage.burmese,
-    );
+    final container = _container(nativeAi, language: AppLanguage.burmese);
     addTearDown(container.dispose);
     await _loadLanguage(container, AppLanguage.burmese);
     await _loadCapabilities(container);
@@ -592,27 +586,27 @@ void main() {
     'ကယ်ဆယ်ရေးအဖွဲ့သည် မုချ ရောက်လာမည်။',
     'SOS ကို အောင်မြင်စွာပို့ပြီးပါပြီ။',
   ]) {
-    test('unsafe Burmese Gemma claims fall back to approved article content', () async {
-      final nativeAi = FakeNativeAiService(
-        capabilitiesResult: availableNativeAiCapabilities,
-        rewriteResult: NativeAiResult.success(NativeVerifiedRewrite(output)),
-      );
-      final container = _container(
-        nativeAi,
-        language: AppLanguage.burmese,
-      );
-      addTearDown(container.dispose);
-      await _loadLanguage(container, AppLanguage.burmese);
-      await _loadCapabilities(container);
+    test(
+      'unsafe Burmese Gemma claims fall back to approved article content',
+      () async {
+        final nativeAi = FakeNativeAiService(
+          capabilitiesResult: availableNativeAiCapabilities,
+          rewriteResult: NativeAiResult.success(NativeVerifiedRewrite(output)),
+        );
+        final container = _container(nativeAi, language: AppLanguage.burmese);
+        addTearDown(container.dispose);
+        await _loadLanguage(container, AppLanguage.burmese);
+        await _loadCapabilities(container);
 
-      await container
-          .read(assistantControllerProvider.notifier)
-          .send('ငလျင်အတွက် လမ်းညွှန်ချက်');
-      final reply = container.read(assistantControllerProvider).messages.last;
+        await container
+            .read(assistantControllerProvider.notifier)
+            .send('ငလျင်အတွက် လမ်းညွှန်ချက်');
+        final reply = container.read(assistantControllerProvider).messages.last;
 
-      expect(reply.article!.answerMy, 'အတည်ပြုထားသော အဖြေ');
-      expect(reply.localRewording, isNull);
-    });
+        expect(reply.article!.answerMy, 'အတည်ပြုထားသော အဖြေ');
+        expect(reply.localRewording, isNull);
+      },
+    );
   }
 
   test('Gemma is never called for critical or action responses', () async {
@@ -678,10 +672,7 @@ void main() {
         NativeVerifiedRewrite('အတည်ပြုထားသော ပြန်လည်ရေးသားမှု'),
       ),
     );
-    final container = _container(
-      nativeAi,
-      language: AppLanguage.burmese,
-    );
+    final container = _container(nativeAi, language: AppLanguage.burmese);
     addTearDown(container.dispose);
     await _loadLanguage(container, AppLanguage.burmese);
     await _loadCapabilities(container);

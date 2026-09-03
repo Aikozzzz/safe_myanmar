@@ -257,6 +257,20 @@ def test_valid_empty_feed_records_success(database_session):
     assert result.data_status == "current"
 
 
+def test_service_returns_latest_ten_events(database_session):
+    events = [
+        event(str(index), event_at=NOW - timedelta(minutes=index))
+        for index in range(11)
+    ]
+    client = FakeClient([success_outcome(events)])
+
+    result = service(client).list_alerts(database_session, NOW)
+
+    assert [item.provider_event_id for item in result.items] == [
+        str(index) for index in range(10)
+    ]
+
+
 def test_successful_snapshot_removes_absent_usgs_events(database_session):
     retained = event("retained")
     absent = event("absent")

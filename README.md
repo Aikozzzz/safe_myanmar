@@ -17,9 +17,10 @@ official emergency or medical services when available.
 
 - Material 3 five-tab shell: Home, Map, SOS, Guide, and More. The earthquake
   list and detail screens are opened from Home.
-- Backend-only retrieval of the live USGS `all_day.geojson` feed, strict
-  normalization into PostgreSQL, and versioned list/detail APIs with USGS
-  attribution and UTC timestamps.
+- Backend-only retrieval of the live USGS earthquake catalog, restricted to the
+  Yangon Region coverage envelope, with strict normalization into PostgreSQL and
+  versioned list/detail APIs with USGS attribution and UTC timestamps. The list
+  returns the latest ten available records from a ten-year search window.
 - Cache-first earthquake states for live, cached, stale, successful empty, and
   unavailable data. Alert detail preserves magnitude, depth, coordinates, event
   time, provider update and retrieval times, review status, version, and the
@@ -37,13 +38,19 @@ official emergency or medical services when available.
   lower-exposure context-area suggestions, selects one, and then requests up to
   three Mapbox alternatives. Each route includes its destination source,
   directions provider, generated time, hazard-data time, profile, ranking
-  rationale, and uncertainty notice. Missing or stale destination, directions
-  configuration, or provider data leaves route guidance unavailable; no
-  straight-line fallback or guaranteed-safe route is presented.
+   rationale, and uncertainty notice. Missing or stale destination, directions
+   configuration, or provider data leaves route guidance unavailable; no
+   straight-line fallback or guaranteed-safe route is presented.
+   Tapping a located nearby SOS marker can explicitly request an in-app route to
+   its peer-reported coordinate; this route remains subject to provider,
+   timestamp, access, and location uncertainty.
 - Drift schema v6 for earthquake, shelter, hazard, and route caches plus
   versioned, source-backed emergency Guide content.
 - Device-local profile and up to ten emergency contacts in Android secure
-  storage. Contacts must be explicitly selected for SOS use.
+   storage. Contacts must be explicitly selected for SOS use.
+- More includes a Settings screen for the English/Myanmar choice and six
+  persisted SOS preferences covering location sharing, nearby receiving,
+  one-hop relay, alert sound, and background receiving.
 - Persisted SOS drafts with recipient and optional location snapshots,
   five-minute duplicate suppression, hold-to-confirm, and an accessible
   confirmation path. Android direct SMS sending is available after explicit
@@ -56,8 +63,10 @@ official emergency or medical services when available.
   remain session-scoped opt-ins; background receiving never relays or uploads
   frames.
 - Nearby SOS broadcasts use a daily rotating sender token and require explicit
-  per-SOS location-sharing consent. The Map tab can display and select all
-  retained located SOS sources without treating peer data as verified.
+  per-SOS location-sharing consent. An optional user-entered short alias and
+  message can be sent in bounded versioned metadata fragments; the alias is not
+  the full profile name. The Map tab can display and select all retained located
+  SOS sources without treating peer data as verified.
 - Bilingual English/Myanmar offline Guide articles with source, review date,
   content version, translation warning, category filtering, and search.
 - A deterministic offline intent classifier and structured SOS text extraction.
@@ -81,23 +90,25 @@ assets and is not loaded by the shipped runtime.
 
 ### Live earthquake observations
 
-The backend includes USGS events whose coordinates are within these inclusive
-coarse coverage bounds:
+The backend includes USGS events whose coordinates are within the inclusive
+Yangon Region coverage envelope derived from OCHA COD administrative data:
 
 | Boundary | Value |
 |---|---:|
-| Minimum latitude | `8.284` |
-| Maximum latitude | `30.043` |
-| Minimum longitude | `90.689` |
-| Maximum longitude | `102.676` |
+| Minimum latitude | `14.04582802200008` |
+| Maximum latitude | `17.79695808500003` |
+| Minimum longitude | `93.35195104000019` |
+| Maximum longitude | `96.82662590900009` |
 
-The box includes a 1.5-degree border buffer. It is not a political border,
-affected-area assessment, or claim that places outside it are safe. Provider
-refresh attempts are throttled to 60 seconds. A successful server snapshot is
-current for five minutes, then explicitly stale. A provider failure preserves
-the last successful server and mobile snapshots; failure before any success is
-not shown as an empty result. There are no simulated earthquake alerts in the
-runtime path; controlled alert fixtures remain test-only.
+The box is a coarse administrative coverage envelope, not a political border,
+affected-area assessment, or claim that places outside it are safe. Each
+successful refresh searches the latest ten years and returns at most ten events,
+ordered by event time. Provider refresh attempts are throttled to 60 seconds. A
+successful server snapshot is current for five minutes, then explicitly stale.
+A provider failure preserves the last successful server and mobile snapshots;
+failure before any success is not shown as an empty result. There are no
+simulated earthquake alerts in the runtime path; controlled alert fixtures
+remain test-only.
 
 ### Navigation data
 
@@ -231,8 +242,9 @@ physical device, run `adb reverse tcp:8000 tcp:8000` and use
 
 ### Language selection
 
-The More tab provides an explicit English/မြန်မာ selector. SafeMyanmar stores
-only `en` or `my` in the separate Android secure-storage key
+ The More tab opens Settings, which provides an explicit English/မြန်မာ
+ selector. SafeMyanmar stores only `en` or `my` in the separate Android
+ secure-storage key
 `app_language_v1`; it does not alter the encrypted profile payload or require
 location, network access, or a fresh cache. The selected locale is restored on
 restart, while missing, invalid, or unreadable values safely use English.
@@ -288,7 +300,8 @@ Backend values are read from `backend/.env` when the API starts in `backend/`.
 | `MAPBOX_PUBLIC_ACCESS_TOKEN` | Flutter | Optional restricted `pk.*` public token supplied with `--dart-define`; without it the map shows a configuration state |
 | `DATABASE_URL` | FastAPI, Alembic | Required `postgresql+psycopg` URL; production requires non-placeholder values, a non-loopback host, and `sslmode=require` |
 | `ENVIRONMENT` | FastAPI, Alembic | `development` by default; also accepts `test` or `production` |
-| `USGS_FEED_URL` | FastAPI | Defaults to the live USGS all-day feed |
+| `USGS_FEED_URL` | FastAPI | Defaults to the USGS FDSN earthquake query endpoint |
+| `USGS_LOOKBACK_DAYS` | FastAPI | Defaults to `3650`; search window for latest regional records |
 | `PROVIDER_TIMEOUT_SECONDS` | FastAPI | Defaults to `10.0`; used by USGS and Mapbox requests |
 | `REFRESH_MINIMUM_SECONDS` | FastAPI | Defaults to `60` |
 | `CURRENT_MAX_AGE_SECONDS` | FastAPI | Defaults to `300` |
@@ -458,12 +471,15 @@ SafeMyanmar/
 - Android BLE SOS sharing is limited to nearby SafeMyanmar users who have opted
    into receiving peer alerts. It broadcasts a temporary event ID, UTC timestamp,
    fixed-point coordinates when available, location status, and battery value for up to ten
-   minutes. The active sender frame is shown locally with its decoded details;
-   peer events are unverified and do not confirm delivery or rescue.
+   minutes. Optional alias/message metadata is limited to 16/48 UTF-8 bytes and
+   reassembled by compatible receivers. An event is labeled `Verified` only when
+   its alias and coordinates are present; this does not verify peer identity,
+   delivery, or rescue response. Missing battery or RSSI values are omitted.
 - SOS remains a local draft and transport handoff workflow. SMS is reviewed and
   sent in an external app; optional Android BLE sharing broadcasts limited,
-  unverified peer data for ten minutes. SafeMyanmar has no sent, delivered,
-  dispatch, retry, or rescue acknowledgement signal.
+   peer data for ten minutes. SafeMyanmar has no sent, delivered, dispatch,
+   retry, or rescue acknowledgement signal; the event label only describes
+   whether alias and coordinates were present.
 - Guide content is a small reviewed offline set, not diagnosis or comprehensive
   medical care. Myanmar translations carry a review warning.
 - Deterministic guidance remains available without models. Optional ONNX and

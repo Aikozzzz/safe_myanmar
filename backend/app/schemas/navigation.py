@@ -127,6 +127,12 @@ class RouteSuggestionRequest(ExactModel):
     profile: RouteProfile | None = None
 
 
+class SosRouteRequest(ExactModel):
+    origin: Coordinate
+    destination: Coordinate
+    profile: RouteProfile | None = None
+
+
 class RouteOption(ExactModel):
     id: str
     generated_at: datetime

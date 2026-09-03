@@ -13,19 +13,19 @@
       "type": "Feature",
       "properties": {
         "mag": 4.6,
-        "place": "integration-fixture-001 near Mandalay",
+        "place": "integration-fixture-001 near Yangon",
         "time": 1783904523000,
         "updated": 1783904584000,
         "url": "https://earthquake.usgs.gov/earthquakes/eventpage/integration-fixture-001",
-        "title": "M 4.6 - integration-fixture-001 near Mandalay",
+        "title": "M 4.6 - integration-fixture-001 near Yangon",
         "status": "reviewed"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [96.0891, 21.9588, 10.5]
+        "coordinates": [96.1159, 16.6943, 10.5]
       },
       "id": "integration-fixture-001"
     }
   ],
-  "bbox": [96.0891, 21.9588, 10.5, 96.0891, 21.9588, 10.5]
+  "bbox": [96.1159, 16.6943, 10.5, 96.1159, 16.6943, 10.5]
 }

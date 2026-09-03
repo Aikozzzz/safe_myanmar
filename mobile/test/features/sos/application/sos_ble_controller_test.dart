@@ -5,10 +5,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/sos/application/providers.dart';
 import 'package:mobile/features/sos/data/sos_ble_sender_identity.dart';
+import 'package:mobile/features/sos/data/sos_preferences.dart';
 import 'package:mobile/features/sos/domain/sos_ble.dart';
 import 'package:mobile/features/sos/domain/sos_draft.dart';
 
+import '../../../support/fake_sos_preferences_store.dart';
+
 void main() {
+  test(
+    'restores saved receiver, relay, sound, and background choices',
+    () async {
+      final platform = FakeSosBlePlatform();
+      final store = FakeSosPreferencesStore()
+        ..preferences = const SosPreferences(
+          receiveNearbySos: true,
+          relayNearbySos: true,
+          soundEnabled: true,
+          backgroundReceive: true,
+        );
+      final container = ProviderContainer(
+        overrides: [
+          sosBlePlatformProvider.overrideWithValue(platform),
+          sosPreferencesStoreProvider.overrideWithValue(store),
+          sosBleSenderIdentityStoreProvider.overrideWithValue(
+            _FakeSosBleSenderIdentitySource(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(platform.events.close);
+      container.read(sosBleControllerProvider.notifier);
+
+      await settleSupport(container);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(sosBleControllerProvider);
+      expect(state.listening, isTrue);
+      expect(state.relayEnabled, isTrue);
+      expect(state.soundEnabled, isTrue);
+      expect(state.backgroundListening, isTrue);
+      expect(platform.scanStarted, greaterThanOrEqualTo(1));
+      expect(platform.backgroundScanEnabled, isTrue);
+    },
+  );
+
   test('broadcast requests permissions and starts a compact event', () async {
     final platform = FakeSosBlePlatform();
     final container = ProviderContainer(
@@ -37,6 +77,32 @@ void main() {
     expect(activeEvent, isNotNull);
     expect(activeEvent!.eventId, 'a55a102030400000');
     expect(activeEvent.batteryPercent, 80);
+  });
+
+  test('broadcast includes optional BLE alias and message frames', () async {
+    final platform = FakeSosBlePlatform();
+    final container = ProviderContainer(
+      overrides: [
+        sosBlePlatformProvider.overrideWithValue(platform),
+        sosBleSenderIdentityStoreProvider.overrideWithValue(
+          _FakeSosBleSenderIdentitySource(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(platform.events.close);
+    final controller = container.read(sosBleControllerProvider.notifier);
+    await settleSupport(container);
+
+    await controller.broadcast(metadataDraft);
+
+    expect(platform.broadcastFrameSets, hasLength(1));
+    expect(platform.broadcastFrameSets.single.length, greaterThan(1));
+    expect(container.read(sosBleControllerProvider).activeEvent?.alias, 'Aung');
+    expect(
+      container.read(sosBleControllerProvider).activeEvent?.message,
+      'Trapped upstairs.',
+    );
   });
 
   test('does not retain the sender as a nearby event after stopping', () async {
@@ -275,6 +341,88 @@ void main() {
     expect(event.ttlMinutes, sosBleTtlMinutes);
   });
 
+  test('reassembles optional metadata received after the base frame', () async {
+    final platform = FakeSosBlePlatform();
+    final container = ProviderContainer(
+      overrides: [
+        sosBlePlatformProvider.overrideWithValue(platform),
+        sosBleSenderIdentityStoreProvider.overrideWithValue(
+          _FakeSosBleSenderIdentitySource(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(platform.events.close);
+    final controller = container.read(sosBleControllerProvider.notifier);
+    await settleSupport(container);
+    await controller.setListening(true);
+    final frames = const SosBlePayloadCodec().encodeFrames(
+      SosBleEvent(
+        eventId: '1122334455667788',
+        createdAt: DateTime.now().toUtc(),
+        locationStatus: SosBleLocationStatus.unavailable,
+        batteryPercent: 73,
+        alias: 'Aung',
+        message: 'Need water.',
+      ),
+    );
+
+    platform.events.add(SosBleAdvertisement(frames.first, rssi: -57));
+    for (final frame in frames.skip(1).toList().reversed) {
+      platform.events.add(SosBleAdvertisement(frame, rssi: -57));
+    }
+    await Future<void>.delayed(Duration.zero);
+
+    final event = container.read(sosBleControllerProvider).nearbyEvents.single;
+    expect(event.alias, 'Aung');
+    expect(event.message, 'Need water.');
+  });
+
+  test('does not attach metadata with a mismatched event timestamp', () async {
+    final platform = FakeSosBlePlatform();
+    final container = ProviderContainer(
+      overrides: [
+        sosBlePlatformProvider.overrideWithValue(platform),
+        sosBleSenderIdentityStoreProvider.overrideWithValue(
+          _FakeSosBleSenderIdentitySource(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(platform.events.close);
+    final controller = container.read(sosBleControllerProvider.notifier);
+    await settleSupport(container);
+    await controller.setListening(true);
+    final eventId = '1122334455667788';
+    final metadataFrames = const SosBlePayloadCodec().encodeMetadataFrames(
+      SosBleEvent(
+        eventId: eventId,
+        createdAt: DateTime.now().toUtc().subtract(const Duration(minutes: 2)),
+        locationStatus: SosBleLocationStatus.unavailable,
+        batteryPercent: 73,
+        alias: 'Aung',
+      ),
+    );
+    final baseFrame = const SosBlePayloadCodec().encode(
+      SosBleEvent(
+        eventId: eventId,
+        createdAt: DateTime.now().toUtc(),
+        locationStatus: SosBleLocationStatus.unavailable,
+        batteryPercent: 73,
+      ),
+    );
+
+    for (final frame in metadataFrames) {
+      platform.events.add(SosBleAdvertisement(frame));
+    }
+    platform.events.add(SosBleAdvertisement(baseFrame));
+    await Future<void>.delayed(Duration.zero);
+
+    final event = container.read(sosBleControllerProvider).nearbyEvents.single;
+    expect(event.alias, isNull);
+    expect(event.message, isNull);
+  });
+
   test(
     'restores background events, focuses notification event, and never relays',
     () async {
@@ -471,11 +619,28 @@ final draft = SosDraft(
   status: SosDraftStatus.prepared,
 );
 
+final metadataDraft = SosDraft(
+  id: '00112233-4455-6677-8899-aabbccddeeff',
+  createdAt: DateTime.now().toUtc(),
+  selectedContactIds: const [],
+  recipients: const [],
+  message: null,
+  location: null,
+  profileName: 'Test User',
+  body: 'Test SOS body.',
+  status: SosDraftStatus.prepared,
+  bleAlias: 'Aung',
+  bleMessage: 'Trapped upstairs.',
+);
+
 final class FakeSosBlePlatform implements SosBlePlatformService {
   final events = StreamController<SosBleAdvertisement>.broadcast();
   final broadcastPayloads = <Uint8List>[];
   final relayPayloads = <Uint8List>[];
+  final broadcastFrameSets = <List<Uint8List>>[];
+  final relayFrameSets = <List<Uint8List>>[];
   var permissionsRequested = 0;
+  var requestPermissionsResult = true;
   var scanStarted = 0;
   var scanStopped = 0;
   var broadcastStopped = 0;
@@ -506,7 +671,7 @@ final class FakeSosBlePlatform implements SosBlePlatformService {
     required bool background,
   }) async {
     permissionsRequested++;
-    return true;
+    return requestPermissionsResult;
   }
 
   @override
@@ -520,18 +685,20 @@ final class FakeSosBlePlatform implements SosBlePlatformService {
 
   @override
   Future<void> startBroadcast(
-    Uint8List payload, {
+    List<Uint8List> payloads, {
     String languageCode = 'en',
   }) async {
-    broadcastPayloads.add(payload);
+    broadcastFrameSets.add(payloads);
+    broadcastPayloads.addAll(payloads);
   }
 
   @override
   Future<void> startRelayBroadcast(
-    Uint8List payload, {
+    List<Uint8List> payloads, {
     String languageCode = 'en',
   }) async {
-    relayPayloads.add(payload);
+    relayFrameSets.add(payloads);
+    relayPayloads.addAll(payloads);
   }
 
   @override

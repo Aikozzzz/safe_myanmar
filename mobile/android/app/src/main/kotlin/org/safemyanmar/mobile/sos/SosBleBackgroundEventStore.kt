@@ -14,12 +14,16 @@ import android.security.keystore.KeyProperties
 
 internal data class StoredSosBleEvent(
     val eventId: String,
-    val payload: ByteArray,
+    val payloads: List<ByteArray>,
     val rssi: Int?,
     val expiresAtMillis: Long,
     val senderToken: String?,
     val eventSequence: Int?,
-)
+    val hasBaseFrame: Boolean,
+) {
+    val payload: ByteArray
+        get() = payloads.first()
+}
 
 internal class SosBleBackgroundEventStore(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
@@ -42,16 +46,31 @@ internal class SosBleBackgroundEventStore(context: Context) {
         val frame = SosBleFrameValidator.validate(payload, nowMillis) ?: return null
         if (isOriginatedEvent(frame.eventId, nowMillis)) return null
         val events = read(nowMillis).toMutableList()
-        if (events.any { it.eventId == frame.eventId }) return null
+        var existingMetadataPayloads = emptyList<ByteArray>()
+        val sameIndex = events.indexOfFirst { it.eventId == frame.eventId }
+        if (sameIndex >= 0) {
+            val existing = events[sameIndex]
+            if (frame.metadata) {
+                if (existing.payloads.any { it.contentEquals(payload) }) return null
+                events[sameIndex] = existing.copy(
+                    payloads = existing.payloads + payload.copyOf(),
+                )
+                write(events)
+                return null
+            }
+            if (existing.hasBaseFrame) return null
+            existingMetadataPayloads = existing.payloads
+            events.removeAt(sameIndex)
+        }
         val highWater = readHighWater()
-        if (frame.senderToken != null && frame.eventSequence != null) {
+        if (!frame.metadata && frame.senderToken != null && frame.eventSequence != null) {
             val latestSequence = highWater[frame.senderToken]
             if (latestSequence != null && frame.eventSequence <= latestSequence) return null
         }
         val replacementIndex = frame.senderToken?.let { senderToken ->
             events.indexOfFirst { it.senderToken == senderToken }
         } ?: -1
-        if (replacementIndex >= 0) {
+        if (replacementIndex >= 0 && !frame.metadata) {
             val previous = events[replacementIndex]
             if (frame.eventSequence == null ||
                 previous.eventSequence == null ||
@@ -63,15 +82,16 @@ internal class SosBleBackgroundEventStore(context: Context) {
         }
         val stored = StoredSosBleEvent(
             eventId = frame.eventId,
-            payload = payload.copyOf(),
+            payloads = existingMetadataPayloads + payload.copyOf(),
             rssi = rssi,
             expiresAtMillis = frame.createdAtMillis + frame.ttlMinutes * 60_000L,
             senderToken = frame.senderToken,
             eventSequence = frame.eventSequence,
+            hasBaseFrame = !frame.metadata,
         )
         events.add(stored)
         while (events.size > MAX_EVENTS) events.removeAt(0)
-        if (frame.senderToken != null && frame.eventSequence != null) {
+        if (!frame.metadata && frame.senderToken != null && frame.eventSequence != null) {
             highWater[frame.senderToken] = frame.eventSequence
             while (highWater.size > MAX_EVENTS) {
                 highWater.remove(highWater.keys.first())
@@ -79,7 +99,7 @@ internal class SosBleBackgroundEventStore(context: Context) {
             writeHighWater(highWater)
         }
         write(events)
-        return stored
+        return if (frame.metadata) null else stored
     }
 
     @Synchronized
@@ -134,12 +154,14 @@ internal class SosBleBackgroundEventStore(context: Context) {
     }
 
     fun asFlutterEvents(nowMillis: Long = System.currentTimeMillis()): List<Map<String, Any?>> =
-        read(nowMillis).map { event ->
-            mapOf(
-                "data" to event.payload,
-                "rssi" to event.rssi,
-                "background" to true,
-            )
+        read(nowMillis).flatMap { event ->
+            event.payloads.map { payload ->
+                mapOf(
+                    "data" to payload,
+                    "rssi" to event.rssi,
+                    "background" to true,
+                )
+            }
         }
 
     private fun write(events: List<StoredSosBleEvent>) {
@@ -148,7 +170,14 @@ internal class SosBleBackgroundEventStore(context: Context) {
             json.put(
                 JSONObject().apply {
                     put("event_id", event.eventId)
-                    put("payload", Base64.encodeToString(event.payload, Base64.NO_WRAP))
+                    put(
+                        "payloads",
+                        JSONArray().apply {
+                            event.payloads.forEach { payload ->
+                                put(Base64.encodeToString(payload, Base64.NO_WRAP))
+                            }
+                        },
+                    )
                     put("rssi", event.rssi ?: JSONObject.NULL)
                     put("expires_at", event.expiresAtMillis)
                 },
@@ -210,19 +239,39 @@ internal class SosBleBackgroundEventStore(context: Context) {
         return buildList {
             for (index in 0 until json.length()) {
                 val item = json.getJSONObject(index)
-                val payload = Base64.decode(item.getString("payload"), Base64.DEFAULT)
+                val payloads = if (item.has("payloads")) {
+                    val encodedPayloads = item.getJSONArray("payloads")
+                    buildList {
+                        for (payloadIndex in 0 until encodedPayloads.length()) {
+                            add(
+                                Base64.decode(
+                                    encodedPayloads.getString(payloadIndex),
+                                    Base64.DEFAULT,
+                                ),
+                            )
+                        }
+                    }
+                } else {
+                    listOf(Base64.decode(item.getString("payload"), Base64.DEFAULT))
+                }
+                if (payloads.isEmpty()) continue
                 val eventId = item.getString("event_id")
-                val validated = SosBleFrameValidator.validate(payload, item.getLong("expires_at"))
-                    ?: continue
-                if (validated.eventId != eventId) continue
+                val validatedFrames = payloads.mapNotNull {
+                    SosBleFrameValidator.validate(it, item.getLong("expires_at"))
+                }
+                if (validatedFrames.size != payloads.size ||
+                    validatedFrames.any { it.eventId != eventId }
+                ) continue
+                val baseFrame = validatedFrames.firstOrNull { !it.metadata }
                 val rssi = if (item.isNull("rssi")) null else item.getInt("rssi")
                 add(
                     StoredSosBleEvent(
                         eventId = eventId,
-                        payload = payload,
+                        payloads = payloads,
                         rssi = rssi,
-                        senderToken = validated.senderToken,
-                        eventSequence = validated.eventSequence,
+                        senderToken = (baseFrame ?: validatedFrames.first()).senderToken,
+                        eventSequence = (baseFrame ?: validatedFrames.first()).eventSequence,
+                        hasBaseFrame = baseFrame != null,
                         expiresAtMillis = item.getLong("expires_at"),
                     ),
                 )

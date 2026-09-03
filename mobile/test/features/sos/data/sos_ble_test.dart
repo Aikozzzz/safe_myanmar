@@ -8,6 +8,37 @@ import 'package:mobile/features/sos/domain/sos_draft.dart';
 void main() {
   const codec = SosBlePayloadCodec();
 
+  test('verified details require both alias and location', () {
+    final complete = SosBleEvent(
+      eventId: '0011223344556677',
+      createdAt: DateTime.utc(2026, 7, 23, 1, 2),
+      locationStatus: SosBleLocationStatus.current,
+      batteryPercent: 73,
+      latitude: 21.951,
+      longitude: 96.081,
+      alias: 'Aung',
+    );
+    final noAlias = SosBleEvent(
+      eventId: complete.eventId,
+      createdAt: complete.createdAt,
+      locationStatus: complete.locationStatus,
+      batteryPercent: complete.batteryPercent,
+      latitude: complete.latitude,
+      longitude: complete.longitude,
+    );
+    final noLocation = SosBleEvent(
+      eventId: complete.eventId,
+      createdAt: complete.createdAt,
+      locationStatus: SosBleLocationStatus.unavailable,
+      batteryPercent: complete.batteryPercent,
+      alias: complete.alias,
+    );
+
+    expect(complete.hasVerifiedDetails, isTrue);
+    expect(noAlias.hasVerifiedDetails, isFalse);
+    expect(noLocation.hasVerifiedDetails, isFalse);
+  });
+
   test('encodes exact current coordinates in a compact payload', () {
     final event = SosBleEvent(
       eventId: '0011223344556677',
@@ -200,6 +231,73 @@ void main() {
     expect(decoded.hopCount, 0);
     expect(decoded.protocolVersion, sosBleLegacyProtocolVersion);
     expect(decoded.ttlMinutes, sosBleTtlMinutes);
+  });
+
+  test('encodes and reassembles optional BLE alias and message fragments', () {
+    final event = SosBleEvent(
+      eventId: '0011223344556677',
+      createdAt: DateTime.now().toUtc(),
+      locationStatus: SosBleLocationStatus.current,
+      batteryPercent: 73,
+      latitude: 21.951,
+      longitude: 96.081,
+      alias: 'Aung',
+      message: 'Trapped upstairs.',
+    );
+
+    final frames = codec.encodeFrames(event);
+    final fragments = [
+      for (final frame in frames.skip(1)) codec.decodeMetadataFrame(frame),
+    ];
+    final metadata = codec.decodeMetadata(fragments.reversed);
+
+    expect(frames.first, hasLength(26));
+    expect(fragments.length, greaterThan(1));
+    expect(metadata.alias, 'Aung');
+    expect(metadata.message, 'Trapped upstairs.');
+    expect(
+      fragments.every((fragment) => fragment.eventId == event.eventId),
+      isTrue,
+    );
+  });
+
+  test('rejects BLE text that exceeds its byte limits', () {
+    final event = SosBleEvent(
+      eventId: '0011223344556677',
+      createdAt: DateTime.now().toUtc(),
+      locationStatus: SosBleLocationStatus.unavailable,
+      batteryPercent: 50,
+      alias: 'A' * (maxSosBleAliasBytes + 1),
+    );
+
+    expect(() => codec.encodeMetadataFrames(event), throwsFormatException);
+    expect(
+      () => codec.encodeMetadataFrames(
+        SosBleEvent(
+          eventId: event.eventId,
+          createdAt: event.createdAt,
+          locationStatus: event.locationStatus,
+          batteryPercent: event.batteryPercent,
+          message: 'M' * (maxSosBleMessageBytes + 1),
+        ),
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects malformed UTF-8 in BLE metadata', () {
+    final fragment = SosBleMetadataFragment(
+      eventId: '0011223344556677',
+      createdAt: DateTime.now().toUtc(),
+      hopCount: 0,
+      ttlMinutes: sosBleTtlMinutes,
+      index: 0,
+      total: 1,
+      totalDataLength: 3,
+      data: Uint8List.fromList([1, 0xc3, 0]),
+    );
+
+    expect(() => codec.decodeMetadata([fragment]), throwsFormatException);
   });
 }
 

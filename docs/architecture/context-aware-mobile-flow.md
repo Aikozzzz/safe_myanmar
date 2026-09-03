@@ -58,8 +58,10 @@ sequence; Guide quick actions open only curated content or an explicit route.
    gestures from the surrounding scroll view so it can be panned, zoomed, and
    rotated directly. A Waze-inspired floating location action recenters the
    map; tapping it or the user marker opens a detail sheet with precision,
-   coordinates, and capture time. A visible-layer legend pairs marker colors
-   with icons and labels.
+   coordinates, and capture time. The interactive layer legend pairs marker
+   colors with icons and labels, opens an in-map layer summary, and can show or
+   hide each layer. Tapping a rendered shelter, hazard, context-area candidate,
+   route, or nearby SOS marker opens its source-backed details in the map.
 6. The user taps **Analyze nearby areas**. Once the nearby-area analysis is
    requested, disaster type, earthquake scenario, travel profile, and route
    controls become available. Changing an analysis input clears the previous
@@ -135,15 +137,26 @@ replace the public provider while preserving the API and mobile states.
    a connected-device foreground service with an ongoing notification.
 3. The service validates the BLE marker, protocol version, length, checksum,
    timestamp, TTL, hop count, battery, and coordinates before accepting a
-   frame. It encrypts a bounded app-private queue and deduplicates event IDs.
+   frame. Compatible metadata fragments carry only the optional user-entered
+   alias and message, bounded to 16 and 48 UTF-8 bytes; they are reassembled
+   by event ID and sequence without treating the text as authenticated. It
+   encrypts a bounded app-private queue and deduplicates event IDs.
 4. A new accepted frame produces an unverified notification without placing
    exact coordinates in notification text. The frame is not relayed or
    uploaded by the service.
-5. When the app resumes, Flutter hydrates unexpired frames. A notification tap
-   opens `/map`; when the frame includes coordinates, the map adds the
-   unverified marker and focuses it. Without coordinates, the event remains in
-   the SOS list but cannot be plotted.
-6. Android may stop the service after force-stop, Bluetooth disablement,
+ 5. When the app resumes, Flutter hydrates unexpired frames. A notification tap
+    opens `/map`; when the frame includes coordinates, the map adds the
+    marker and focuses it. The UI labels a retained event `Verified` only when
+    its alias and coordinates are present; otherwise it is `Unverified`. Neither
+    label confirms peer identity or rescue delivery. Without coordinates, the
+    event remains in the SOS list but cannot be plotted. Missing battery and
+    RSSI values are omitted from the details rather than rendered as `Unknown`.
+ 6. A user may explicitly request an in-app route from the current foreground
+    location to a located, unexpired SOS event. The request uses the separate
+    `/api/v1/sos-route` coordinate contract, and returned Mapbox alternatives are
+    rendered with timestamps and uncertainty. It is not requested automatically,
+    is not cached, and never presents a straight-line or guaranteed-safe route.
+ 7. Android may stop the service after force-stop, Bluetooth disablement,
    permission revocation, or OEM battery policy. The UI must continue to label
    the receiver as best-effort rather than continuous coverage.
 
@@ -157,7 +170,8 @@ failure before any successful snapshot is unavailable rather than empty.
 
 The backend current/stale threshold is five minutes from the last successful
 USGS refresh. Mobile and backend timestamps remain visible so users can judge
-age. The coarse Myanmar coverage box is not an affected-area or safety boundary.
+age. The coarse Yangon Region coverage envelope is not an affected-area or
+safety boundary.
 
 ## SOS And Local Profile
 

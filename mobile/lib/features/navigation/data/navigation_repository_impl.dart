@@ -266,6 +266,27 @@ final class NavigationRepositoryImpl implements NavigationRepository {
     }
   }
 
+  @override
+  Future<NavigationResource<RouteSuggestions>> suggestSosRoute(
+    SosRouteRequest request,
+  ) async {
+    try {
+      final value = await _remote.fetchSosRouteSuggestions(request);
+      _requireUsableSource(value.source, value.simulation);
+      return NavigationResource(
+        data: value.toDomain(),
+        isCached: false,
+        remoteFailed: false,
+      );
+    } catch (_) {
+      return const NavigationResource(
+        data: null,
+        isCached: false,
+        remoteFailed: true,
+      );
+    }
+  }
+
   bool _usableSource(String source, bool simulation) =>
       allowSimulationData || (!simulation && source != 'SafeMyanmar Demo');
 

@@ -184,11 +184,9 @@ void main() {
     expect(domain.title, 'M 5.2 - Myanmar');
     expect(domain.place, 'Myanmar');
     expect(
-      AlertEnvelopeDto.fromJson(Map<String, Object?>.from(json))
-          .items
-          .single
-          .toDomain()
-          .title,
+      AlertEnvelopeDto.fromJson(
+        Map<String, Object?>.from(json),
+      ).items.single.toDomain().title,
       domain.title,
     );
   });

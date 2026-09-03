@@ -33,7 +33,11 @@ def create_app() -> FastAPI:
     settings = Settings()
     engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)
-    client = UsgsClient(settings.usgs_feed_url, settings.provider_timeout_seconds)
+    client = UsgsClient(
+        settings.usgs_feed_url,
+        settings.provider_timeout_seconds,
+        lookback_days=settings.usgs_lookback_days,
+    )
     earthquake_service = EarthquakeService(
         client=client,
         earthquake_repository=EarthquakeRepository(),

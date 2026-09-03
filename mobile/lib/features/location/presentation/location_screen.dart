@@ -131,6 +131,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                     : () =>
                           navigationController.analyzeContext(state.location!),
                 onContextAreaChanged: navigationController.selectContextArea,
+                onShelterSelected: navigationController.selectShelter,
                 onDisasterChanged: navigationController.selectDisasterType,
                 onContextScenarioChanged:
                     navigationController.selectContextScenario,
@@ -139,13 +140,33 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                     ? null
                     : () => navigationController.requestRoutes(state.location!),
                 onRouteSelected: navigationController.selectRoute,
+                onSosRouteSelected: navigationController.selectSosRoute,
+                onSosRouteRequested: state.location == null
+                    ? null
+                    : (eventId) {
+                        final event = [
+                          ?sosBleState.activeEvent,
+                          ...sosBleState.nearbyEvents,
+                        ].where((item) => item.eventId == eventId).firstOrNull;
+                        if (event != null) {
+                          unawaited(
+                            navigationController.requestSosRoute(
+                              state.location!,
+                              event,
+                            ),
+                          );
+                        }
+                      },
                 nearbyEvents: sosBleState.nearbyEvents,
                 activeEvent: sosBleState.activeEvent,
                 focusedEventId: sosBleState.focusedEventId,
                 selectedEventId: sosBleState.selectedEventId,
-                onSosEventSelected: (eventId) => ref
-                    .read(sosBleControllerProvider.notifier)
-                    .selectEvent(eventId),
+                onSosEventSelected: (eventId) {
+                  navigationController.clearSosRouteIfTargetChanged(eventId);
+                  ref
+                      .read(sosBleControllerProvider.notifier)
+                      .selectEvent(eventId);
+                },
               ),
             ],
           ),
@@ -379,11 +400,14 @@ class _NavigationContent extends StatelessWidget {
     required this.onLocationSelected,
     required this.onAnalyzeContext,
     required this.onContextAreaChanged,
+    required this.onShelterSelected,
     required this.onDisasterChanged,
     required this.onContextScenarioChanged,
     required this.onProfileChanged,
     required this.onRequestRoutes,
     required this.onRouteSelected,
+    required this.onSosRouteSelected,
+    required this.onSosRouteRequested,
     required this.nearbyEvents,
     required this.activeEvent,
     required this.focusedEventId,
@@ -398,11 +422,14 @@ class _NavigationContent extends StatelessWidget {
   final VoidCallback? onLocationSelected;
   final Future<void> Function()? onAnalyzeContext;
   final ValueChanged<String> onContextAreaChanged;
+  final ValueChanged<String> onShelterSelected;
   final ValueChanged<DisasterType> onDisasterChanged;
   final ValueChanged<ContextScenario> onContextScenarioChanged;
   final ValueChanged<RouteProfile> onProfileChanged;
   final Future<void> Function()? onRequestRoutes;
   final ValueChanged<String> onRouteSelected;
+  final ValueChanged<String> onSosRouteSelected;
+  final ValueChanged<String>? onSosRouteRequested;
   final List<SosBleEvent> nearbyEvents;
   final SosBleEvent? activeEvent;
   final String? focusedEventId;
@@ -437,10 +464,16 @@ class _NavigationContent extends StatelessWidget {
             latitude: currentLocation.latitude,
             longitude: currentLocation.longitude,
           );
+    final sosRouteEvent = events
+        .where((event) => event.eventId == state.sosRouteEventId)
+        .firstOrNull;
+    final sosRouteOptions = sosRouteEvent == null || sosRouteEvent.isExpired
+        ? const <RouteOption>[]
+        : state.sosRoutes?.options ?? const <RouteOption>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SimulationStatus(state: state),
+        _DemoDataNotice(state: state),
         const SizedBox(height: 12),
         if (state.loadingMapData && shelters == null && hazards == null)
           Semantics(
@@ -470,19 +503,39 @@ class _NavigationContent extends StatelessWidget {
               location: currentLocation,
               initialCenter: mapCenter,
               shelters: state.shelters?.items ?? const [],
-              contextAreas: state.contextAreas?.items ?? const [],
+              contextAreas:
+                  state.contextAreas?.items.take(3).toList() ?? const [],
               selectedContextAreaId: state.selectedContextAreaId,
+              selectedShelterId: state.selectedShelterId,
+              shelterUncertaintyNotice: state.shelters?.uncertaintyNotice ?? '',
               hazards: visibleHazards,
+              hazardUncertaintyNotice: state.hazards?.uncertaintyNotice ?? '',
               onLocationSelected: onLocationSelected,
               nearbyEvents: nearbyEvents,
               activeEvent: activeEvent,
               focusedEventId: focusedEventId,
               selectedEventId: selectedEventId,
               onSosEventSelected: onSosEventSelected,
+              onShelterSelected: onShelterSelected,
+              onContextAreaSelected: onContextAreaChanged,
+              onRouteSelected: onRouteSelected,
+              onSosRouteSelected: onSosRouteSelected,
+              onSosRouteRequested: onSosRouteRequested,
               showAllSosLabel: strings.sosBluetoothShowAll,
               locationActionLabel: strings.locationMapAction,
               routes: routes,
               selectedRouteId: state.selectedRouteId,
+              sosRoutes: sosRouteOptions,
+              selectedSosRouteId: state.selectedSosRouteId,
+              sosRouteEventId: state.sosRouteEventId,
+              sosRouteLoading: state.loadingSosRoutes,
+              sosRouteFailed: state.sosRouteFailed,
+              sosRouteLabel: strings.sosRouteLabel,
+              sosRouteLoadingLabel: strings.sosRouteLoadingLabel,
+              sosRouteShownLabel: strings.sosRouteShownLabel,
+              sosRouteUnavailableLabel: strings.sosRouteUnavailableLabel,
+              sosRouteNeedsLocationLabel: strings.sosRouteNeedsLocationLabel,
+              sosRouteExpiredLabel: strings.sosRouteExpiredLabel,
               semanticsLabel: strings.mapContentSemantics,
               errorTitle: strings.mapTemporarilyUnavailableTitle,
               errorDescription: strings.mapTemporarilyUnavailableDescription,
@@ -511,23 +564,18 @@ class _NavigationContent extends StatelessWidget {
           ),
           if (displayedEvent case final event?) ...[
             const SizedBox(height: 8),
-            _SosMapEventDetails(
-              event: event,
-              unverified: event.eventId != activeEvent?.eventId,
-            ),
+            _SosMapEventDetails(event: event),
           ],
         ],
         const SizedBox(height: 16),
-        _ContextAreaList(
-          areas: state.contextAreas?.items ?? const [],
-          selectedId: state.selectedContextAreaId,
+        _ContextAnalysisControl(
+          hasAreas: state.contextAreas?.items.isNotEmpty ?? false,
           requested: state.contextAnalysisRequested,
           loading: state.contextAnalysisLoading,
           failed: state.contextAnalysisFailed,
           cached: state.contextCached,
           uncertaintyNotice: state.contextAreas?.uncertaintyNotice,
           onAnalyze: onAnalyzeContext,
-          onSelected: onContextAreaChanged,
         ),
         if (state.contextAnalysisRequested)
           if (state.contextAreas case final contextCollection?) ...[
@@ -593,6 +641,51 @@ class _NavigationContent extends StatelessWidget {
               ),
               if (index != routeOptions.length - 1) const SizedBox(height: 8),
             ],
+        ],
+        if (sosRouteEvent != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            strings.sosRouteResultsHeading,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          if (state.sosRouteFailed) ...[
+            const SizedBox(height: 8),
+            _StatusMessage(
+              icon: Icons.route_outlined,
+              message: strings.sosRouteUnavailableLabel,
+            ),
+          ],
+          if (state.loadingSosRoutes) ...[
+            const SizedBox(height: 12),
+            Semantics(
+              label: strings.sosRouteLoadingLabel,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+          ],
+          if (state.sosRoutes case final response?) ...[
+            const SizedBox(height: 8),
+            if (response.options.isEmpty)
+              _StatusMessage(
+                icon: Icons.alt_route,
+                message: strings.noRoutesReturned,
+              )
+            else
+              for (var index = 0; index < response.options.length; index++) ...[
+                _RouteCard(
+                  option: response.options[index],
+                  response: response,
+                  label: index == 0
+                      ? strings.routeSuggested
+                      : strings.routeAlternative(index),
+                  selected:
+                      response.options[index].id == state.selectedSosRouteId,
+                  onSelected: () =>
+                      onSosRouteSelected(response.options[index].id),
+                ),
+                if (index != response.options.length - 1)
+                  const SizedBox(height: 8),
+              ],
+          ],
         ],
       ],
     );
@@ -672,10 +765,9 @@ class _SosMapEventSelector extends StatelessWidget {
 }
 
 class _SosMapEventDetails extends StatelessWidget {
-  const _SosMapEventDetails({required this.event, required this.unverified});
+  const _SosMapEventDetails({required this.event});
 
   final SosBleEvent event;
-  final bool unverified;
 
   @override
   Widget build(BuildContext context) {
@@ -692,12 +784,6 @@ class _SosMapEventDetails extends StatelessWidget {
       SosBleLocationStatus.unavailable =>
         strings.sosBluetoothLocationUnavailable,
     };
-    final battery = event.batteryPercent == null
-        ? strings.sosBluetoothUnknownValue
-        : strings.sosBluetoothBatteryValue(event.batteryPercent!);
-    final signal = event.rssi == null
-        ? strings.sosBluetoothUnknownValue
-        : strings.sosBluetoothRssiValue(event.rssi!);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -709,7 +795,11 @@ class _SosMapEventDetails extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            if (unverified) Text(strings.sosBluetoothUnverified),
+            Text(
+              event.hasVerifiedDetails
+                  ? strings.sosBluetoothVerified
+                  : strings.sosBluetoothUnverified,
+            ),
             Text(location),
             Text(status),
             Text(strings.sosBluetoothEventId(event.eventId)),
@@ -718,8 +808,14 @@ class _SosMapEventDetails extends StatelessWidget {
                 _formatUtc(context, strings, event.createdAt),
               ),
             ),
-            Text(battery),
-            Text(signal),
+            if (event.alias case final alias?)
+              Text(strings.sosBluetoothAliasValue(alias)),
+            if (event.message case final message?)
+              Text(strings.sosBluetoothMessageValue(message)),
+            if (event.batteryPercent case final battery?)
+              Text(strings.sosBluetoothBatteryValue(battery)),
+            if (event.rssi case final rssi?)
+              Text(strings.sosBluetoothRssiValue(rssi)),
             Text(
               strings.sosBluetoothProtocol(
                 event.protocolVersion,
@@ -734,8 +830,8 @@ class _SosMapEventDetails extends StatelessWidget {
   }
 }
 
-class _SimulationStatus extends StatelessWidget {
-  const _SimulationStatus({required this.state});
+class _DemoDataNotice extends StatelessWidget {
+  const _DemoDataNotice({required this.state});
 
   final NavigationState state;
 
@@ -744,65 +840,22 @@ class _SimulationStatus extends StatelessWidget {
     final strings = AppLocalizations.of(context)!;
     final shelters = state.shelters;
     final hazards = state.hazards;
-    final source = shelters?.source ?? hazards?.source;
-    final notice = shelters?.uncertaintyNotice ?? hazards?.uncertaintyNotice;
-    final isSimulation =
+    final hasDemoData =
         shelters?.simulation == true ||
         hazards?.simulation == true ||
-        (shelters == null && hazards == null && source == 'SafeMyanmar Demo');
-    return Semantics(
-      container: true,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isSimulation)
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      strings.simulationLabel,
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                  ),
-                ),
-              if (source != null) ...[
-                const SizedBox(height: 8),
-                Text(strings.navigationSource(source)),
-              ],
-              if (shelters != null)
-                Text(
-                  strings.shelterDataTime(
-                    _formatUtc(context, strings, shelters.dataAt),
-                  ),
-                ),
-              if (hazards != null)
-                Text(
-                  strings.hazardDataTime(
-                    _formatUtc(context, strings, hazards.dataAt),
-                  ),
-                ),
-              if (state.mapDataCachedAt case final cachedAt?)
-                Text(
-                  strings.navigationCachedAt(
-                    _formatUtc(context, strings, cachedAt),
-                  ),
-                ),
-              if (notice != null) ...[
-                const SizedBox(height: 8),
-                Text(strings.uncertaintyNotice(notice)),
-              ],
-            ],
-          ),
+        state.contextAreas?.simulation == true ||
+        state.routes?.simulation == true;
+    if (!hasDemoData) return const SizedBox.shrink();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.info_outline, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(strings.demoDataNotice)),
+          ],
         ),
       ),
     );
@@ -822,7 +875,6 @@ class _HazardSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final burmese = Localizations.localeOf(context).languageCode == 'my';
-    final isSimulation = collection.simulation;
     return Semantics(
       key: const ValueKey('hazard-summary'),
       container: true,
@@ -832,10 +884,6 @@ class _HazardSummary extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isSimulation) ...[
-                const SizedBox(height: 8),
-                _SimulationBadge(label: strings.simulationLabel),
-              ],
               const SizedBox(height: 8),
               if (visibleHazards.isEmpty)
                 Text(strings.contextSummaryNoMappedHazards)
@@ -856,7 +904,7 @@ class _HazardSummary extends StatelessWidget {
                                 _disasterLabel(strings, hazard.disasterType),
                                 style: Theme.of(context).textTheme.labelLarge,
                               ),
-                              Text(hazard.name),
+                              Text(navigationUserFacingName(hazard.name)),
                             ],
                           ),
                         ),
@@ -869,7 +917,11 @@ class _HazardSummary extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               const SizedBox(height: 8),
-              Text(strings.navigationSource(collection.source)),
+              Text(
+                strings.navigationSource(
+                  navigationUserFacingSource(collection.source),
+                ),
+              ),
               if (_usesOpenStreetMap(collection.source))
                 Text(strings.openStreetMapAttribution),
               Text(
@@ -877,7 +929,11 @@ class _HazardSummary extends StatelessWidget {
                   _formatUtc(context, strings, collection.dataAt),
                 ),
               ),
-              Text(strings.uncertaintyNotice(collection.uncertaintyNotice)),
+              Text(
+                strings.uncertaintyNotice(
+                  navigationUserFacingNotice(collection.uncertaintyNotice),
+                ),
+              ),
             ],
           ),
         ),
@@ -906,7 +962,6 @@ class _ContextSummary extends StatelessWidget {
     final selected = collection.items
         .where((area) => area.id == selectedId)
         .firstOrNull;
-    final isSimulation = collection.simulation;
 
     return Semantics(
       key: const ValueKey('context-summary'),
@@ -932,13 +987,12 @@ class _ContextSummary extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(strings.contextSummaryDescription),
-              if (isSimulation) ...[
-                const SizedBox(height: 8),
-                _SimulationBadge(label: strings.simulationLabel),
-              ],
               if (selected case final area?) ...[
                 const SizedBox(height: 12),
-                Text(area.name, style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  navigationUserFacingName(area.name),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 if (burmese)
                   Text(
                     strings.originalSourceTextNotice,
@@ -1115,7 +1169,7 @@ class _ContextRationale extends StatelessWidget {
               children: [
                 const Icon(Icons.info_outline, size: 18),
                 const SizedBox(width: 8),
-                Expanded(child: Text(reason)),
+                Expanded(child: Text(navigationUserFacingText(reason))),
               ],
             ),
           ),
@@ -1135,12 +1189,16 @@ class _ContextAreaMetadata extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(strings.navigationSource(area.source)),
+        Text(strings.navigationSource(navigationUserFacingSource(area.source))),
         if (_usesOpenStreetMap(area.source))
           Text(strings.openStreetMapAttribution),
         Text(strings.contextDataAt(_formatUtc(context, strings, area.dataAt))),
         if (area.uncertaintyNotice.isNotEmpty)
-          Text(strings.uncertaintyNotice(area.uncertaintyNotice)),
+          Text(
+            strings.uncertaintyNotice(
+              navigationUserFacingNotice(area.uncertaintyNotice),
+            ),
+          ),
       ],
     );
   }
@@ -1168,7 +1226,11 @@ class _ContextCollectionMetadata extends StatelessWidget {
           style: Theme.of(context).textTheme.labelLarge,
         ),
         const SizedBox(height: 4),
-        Text(strings.navigationSource(collection.source)),
+        Text(
+          strings.navigationSource(
+            navigationUserFacingSource(collection.source),
+          ),
+        ),
         if (_usesOpenStreetMap(collection.source))
           Text(strings.openStreetMapAttribution),
         Text(
@@ -1192,28 +1254,12 @@ class _ContextCollectionMetadata extends StatelessWidget {
             strings.navigationCachedAt(_formatUtc(context, strings, timestamp)),
           ),
         if (collection.uncertaintyNotice.isNotEmpty)
-          Text(strings.uncertaintyNotice(collection.uncertaintyNotice)),
+          Text(
+            strings.uncertaintyNotice(
+              navigationUserFacingNotice(collection.uncertaintyNotice),
+            ),
+          ),
       ],
-    );
-  }
-}
-
-class _SimulationBadge extends StatelessWidget {
-  const _SimulationBadge({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Text(label, style: Theme.of(context).textTheme.labelLarge),
-      ),
     );
   }
 }
@@ -1326,51 +1372,31 @@ class _RouteControls extends StatelessWidget {
   }
 }
 
-class _ContextAreaList extends StatelessWidget {
-  const _ContextAreaList({
-    required this.areas,
-    required this.selectedId,
+class _ContextAnalysisControl extends StatelessWidget {
+  const _ContextAnalysisControl({
+    required this.hasAreas,
     required this.requested,
     required this.loading,
     required this.failed,
     required this.cached,
     required this.uncertaintyNotice,
     required this.onAnalyze,
-    required this.onSelected,
   });
 
-  final List<ContextArea> areas;
-  final String? selectedId;
+  final bool hasAreas;
   final bool requested;
   final bool loading;
   final bool failed;
   final bool cached;
   final String? uncertaintyNotice;
   final Future<void> Function()? onAnalyze;
-  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
-    final burmese = Localizations.localeOf(context).languageCode == 'my';
-    final candidates = areas.take(3).toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          strings.contextAreasHeading,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8),
-        Text(strings.contextAreasDescription),
-        if (burmese && candidates.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            strings.originalSourceTextNotice,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-        const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: loading ? null : onAnalyze,
           icon: const Icon(Icons.analytics_outlined),
@@ -1387,76 +1413,12 @@ class _ContextAreaList extends StatelessWidget {
                 : strings.contextAnalysisUnavailable,
           ),
         ],
-        if (requested && !loading && candidates.isEmpty) ...[
+        if (requested && !loading && !hasAreas) ...[
           const SizedBox(height: 8),
           Text(
             strings.uncertaintyNotice(
-              uncertaintyNotice ?? strings.noContextAreas,
-            ),
-          ),
-        ],
-        for (var index = 0; index < candidates.length; index++) ...[
-          const SizedBox(height: 8),
-          Semantics(
-            key: ValueKey('context-area-card-${candidates[index].id}'),
-            container: true,
-            button: true,
-            selected: candidates[index].id == selectedId,
-            label: _contextAreaSemanticsLabel(
-              context,
-              strings,
-              candidates[index],
-              rank: index + 1,
-              selected: candidates[index].id == selectedId,
-            ),
-            hint: strings.contextCandidateSelectionHint,
-            child: Card(
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () => onSelected(candidates[index].id),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              strings.contextSuggestionRank(index + 1),
-                              style: Theme.of(context).textTheme.labelLarge,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            candidates[index].id == selectedId
-                                ? Icons.check_circle
-                                : Icons.radio_button_unchecked,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              candidates[index].name,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (candidates[index].id == selectedId) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          strings.contextSelectedCandidate,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                      ] else ...[
-                        const SizedBox(height: 4),
-                        Text(strings.contextSelectCandidate),
-                      ],
-                      const SizedBox(height: 8),
-                      _ContextAreaDetails(area: candidates[index]),
-                    ],
-                  ),
-                ),
+              navigationUserFacingNotice(
+                uncertaintyNotice ?? strings.noContextAreas,
               ),
             ),
           ),
@@ -1473,52 +1435,6 @@ String _contextScenarioLabel(
   ContextScenario.outdoorsAfterShaking => strings.outdoorsAfterShaking,
   ContextScenario.general => strings.activeShaking,
 };
-
-String _contextAreaSemanticsLabel(
-  BuildContext context,
-  AppLocalizations strings,
-  ContextArea area, {
-  required int rank,
-  required bool selected,
-}) {
-  final locale = Localizations.localeOf(context).toLanguageTag();
-  final numberFormat = NumberFormat('0.#', locale);
-  final densityFormat = NumberFormat('0.#', locale);
-  final metrics = area.metrics;
-  final details = <String>[
-    strings.contextSuggestionRank(rank),
-    area.name,
-    selected
-        ? strings.contextSelectedCandidate
-        : strings.contextSelectCandidate,
-    _disasterLabel(strings, area.disasterType),
-    strings.contextDistance(area.distanceM.round()),
-    if (area.disasterType == DisasterType.earthquake)
-      strings.contextClearance(
-        metrics.buildingClearanceM.round(),
-        metrics.treeClearanceM.round(),
-      ),
-    if (area.disasterType == DisasterType.earthquake)
-      strings.contextBuildingDensity(
-        densityFormat.format(metrics.buildingDensity * 100),
-      ),
-    if (area.disasterType == DisasterType.earthquake)
-      strings.contextTreeDensity(
-        densityFormat.format(metrics.treeDensity * 100),
-      ),
-    if (area.disasterType == DisasterType.flood)
-      strings.contextElevation(numberFormat.format(metrics.relativeElevationM)),
-    strings.contextHazardIntersections(metrics.hazardIntersections),
-    if (area.rationale.isNotEmpty)
-      '${strings.contextRationaleHeading}: ${area.rationale.join('; ')}',
-    strings.navigationSource(area.source),
-    if (_usesOpenStreetMap(area.source)) strings.openStreetMapAttribution,
-    strings.contextDataAt(_formatUtc(context, strings, area.dataAt)),
-    if (area.uncertaintyNotice.isNotEmpty)
-      strings.uncertaintyNotice(area.uncertaintyNotice),
-  ];
-  return details.join('. ');
-}
 
 bool _usesOpenStreetMap(String source) =>
     source.toLowerCase().contains('openstreetmap');
@@ -1557,7 +1473,7 @@ class _RouteCard extends StatelessWidget {
       strings.routeDistanceValue(number.format(option.distanceM.round())),
       strings.routeDurationValue(duration),
       strings.routeHazardIntersections(option.hazardIntersectionCount),
-      strings.navigationSource(option.source),
+      strings.navigationSource(navigationUserFacingSource(option.source)),
       strings.routeDirectionsProvider(option.directionsProvider),
       strings.routeGeneratedAt(
         _formatUtc(context, strings, option.generatedAt),
@@ -1565,8 +1481,9 @@ class _RouteCard extends StatelessWidget {
       strings.routeHazardDataAt(
         _formatUtc(context, strings, option.hazardDataAt),
       ),
-      if (option.simulation || response.simulation) strings.simulationLabel,
-      strings.uncertaintyNotice(option.uncertaintyNotice),
+      strings.uncertaintyNotice(
+        navigationUserFacingNotice(option.uncertaintyNotice),
+      ),
     ].join('. ');
     return Semantics(
       key: ValueKey('route-card-${option.id}'),
@@ -1601,10 +1518,6 @@ class _RouteCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (option.simulation || response.simulation) ...[
-                    const SizedBox(height: 8),
-                    _SimulationBadge(label: strings.simulationLabel),
-                  ],
                   if (selected) Text(strings.routeSelected),
                   const SizedBox(height: 8),
                   Text(
@@ -1624,7 +1537,11 @@ class _RouteCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(strings.routeRationale(option.rationale)),
+                  Text(
+                    strings.routeRationale(
+                      navigationUserFacingText(option.rationale),
+                    ),
+                  ),
                   if (burmese)
                     Text(
                       strings.originalSourceTextNotice,
@@ -1640,7 +1557,11 @@ class _RouteCard extends StatelessWidget {
                       _formatUtc(context, strings, option.hazardDataAt),
                     ),
                   ),
-                  Text(strings.navigationSource(option.source)),
+                  Text(
+                    strings.navigationSource(
+                      navigationUserFacingSource(option.source),
+                    ),
+                  ),
                   Text(
                     strings.routeDirectionsProvider(option.directionsProvider),
                   ),
@@ -1648,7 +1569,11 @@ class _RouteCard extends StatelessWidget {
                     strings.routeProfileReason(response.profileSelectionReason),
                   ),
                   const SizedBox(height: 8),
-                  Text(strings.uncertaintyNotice(option.uncertaintyNotice)),
+                  Text(
+                    strings.uncertaintyNotice(
+                      navigationUserFacingNotice(option.uncertaintyNotice),
+                    ),
+                  ),
                 ],
               ),
             ),

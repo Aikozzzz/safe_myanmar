@@ -180,6 +180,10 @@ void main() {
         config.routeSuggestionsUri.toString(),
         'https://example.com/mobile-gateway/api/v1/route-suggestions',
       );
+      expect(
+        config.sosRouteUri.toString(),
+        'https://example.com/mobile-gateway/api/v1/sos-route',
+      );
     });
   });
 }

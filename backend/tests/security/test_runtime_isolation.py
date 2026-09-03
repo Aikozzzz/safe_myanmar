@@ -35,14 +35,13 @@ def test_runtime_simulation_data_is_explicitly_gated_and_attributed():
     assert "https://api.mapbox.com/directions/v5/mapbox" in text
 
 
-def test_runtime_backend_default_is_only_the_live_usgs_feed():
+def test_runtime_backend_default_is_only_the_live_usgs_catalog():
     config = (ROOT / "backend" / "app" / "core" / "config.py").read_text(
         encoding="utf-8"
     )
 
-    assert (
-        "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
-    ) in config
+    assert "https://earthquake.usgs.gov/fdsnws/event/1/query" in config
+    assert "usgs_lookback_days: int = 3650" in config
     assert "integration" not in config.lower()
 
 

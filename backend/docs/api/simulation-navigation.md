@@ -190,6 +190,35 @@ The response states this rule; callers can override it by sending `profile`.
 Supported disasters are `earthquake`, `flood`, `fire`, `cyclone`, `landslide`,
 and `severe_weather`.
 
+## `POST /api/v1/sos-route`
+
+Returns up to three Mapbox route alternatives from the supplied origin to a
+peer-reported SOS coordinate. This endpoint is separate from shelter and
+context-area routing because a BLE SOS coordinate is not an official or
+verified destination. The request body is:
+
+```json
+{
+  "origin": {"latitude": 21.95, "longitude": 96.08},
+  "destination": {"latitude": 21.958, "longitude": 96.091},
+  "profile": "walking"
+}
+```
+
+`profile` accepts `walking` or `driving`; it is required by the mobile client.
+The response uses the same `RouteSuggestionsResponse` contract as
+`/route-suggestions`, including route geometry, timestamps, source, provider,
+hazard intersections, rationale, and uncertainty notices. Routes are ranked by
+currently mapped hazard intersections, duration, then distance. The response
+explicitly states that the target is peer-reported and that sender identity,
+coordinate accuracy, access, current conditions, and rescue response are not
+confirmed.
+
+The mobile client requests this endpoint only after the user taps the explicit
+route action on a located SOS marker. Missing or expired SOS coordinates cannot
+be routed. Coordinate-only SOS routes are not persisted in the navigation cache
+because the peer frame can expire or be replaced.
+
 Simulation coverage is provided by two separate fictional city regions:
 
 | Region | Latitude | Longitude |

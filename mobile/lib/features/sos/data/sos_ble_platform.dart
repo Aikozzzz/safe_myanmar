@@ -101,22 +101,22 @@ final class MethodChannelSosBlePlatform implements SosBlePlatformService {
 
   @override
   Future<void> startBroadcast(
-    Uint8List payload, {
+    List<Uint8List> payloads, {
     String languageCode = 'en',
   }) async {
     await _invoke<void>('startBroadcast', {
-      'payload': payload,
+      'payloads': payloads,
       'language': languageCode,
     });
   }
 
   @override
   Future<void> startRelayBroadcast(
-    Uint8List payload, {
+    List<Uint8List> payloads, {
     String languageCode = 'en',
   }) async {
     await _invoke<void>('startBroadcast', {
-      'payload': payload,
+      'payloads': payloads,
       'duration_seconds': sosBleRelayDurationSeconds,
       'language': languageCode,
     });
@@ -214,7 +214,7 @@ final class UnsupportedSosBlePlatform implements SosBlePlatformService {
 
   @override
   Future<void> startBroadcast(
-    Uint8List payload, {
+    List<Uint8List> payloads, {
     String languageCode = 'en',
   }) async {
     throw UnsupportedError('Bluetooth SOS is unavailable.');
@@ -222,7 +222,7 @@ final class UnsupportedSosBlePlatform implements SosBlePlatformService {
 
   @override
   Future<void> startRelayBroadcast(
-    Uint8List payload, {
+    List<Uint8List> payloads, {
     String languageCode = 'en',
   }) async {
     throw UnsupportedError('Bluetooth SOS is unavailable.');

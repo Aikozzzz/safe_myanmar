@@ -76,10 +76,10 @@ running development or release application.
 
 ## External Data Source
 
-The first provider is the USGS Earthquake Hazards Program production GeoJSON
-feed:
+The first provider is the USGS Earthquake Hazards Program FDSN event query,
+requesting GeoJSON:
 
-`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson`
+`https://earthquake.usgs.gov/fdsnws/event/1/query`
 
 The backend, not the mobile application, retrieves this feed. It polls no more
 frequently than the provider's documented one-minute update interval.
@@ -107,18 +107,18 @@ failure are represented differently.
 
 ## Geographic Filtering
 
-The backend filters global USGS records using an approximate Myanmar bounding
-box plus a 1.5-degree border buffer so nearby cross-border events are not
-silently omitted. Sprint 1 uses these inclusive coverage bounds:
+The backend filters USGS records using the Yangon Region administrative coverage
+envelope from OCHA COD data. The current inclusive retrieval bounds are:
 
-- minimum latitude: `8.284`;
-- maximum latitude: `30.043`;
-- minimum longitude: `90.689`;
-- maximum longitude: `102.676`.
+- minimum latitude: `14.04582802200008`;
+- maximum latitude: `17.79695808500003`;
+- minimum longitude: `93.35195104000019`;
+- maximum longitude: `96.82662590900009`.
 
-These values will be named configuration constants, documented, and covered by
-boundary tests. They are a coarse retrieval boundary, not a political border
-or an affected-area calculation.
+These values are named configuration constants, documented, and covered by
+boundary tests. They are a coarse retrieval envelope, not a political border
+or an affected-area calculation. The API searches the latest ten years and
+returns at most ten records ordered by event time.
 
 Filtering uses earthquake coordinates only. It does not imply that the event
 affected every place within Myanmar or that places outside the box are safe.

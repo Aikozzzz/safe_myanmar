@@ -11,9 +11,6 @@ import '../application/local_profile_state.dart';
 import '../application/providers.dart';
 import '../domain/local_profile.dart';
 import '../domain/phone_number.dart';
-import '../../settings/application/language_preference_state.dart';
-import '../../settings/application/providers.dart';
-import '../../settings/domain/app_language.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -28,12 +25,19 @@ class MoreScreen extends ConsumerWidget {
       body: SafeArea(
         child: SafeContent(
           child: switch (profile) {
-            null => _ProfileUnavailable(state: state, includeLanguage: true),
+            null => _ProfileUnavailable(state: state, includeSettings: true),
             final value => SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _LanguagePreferenceCard(),
+                  _MoreActionCard(
+                    icon: Icons.settings_outlined,
+                    title: strings.settingsTitle,
+                    subtitle: strings.settingsDescription,
+                    onTap: state.isBusy
+                        ? null
+                        : () => context.push('/more/settings'),
+                  ),
                   const SizedBox(height: 16),
                   if (state.phase == LocalProfilePhase.saving) ...[
                     const _SavingBanner(),
@@ -704,11 +708,11 @@ class _PrivacyCard extends StatelessWidget {
 class _ProfileUnavailable extends ConsumerWidget {
   const _ProfileUnavailable({
     required this.state,
-    this.includeLanguage = false,
+    this.includeSettings = false,
   });
 
   final LocalProfileState state;
-  final bool includeLanguage;
+  final bool includeSettings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -717,8 +721,13 @@ class _ProfileUnavailable extends ConsumerWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (includeLanguage) ...[
-            _LanguagePreferenceCard(),
+          if (includeSettings) ...[
+            _MoreActionCard(
+              icon: Icons.settings_outlined,
+              title: strings.settingsTitle,
+              subtitle: strings.settingsDescription,
+              onTap: () => context.push('/more/settings'),
+            ),
             const SizedBox(height: 16),
           ],
           Center(
@@ -780,9 +789,14 @@ class _ProfileUnavailable extends ConsumerWidget {
             ),
           ),
         ),
-        if (includeLanguage) ...[
+        if (includeSettings) ...[
           const SizedBox(height: 16),
-          _LanguagePreferenceCard(),
+          _MoreActionCard(
+            icon: Icons.settings_outlined,
+            title: strings.settingsTitle,
+            subtitle: strings.settingsDescription,
+            onTap: () => context.push('/more/settings'),
+          ),
         ],
       ],
     );
@@ -817,100 +831,6 @@ class _ProfileUnavailable extends ConsumerWidget {
           .read(localProfileControllerProvider.notifier)
           .resetUnreadableData();
     }
-  }
-}
-
-class _LanguagePreferenceCard extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final strings = AppLocalizations.of(context)!;
-    final state = ref.watch(languagePreferenceControllerProvider);
-    final controller = ref.read(languagePreferenceControllerProvider.notifier);
-    final errorKind = state.errorKind;
-
-    return Semantics(
-      container: true,
-      key: const ValueKey('language-preference-card'),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                strings.languageSettingsTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(strings.languageSettingsDescription),
-              const SizedBox(height: 12),
-              Semantics(
-                label: strings.languageSettingsTitle,
-                child: DropdownButtonFormField<AppLanguage>(
-                  key: ValueKey('language-${state.language.code}'),
-                  initialValue: state.language,
-                  decoration: const InputDecoration(),
-                  items: [
-                    DropdownMenuItem(
-                      value: AppLanguage.english,
-                      child: Text(strings.languageEnglish),
-                    ),
-                    DropdownMenuItem(
-                      value: AppLanguage.burmese,
-                      child: Text(strings.languageBurmese),
-                    ),
-                  ],
-                  onChanged: state.isBusy
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            unawaited(controller.setLanguage(value));
-                          }
-                        },
-                ),
-              ),
-              if (state.phase == LanguagePreferencePhase.saving) ...[
-                const SizedBox(height: 12),
-                Semantics(
-                  liveRegion: true,
-                  label: strings.languageSaving,
-                  child: const LinearProgressIndicator(),
-                ),
-              ],
-              if (errorKind != null) ...[
-                const SizedBox(height: 12),
-                Semantics(
-                  liveRegion: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        errorKind == LanguagePreferenceErrorKind.read
-                            ? strings.languageReadErrorTitle
-                            : strings.languageWriteErrorTitle,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        errorKind == LanguagePreferenceErrorKind.read
-                            ? strings.languageReadErrorDescription
-                            : strings.languageWriteErrorDescription,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: state.isBusy ? null : controller.retry,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(strings.retry),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

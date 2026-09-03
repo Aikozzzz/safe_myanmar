@@ -8,8 +8,14 @@ from app.providers.usgs.client import (
     ProviderClientError,
     UsgsClient,
 )
+from app.providers.usgs.normalizer import (
+    MAX_LATITUDE,
+    MAX_LONGITUDE,
+    MIN_LATITUDE,
+    MIN_LONGITUDE,
+)
 
-FEED_URL = "https://earthquake.usgs.gov/example/feed.geojson"
+FEED_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 RETRIEVED_AT = datetime(2026, 7, 13, 1, 2, 3, tzinfo=UTC)
 
 
@@ -39,10 +45,26 @@ def test_fetch_gets_exact_url_with_timeout_and_returns_object_json():
     finally:
         http_client.close()
 
-    assert observed == {
-        "method": "GET",
-        "url": FEED_URL,
-        "timeout": {"connect": 10.0, "read": 10.0, "write": 10.0, "pool": 10.0},
+    assert observed["method"] == "GET"
+    assert httpx.URL(observed["url"]).path == "/fdsnws/event/1/query"
+    assert dict(httpx.URL(observed["url"]).params) == {
+        "format": "geojson",
+        "starttime": (RETRIEVED_AT - timedelta(days=3650))
+        .isoformat()
+        .replace("+00:00", "Z"),
+        "minlatitude": str(MIN_LATITUDE),
+        "maxlatitude": str(MAX_LATITUDE),
+        "minlongitude": str(MIN_LONGITUDE),
+        "maxlongitude": str(MAX_LONGITUDE),
+        "eventtype": "earthquake",
+        "limit": "100",
+        "orderby": "time",
+    }
+    assert observed["timeout"] == {
+        "connect": 10.0,
+        "read": 10.0,
+        "write": 10.0,
+        "pool": 10.0,
     }
     assert payload == {"type": "FeatureCollection", "features": []}
     assert retrieved_at == RETRIEVED_AT

@@ -24,6 +24,8 @@ final class SosDraftPreparation {
     required this.location,
     required this.profileName,
     required this.body,
+    this.bleAlias,
+    this.bleMessage,
     this.allowNoRecipients = false,
   }) : recipients = List.unmodifiable(recipients);
 
@@ -32,6 +34,8 @@ final class SosDraftPreparation {
   final SosLocationSnapshot? location;
   final String profileName;
   final String body;
+  final String? bleAlias;
+  final String? bleMessage;
   final bool allowNoRecipients;
 }
 
@@ -72,6 +76,8 @@ final class SosDraftQueueController extends Notifier<SosDraftQueueState> {
     }
     final recipients = preparation.recipients;
     final normalizedMessage = preparation.message?.trim();
+    final normalizedBleAlias = normalizeSosBleText(preparation.bleAlias);
+    final normalizedBleMessage = normalizeSosBleText(preparation.bleMessage);
     if ((!preparation.allowNoRecipients && !_validRecipients(recipients)) ||
         (preparation.allowNoRecipients &&
             recipients.isNotEmpty &&
@@ -80,7 +86,9 @@ final class SosDraftQueueController extends Notifier<SosDraftQueueState> {
         preparation.body.trim().isEmpty ||
         preparation.body.length > maxSosBodyLength ||
         (normalizedMessage != null &&
-            normalizedMessage.length > maxSosMessageLength)) {
+            normalizedMessage.length > maxSosMessageLength) ||
+        !isValidSosBleAlias(preparation.bleAlias) ||
+        !isValidSosBleMessage(preparation.bleMessage)) {
       return const SosPrepareResult(SosDraftOperationResult.invalid);
     }
     final message = normalizedMessage == null || normalizedMessage.isEmpty
@@ -98,6 +106,8 @@ final class SosDraftQueueController extends Notifier<SosDraftQueueState> {
             recipientSnapshots: recipients,
             userMessage: message,
             bodySnapshot: preparation.body,
+            bleAlias: normalizedBleAlias,
+            bleMessage: normalizedBleMessage,
           );
     });
 
@@ -120,6 +130,8 @@ final class SosDraftQueueController extends Notifier<SosDraftQueueState> {
         profileName: preparation.profileName,
         body: preparation.body,
         status: SosDraftStatus.prepared,
+        bleAlias: normalizedBleAlias,
+        bleMessage: normalizedBleMessage,
       );
       updated = [draft, ...state.drafts];
     }

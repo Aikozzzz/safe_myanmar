@@ -122,10 +122,7 @@ void main() {
       ),
     );
 
-    expect(
-      find.textContaining('မြန်မာဘာသာပြန်'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('မြန်မာဘာသာပြန်'), findsOneWidget);
   });
 
   testWidgets('Guide chrome uses reviewed Burmese labels', (tester) async {
@@ -153,7 +150,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('လမ်းညွှန်'), findsWidgets);
-    expect(find.text('အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု'), findsOneWidget);
+    expect(
+      find.text('အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု'),
+      findsOneWidget,
+    );
     expect(find.text('ဝပ်၊ ကာကွယ်၊ ကိုင်ထားပါ'), findsOneWidget);
   });
 }

@@ -27,7 +27,7 @@ void main() {
     expect(find.textContaining('Optional local Gemma'), findsNothing);
   });
 
-  testWidgets('Gemma wording is a separate labeled block after exact guidance', (
+  testWidgets('additional wording stays separate from exact guidance', (
     tester,
   ) async {
     final nativeAi = FakeNativeAiService(
@@ -47,18 +47,20 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Additional local wording'),
+      find.text('Additional guidance'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     expect(find.text('APPROVED EARTHQUAKE ANSWER'), findsOneWidget);
-    expect(find.text('Additional local wording'), findsOneWidget);
+    expect(find.text('Additional guidance'), findsOneWidget);
     expect(find.text('Simpler wording.'), findsOneWidget);
     expect(
-      find.textContaining('Verify it against the exact source-backed guidance'),
+      find.textContaining('Compare this wording with the approved guidance'),
       findsOneWidget,
     );
+    expect(find.textContaining('model'), findsNothing);
+    expect(find.textContaining('confidence'), findsNothing);
     expect(find.text('Source: Ready.gov'), findsOneWidget);
     expect(find.text('Content version: 1'), findsOneWidget);
     expect(
@@ -66,12 +68,14 @@ void main() {
       findsNothing,
     );
     expect(
-      tester.getSemantics(find.text('Additional local wording')),
+      tester.getSemantics(find.text('Additional guidance')),
       matchesSemantics(
         label:
-            'Additional model-generated local wording. Simpler wording. Warning: verify against the exact source-backed guidance.',
+            'Additional guidance. Simpler wording. Compare this wording with the approved guidance above.',
       ),
     );
+    expect(find.textContaining('model-generated'), findsNothing);
+    expect(find.textContaining('confidence'), findsNothing);
   });
 
   testWidgets('ONNX action response never navigates without a user tap', (

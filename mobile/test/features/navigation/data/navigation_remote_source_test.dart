@@ -72,6 +72,42 @@ void main() {
     );
   });
 
+  test(
+    'uses the SOS coordinate route endpoint and sends both coordinates',
+    () async {
+      late http.Request captured;
+      final source = NavigationRemoteSource(
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode(routeResponseJson(profile: 'walking')),
+            200,
+          );
+        }),
+        config: config,
+      );
+
+      await source.fetchSosRouteSuggestions(
+        const SosRouteRequest(
+          eventId: '1122334455667788',
+          origin: NavigationCoordinate(latitude: 21.95, longitude: 96.08),
+          destination: NavigationCoordinate(
+            latitude: 21.958,
+            longitude: 96.091,
+          ),
+          profile: RouteProfile.walking,
+        ),
+      );
+
+      expect(captured.url, config.sosRouteUri);
+      expect(captured.method, 'POST');
+      final body = jsonDecode(captured.body) as Map<String, Object?>;
+      expect(body, containsPair('profile', 'walking'));
+      expect(body['origin'], {'latitude': 21.95, 'longitude': 96.08});
+      expect(body['destination'], {'latitude': 21.958, 'longitude': 96.091});
+    },
+  );
+
   test('maps 503 and transport failures to unavailable', () async {
     final unavailable = NavigationRemoteSource(
       client: MockClient((_) async => http.Response('{}', 503)),

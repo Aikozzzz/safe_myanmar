@@ -103,6 +103,9 @@ def test_list_recent_has_deterministic_order(database_session):
         later_b.id,
         earliest.id,
     ]
+    assert [
+        item.id for item in repository.list_recent(database_session, "usgs", limit=2)
+    ] == [later_a.id, later_b.id]
 
 
 def test_newer_update_replaces_mutable_fields_but_preserves_created_at(

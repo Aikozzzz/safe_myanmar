@@ -199,7 +199,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get simulationLabel => 'SIMULATION';
+  String get demoDataNotice =>
+      'Demonstration data is shown here and is not a live emergency feed. Follow official local instructions.';
 
   @override
   String navigationSource(String source) {
@@ -259,7 +260,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapContentSemantics =>
-      'Interactive map showing current or last-known location, mapped shelters, relevant hazards, and route options. Tap the location button or your location marker for details. The selected route uses a wider line.';
+      'Interactive map showing current or last-known location, mapped shelters, relevant hazards, and route options. Tap a map item or legend entry for details. The selected route uses a wider line.';
 
   @override
   String get mapLegendTitle => 'Map legend';
@@ -280,7 +281,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapLegendRoute => 'Suggested route';
 
   @override
-  String get mapLegendNearbySos => 'Unverified nearby SOS';
+  String get mapLegendNearbySos => 'Nearby SOS';
+
+  @override
+  String get mapLegendShow => 'Show map legend';
+
+  @override
+  String get mapLegendHide => 'Hide map legend';
+
+  @override
+  String get mapLegendInteractionHint =>
+      'Tap a layer name for information. Use the visibility button to show or hide its map items.';
+
+  @override
+  String get mapLayerVisible => 'Layer shown';
+
+  @override
+  String get mapLayerHidden => 'Layer hidden';
+
+  @override
+  String mapLayerItemCount(int count) {
+    return '$count map items';
+  }
+
+  @override
+  String get mapSelectRoute => 'Select this route';
 
   @override
   String get chooseShelter => 'Shelter or suggested place';
@@ -292,18 +317,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shelterListEmpty => 'No cached shelter details are available.';
 
   @override
-  String get contextAreasHeading => 'Top lower-exposure suggestions';
-
-  @override
-  String get contextAreasDescription =>
-      'Suggestions use names from mapped parks, fields, and other place features when available. Compare the available mapped metrics and limits; these are not official shelters or guarantees.';
-
-  @override
   String get contextSummaryTitle => 'Context summary';
 
   @override
   String get contextSummaryDescription =>
-      'Review the selected candidate\'s mapped metrics, rationale, source, timestamp, and limits. It is not an official shelter or a guarantee.';
+      'Review the selected map area\'s mapped metrics, rationale, source, timestamp, and limits. It is not an official shelter or a guarantee.';
 
   @override
   String get contextSummaryNoMappedHazards =>
@@ -323,20 +341,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contextSelectedCandidate => 'Selected candidate';
 
   @override
-  String get contextSelectCandidate => 'Select candidate';
-
-  @override
-  String contextSuggestionRank(int rank) {
-    return 'Suggestion $rank';
-  }
-
-  @override
-  String get contextCandidateSelectionHint =>
-      'Select this candidate to review its details. Requesting a route is a separate action.';
-
-  @override
   String get contextNoCandidateSelected =>
-      'No candidate is selected. Select one above to review its details.';
+      'No context area is selected. Select one on the map to review its details.';
 
   @override
   String get chooseContextScenario => 'Earthquake context';
@@ -400,15 +406,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosBluetoothShareDescription =>
-      'Broadcast a temporary ID, timestamp, exact coordinates when available, location status, and battery level to nearby SafeMyanmar users for 10 minutes.';
+      'Broadcast a temporary ID, timestamp, exact coordinates when available, location status, battery level, and any optional alias or message to nearby SafeMyanmar users for 10 minutes.';
 
   @override
   String get sosBluetoothFields =>
-      'Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, and battery level.';
+      'Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, battery level, and optional alias or message.';
 
   @override
   String get sosBluetoothTenMinuteLimit =>
-      'The broadcast stops automatically after 10 minutes. Names, contacts, and message text are not broadcast.';
+      'The broadcast stops automatically after 10 minutes. Optional alias and message text are visible to nearby receivers; do not include secrets.';
+
+  @override
+  String get sosBluetoothOptionalFieldsHeading => 'Optional nearby SOS details';
+
+  @override
+  String get sosBluetoothOptionalFieldsDescription =>
+      'These values are broadcast without encryption to nearby SafeMyanmar devices. Use only a short alias and non-sensitive emergency information.';
+
+  @override
+  String get sosBluetoothAliasLabel => 'Optional BLE alias';
+
+  @override
+  String get sosBluetoothAliasHint => 'For example: Aung';
+
+  @override
+  String get sosBluetoothMessageLabel => 'Optional BLE message';
+
+  @override
+  String get sosBluetoothMessageHint =>
+      'For example: Trapped on the second floor';
+
+  @override
+  String get sosBluetoothTextTooLong =>
+      'The nearby alias or message is too long. Shorten it and try again.';
 
   @override
   String get sosBluetoothUnavailable =>
@@ -458,7 +488,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosBluetoothSoundDescription =>
-      'Allow an optional sound when a nearby unverified SOS is detected.';
+      'Allow an optional sound when a nearby SOS is detected.';
 
   @override
   String get sosBluetoothBroadcasting =>
@@ -471,14 +501,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosBluetoothStop => 'Stop';
 
   @override
-  String get sosBluetoothNearbyAlert => 'Nearby unverified SOS';
+  String get sosBluetoothNearbyAlert => 'Nearby SOS';
 
   @override
   String get sosBluetoothDismiss => 'Dismiss nearby SOS';
 
   @override
+  String get sosRouteLabel => 'Show route to this SOS';
+
+  @override
+  String get sosRouteLoadingLabel => 'Requesting route...';
+
+  @override
+  String get sosRouteShownLabel => 'Route is shown on the map.';
+
+  @override
+  String get sosRouteUnavailableLabel =>
+      'Route is currently unavailable. The SOS location remains available.';
+
+  @override
+  String get sosRouteNeedsLocationLabel =>
+      'Your location is needed to show a route.';
+
+  @override
+  String get sosRouteExpiredLabel =>
+      'This SOS frame has expired; a route cannot be requested.';
+
+  @override
+  String get sosRouteResultsHeading => 'Route to selected SOS';
+
+  @override
+  String get sosBluetoothVerified =>
+      'Verified: alias and location are present. Sender identity and rescue delivery are not confirmed.';
+
+  @override
   String get sosBluetoothUnverified =>
-      'Peer-received; delivery to rescue services is not confirmed.';
+      'Unverified: alias or location is missing. Sender identity and rescue delivery are not confirmed.';
 
   @override
   String sosBluetoothGridLocation(String latitude, String longitude) {
@@ -497,7 +555,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosBluetoothLocationUnavailable => 'Location was unavailable.';
 
   @override
-  String get sosBluetoothUnknownValue => 'Unknown';
+  String sosBluetoothAliasValue(String alias) {
+    return 'Alias: $alias';
+  }
+
+  @override
+  String sosBluetoothMessageValue(String message) {
+    return 'Message: $message';
+  }
 
   @override
   String sosBluetoothEventId(String id) {
@@ -1257,15 +1322,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantGemmaAnswerTitle => 'Gemma 3 answer';
 
   @override
-  String get assistantLocalRewordingTitle => 'Additional local wording';
+  String get assistantLocalRewordingTitle => 'Additional guidance';
 
   @override
   String get assistantLocalRewordingWarning =>
-      'Model-generated wording may be inaccurate. Verify it against the exact source-backed guidance shown above.';
+      'Compare this wording with the approved guidance above.';
 
   @override
   String assistantLocalRewordingSemantics(String text) {
-    return 'Additional model-generated local wording. $text Warning: verify against the exact source-backed guidance.';
+    return 'Additional guidance. $text Compare this wording with the approved guidance above.';
   }
 
   @override
@@ -1333,6 +1398,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moreTitle => 'More';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsDescription =>
+      'Manage language, SOS sharing, nearby alerts, and permissions.';
+
+  @override
+  String get settingsSosTitle => 'SOS and nearby alerts';
+
+  @override
+  String get settingsSosDescription =>
+      'These choices are saved on this device and reused when you prepare or receive an SOS.';
+
+  @override
+  String get sosSettingsSaveFailed =>
+      'This setting could not be saved. Try again.';
 
   @override
   String get languageSettingsTitle => 'Language';

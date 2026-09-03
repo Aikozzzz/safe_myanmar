@@ -18,50 +18,56 @@ void main() {
     expect(storage.readKeys, [SecureLanguagePreferenceRepository.storageKey]);
   });
 
-  test('invalid secure values default to English and valid Burmese persists', () async {
-    final storage = _FakeSecureStorageDriver()
-      ..values[SecureLanguagePreferenceRepository.storageKey] = 'fr';
-    final repository = SecureLanguagePreferenceRepository(storage);
+  test(
+    'invalid secure values default to English and valid Burmese persists',
+    () async {
+      final storage = _FakeSecureStorageDriver()
+        ..values[SecureLanguagePreferenceRepository.storageKey] = 'fr';
+      final repository = SecureLanguagePreferenceRepository(storage);
 
-    expect(await repository.read(), AppLanguage.english);
+      expect(await repository.read(), AppLanguage.english);
 
-    await repository.write(AppLanguage.burmese);
-    expect(
-      storage.values[SecureLanguagePreferenceRepository.storageKey],
-      'my',
-    );
-    expect(await repository.read(), AppLanguage.burmese);
-  });
+      await repository.write(AppLanguage.burmese);
+      expect(
+        storage.values[SecureLanguagePreferenceRepository.storageKey],
+        'my',
+      );
+      expect(await repository.read(), AppLanguage.burmese);
+    },
+  );
 
-  test('controller loads English, saves Burmese, and persists across restart', () async {
-    final repository = FakeLanguagePreferenceRepository();
-    final first = _container(repository);
-    addTearDown(first.dispose);
+  test(
+    'controller loads English, saves Burmese, and persists across restart',
+    () async {
+      final repository = FakeLanguagePreferenceRepository();
+      final first = _container(repository);
+      addTearDown(first.dispose);
 
-    expect(
-      first.read(languagePreferenceControllerProvider).phase,
-      LanguagePreferencePhase.loading,
-    );
-    await _settle();
-    expect(
-      first.read(languagePreferenceControllerProvider).language,
-      AppLanguage.english,
-    );
-    expect(
-      await first
-          .read(languagePreferenceControllerProvider.notifier)
-          .setLanguage(AppLanguage.burmese),
-      LanguagePreferenceOperationResult.success,
-    );
+      expect(
+        first.read(languagePreferenceControllerProvider).phase,
+        LanguagePreferencePhase.loading,
+      );
+      await _settle();
+      expect(
+        first.read(languagePreferenceControllerProvider).language,
+        AppLanguage.english,
+      );
+      expect(
+        await first
+            .read(languagePreferenceControllerProvider.notifier)
+            .setLanguage(AppLanguage.burmese),
+        LanguagePreferenceOperationResult.success,
+      );
 
-    final restart = _container(repository);
-    addTearDown(restart.dispose);
-    await _settleContainer(restart);
-    expect(
-      restart.read(languagePreferenceControllerProvider).language,
-      AppLanguage.burmese,
-    );
-  });
+      final restart = _container(repository);
+      addTearDown(restart.dispose);
+      await _settleContainer(restart);
+      expect(
+        restart.read(languagePreferenceControllerProvider).language,
+        AppLanguage.burmese,
+      );
+    },
+  );
 
   test('read failure keeps English active and can retry', () async {
     final repository = FakeLanguagePreferenceRepository()
@@ -80,41 +86,42 @@ void main() {
     );
 
     repository.readError = null;
-    await container
-        .read(languagePreferenceControllerProvider.notifier)
-        .retry();
+    await container.read(languagePreferenceControllerProvider.notifier).retry();
     expect(
       container.read(languagePreferenceControllerProvider).phase,
       LanguagePreferencePhase.ready,
     );
   });
 
-  test('write failure preserves the previous language and retries pending choice', () async {
-    final repository = FakeLanguagePreferenceRepository()
-      ..writeError = StateError('write failed');
-    final container = _container(repository);
-    addTearDown(container.dispose);
-    await _settleContainer(container);
+  test(
+    'write failure preserves the previous language and retries pending choice',
+    () async {
+      final repository = FakeLanguagePreferenceRepository()
+        ..writeError = StateError('write failed');
+      final container = _container(repository);
+      addTearDown(container.dispose);
+      await _settleContainer(container);
 
-    expect(
+      expect(
+        await container
+            .read(languagePreferenceControllerProvider.notifier)
+            .setLanguage(AppLanguage.burmese),
+        LanguagePreferenceOperationResult.failed,
+      );
+      final failed = container.read(languagePreferenceControllerProvider);
+      expect(failed.language, AppLanguage.english);
+      expect(failed.errorKind, LanguagePreferenceErrorKind.write);
+
+      repository.writeError = null;
       await container
           .read(languagePreferenceControllerProvider.notifier)
-          .setLanguage(AppLanguage.burmese),
-      LanguagePreferenceOperationResult.failed,
-    );
-    final failed = container.read(languagePreferenceControllerProvider);
-    expect(failed.language, AppLanguage.english);
-    expect(failed.errorKind, LanguagePreferenceErrorKind.write);
-
-    repository.writeError = null;
-    await container
-        .read(languagePreferenceControllerProvider.notifier)
-        .retry();
-    expect(
-      container.read(languagePreferenceControllerProvider).language,
-      AppLanguage.burmese,
-    );
-  });
+          .retry();
+      expect(
+        container.read(languagePreferenceControllerProvider).language,
+        AppLanguage.burmese,
+      );
+    },
+  );
 }
 
 ProviderContainer _container(FakeLanguagePreferenceRepository repository) =>

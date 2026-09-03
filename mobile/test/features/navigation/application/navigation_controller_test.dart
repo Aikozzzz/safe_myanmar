@@ -6,6 +6,7 @@ import 'package:mobile/features/location/domain/foreground_location.dart';
 import 'package:mobile/features/navigation/application/providers.dart';
 import 'package:mobile/features/navigation/domain/navigation_models.dart';
 import 'package:mobile/features/navigation/domain/navigation_repository.dart';
+import 'package:mobile/features/sos/domain/sos_ble.dart';
 
 import '../../../support/fake_navigation_repository.dart';
 import '../../../support/navigation_fixtures.dart';
@@ -70,6 +71,73 @@ void main() {
         container.read(navigationControllerProvider).selectedRouteId,
         'simulation-route-3',
       );
+    },
+  );
+
+  test('requests an explicit route to a located SOS event', () async {
+    final repository = FakeNavigationRepository();
+    final container = ProviderContainer(
+      overrides: [navigationRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(navigationControllerProvider.notifier);
+    final event = SosBleEvent(
+      eventId: '1122334455667788',
+      createdAt: DateTime.now().toUtc(),
+      locationStatus: SosBleLocationStatus.current,
+      batteryPercent: 73,
+      latitude: 21.958,
+      longitude: 96.091,
+      alias: 'Aung',
+    );
+
+    await controller.requestSosRoute(location, event);
+
+    final request = repository.sosRouteRequests.single;
+    expect(request.eventId, event.eventId);
+    expect(request.origin.latitude, location.latitude);
+    expect(request.destination.latitude, event.latitude);
+    expect(request.destination.longitude, event.longitude);
+    expect(
+      container.read(navigationControllerProvider).sosRoutes?.options,
+      isNotEmpty,
+    );
+    expect(
+      container.read(navigationControllerProvider).selectedSosRouteId,
+      isNotNull,
+    );
+  });
+
+  test(
+    'does not request an SOS route without a location or after expiry',
+    () async {
+      final repository = FakeNavigationRepository();
+      final container = ProviderContainer(
+        overrides: [navigationRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(navigationControllerProvider.notifier);
+      final noLocation = SosBleEvent(
+        eventId: '1122334455667788',
+        createdAt: DateTime.now().toUtc(),
+        locationStatus: SosBleLocationStatus.unavailable,
+        batteryPercent: 73,
+        alias: 'Aung',
+      );
+      final expired = SosBleEvent(
+        eventId: '1122334455667789',
+        createdAt: DateTime.now().toUtc().subtract(const Duration(minutes: 11)),
+        locationStatus: SosBleLocationStatus.current,
+        batteryPercent: 73,
+        latitude: 21.958,
+        longitude: 96.091,
+        alias: 'Aung',
+      );
+
+      await controller.requestSosRoute(location, noLocation);
+      await controller.requestSosRoute(location, expired);
+
+      expect(repository.sosRouteRequests, isEmpty);
     },
   );
 

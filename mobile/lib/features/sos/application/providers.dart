@@ -9,10 +9,13 @@ import '../data/secure_sos_draft_repository.dart';
 import '../data/sos_sim_preference.dart';
 import '../data/sos_ble_platform.dart';
 import '../data/sos_ble_sender_identity.dart';
+import '../data/sos_preferences.dart';
 import '../domain/sos_ble.dart';
 import '../domain/sos_draft_repository.dart';
 import 'sos_ble_controller.dart';
 import 'sos_ble_state.dart';
+import 'sos_preferences_controller.dart';
+import 'sos_preferences_state.dart';
 import 'sos_draft_queue_controller.dart';
 import 'sos_draft_queue_state.dart';
 
@@ -31,6 +34,15 @@ final nativeSmsSenderProvider = Provider<NativeSmsSender>(
 final sosSimPreferenceStoreProvider = Provider<SosSimPreferenceStore>(
   (ref) => SecureSosSimPreferenceStore(ref.watch(secureStorageDriverProvider)),
 );
+
+final sosPreferencesStoreProvider = Provider<SosPreferencesStore>(
+  (ref) => SecureSosPreferencesStore(ref.watch(secureStorageDriverProvider)),
+);
+
+final sosPreferencesControllerProvider =
+    NotifierProvider<SosPreferencesController, SosPreferencesState>(
+      SosPreferencesController.new,
+    );
 
 final sosBlePlatformProvider = Provider<SosBlePlatformService>(
   (_) => MethodChannelSosBlePlatform(),

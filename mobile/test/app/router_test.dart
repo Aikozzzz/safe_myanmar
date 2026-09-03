@@ -154,6 +154,22 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
+  testWidgets('More Settings deep links remain inside the shell branch', (
+    tester,
+  ) async {
+    final router = createRouter(initialLocation: '/more/settings');
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(child: SafeMyanmarApp(router: router)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(routerLocation(router), '/more/settings');
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
   testWidgets('switching tabs preserves the More branch child route', (
     tester,
   ) async {
