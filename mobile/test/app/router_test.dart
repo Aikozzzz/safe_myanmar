@@ -78,7 +78,7 @@ void main() {
     await tester.tap(_navigationLabel('Guide'));
     await tester.pumpAndSettle();
     expect(routerLocation(router), '/guide');
-    expect(find.text('Offline verified-content retrieval'), findsOneWidget);
+    expect(find.byKey(const Key('guide-search-field')), findsOneWidget);
 
     await tester.tap(_navigationLabel('More'));
     await tester.pumpAndSettle();

@@ -128,55 +128,106 @@ class _SosScreenState extends ConsumerState<SosScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            _RecipientsCard(
-              contacts: selectedContacts,
-              onManage: () => context.go('/more/contacts'),
+            Card(
+              key: const Key('sos-sms-preparation'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      strings.sosSmsPreparationTitle,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(strings.sosSmsPreparationDescription),
+                    const SizedBox(height: 12),
+                    _RecipientsCard(
+                      contacts: selectedContacts,
+                      onManage: () => context.go('/more/contacts'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _messageController,
+                      maxLength: maxSosMessageLength,
+                      maxLines: 3,
+                      minLines: 2,
+                      decoration: InputDecoration(
+                        labelText: strings.sosOptionalMessageLabel,
+                        hintText: strings.sosOptionalMessageHint,
+                        prefixIcon: const Icon(Icons.message_outlined),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 8),
+                    _SharedDataPreview(
+                      profile: profile,
+                      location: location,
+                      body: body,
+                    ),
+                    const SizedBox(height: 12),
+                    _DisclosureCard(
+                      description: strings.sosDirectSmsDisclosure,
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _messageController,
-              maxLength: maxSosMessageLength,
-              maxLines: 3,
-              minLines: 2,
-              decoration: InputDecoration(
-                labelText: strings.sosOptionalMessageLabel,
-                hintText: strings.sosOptionalMessageHint,
-                prefixIcon: const Icon(Icons.message_outlined),
+            Card(
+              key: const Key('sos-ble-preparation'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      strings.sosBlePreparationTitle,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(strings.sosBlePreparationDescription),
+                    const SizedBox(height: 12),
+                    if (preferences.shareNearbySos) ...[
+                      _BleBroadcastFields(
+                        aliasController: _bleAliasController,
+                        messageController: _bleMessageController,
+                        onChanged: () => setState(() {}),
+                      ),
+                      const SizedBox(height: 8),
+                      _BleDataPreview(
+                        location: location,
+                        alias: normalizeSosBleText(_bleAliasController.text),
+                        message: normalizeSosBleText(
+                          _bleMessageController.text,
+                        ),
+                      ),
+                    ] else
+                      Text(strings.sosBleSharingRequired),
+                    if (bleState.isBroadcasting ||
+                        bleState.nearbyEvents.isNotEmpty ||
+                        bleState.error != null ||
+                        bleState.supported == false) ...[
+                      const SizedBox(height: 8),
+                      _NearbySosActivityCard(
+                        state: bleState,
+                        onStopBroadcast: () => ref
+                            .read(sosBleControllerProvider.notifier)
+                            .stopBroadcast(),
+                        onDismissEvent: (eventId) => ref
+                            .read(sosBleControllerProvider.notifier)
+                            .dismissNearbyEvent(eventId),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 8),
-            if (preferences.shareNearbySos) ...[
-              const SizedBox(height: 8),
-              _BleBroadcastFields(
-                aliasController: _bleAliasController,
-                messageController: _bleMessageController,
-                onChanged: () => setState(() {}),
-              ),
-            ],
-            if (bleState.isBroadcasting ||
-                bleState.nearbyEvents.isNotEmpty ||
-                bleState.error != null) ...[
-              const SizedBox(height: 8),
-              _NearbySosActivityCard(
-                state: bleState,
-                onStopBroadcast: () =>
-                    ref.read(sosBleControllerProvider.notifier).stopBroadcast(),
-                onDismissEvent: (eventId) => ref
-                    .read(sosBleControllerProvider.notifier)
-                    .dismissNearbyEvent(eventId),
-              ),
-            ],
-            const SizedBox(height: 16),
-            _SharedDataPreview(
-              profile: profile,
-              location: location,
-              body: body,
             ),
             const SizedBox(height: 16),
             _DisclosureCard(description: strings.sosDirectSmsDisclosure),
             const SizedBox(height: 16),
             HoldToConfirm(
+              key: const Key('sos-hold'),
               enabled: canPrepare,
               label: strings.sosHoldToOpen,
               progressLabel: strings.sosHoldProgress,
@@ -209,7 +260,8 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                 _DraftCard(
                   draft: draft,
                   enabled: !queueState.isBusy,
-                  onOpen: () => _confirmOpenDraft(draft),
+                  onOpenSms: () => _confirmOpenSmsDraft(draft),
+                  onBroadcastBle: () => _confirmBroadcastBleDraft(draft),
                   onCancel: () => _confirmCancelDraft(draft),
                   onRemove: () => _confirmRemoveDraft(draft),
                 ),
@@ -246,8 +298,8 @@ class _SosScreenState extends ConsumerState<SosScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         scrollable: true,
-        title: Text(strings.sosConfirmSmsTitle),
-        content: Text(strings.sosConfirmSmsDescription),
+        title: Text(strings.sosActivateTitle),
+        content: Text(strings.sosActivateDescription),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -255,7 +307,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(strings.sosSendSms),
+            child: Text(strings.sosActivateNow),
           ),
         ],
       ),
@@ -524,7 +576,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
     );
   }
 
-  Future<void> _confirmOpenDraft(SosDraft draft) async {
+  Future<void> _confirmOpenSmsDraft(SosDraft draft) async {
     final strings = AppLocalizations.of(context)!;
     final confirmed = await _confirmationDialog(
       title: strings.sosRetrySmsTitle,
@@ -540,6 +592,38 @@ class _SosScreenState extends ConsumerState<SosScreen> {
     if (confirmed && mounted) {
       await _sendDraft(draft);
     }
+  }
+
+  Future<void> _confirmBroadcastBleDraft(SosDraft draft) async {
+    final strings = AppLocalizations.of(context)!;
+    if (!ref
+        .read(sosPreferencesControllerProvider)
+        .preferences
+        .shareNearbySos) {
+      _showNotice(strings.sosBleSharingRequired);
+      return;
+    }
+    final confirmed = await _confirmationDialog(
+      title: strings.sosBleRetryTitle,
+      description: [
+        strings.sosBleRetryDescription,
+        if (draft.bleAlias case final alias?)
+          strings.sosBluetoothAliasValue(alias),
+        if (draft.bleMessage case final message?)
+          strings.sosBluetoothMessageValue(message),
+        _locationPreview(context, strings, draft.location),
+      ].join('\n\n'),
+      confirmLabel: strings.sosBleBroadcastNow,
+    );
+    if (!confirmed || !mounted) return;
+    await ref.read(sosBleControllerProvider.notifier).broadcast(draft);
+    if (!mounted) return;
+    _showNotice(
+      ref.read(sosBleControllerProvider).broadcastStatus ==
+              SosBleBroadcastStatus.active
+          ? strings.sosBluetoothBroadcastStarted
+          : strings.sosBluetoothBroadcastFailed,
+    );
   }
 
   Future<void> _confirmCancelDraft(SosDraft draft) async {
@@ -838,6 +922,51 @@ class _SharedDataPreview extends StatelessWidget {
   }
 }
 
+class _BleDataPreview extends StatelessWidget {
+  const _BleDataPreview({
+    required this.location,
+    required this.alias,
+    required this.message,
+  });
+
+  final SosLocationSnapshot? location;
+  final String? alias;
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              strings.sosBleBroadcastDataHeading,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(strings.sosBluetoothFields),
+            const SizedBox(height: 8),
+            Text(strings.sosBluetoothExcludedData),
+            const SizedBox(height: 8),
+            if (alias case final value?)
+              Text(strings.sosBluetoothAliasValue(value)),
+            if (message case final value?)
+              Text(strings.sosBluetoothMessageValue(value)),
+            Text(_locationPreview(context, strings, location)),
+            const SizedBox(height: 8),
+            Text(strings.sosBluetoothTenMinuteLimit),
+            const SizedBox(height: 8),
+            Text(strings.sosDraftCreatedWhenConfirmed),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DisclosureCard extends StatelessWidget {
   const _DisclosureCard({required this.description});
 
@@ -1097,22 +1226,30 @@ class _DraftCard extends StatelessWidget {
   const _DraftCard({
     required this.draft,
     required this.enabled,
-    required this.onOpen,
+    required this.onOpenSms,
+    required this.onBroadcastBle,
     required this.onCancel,
     required this.onRemove,
   });
 
   final SosDraft draft;
   final bool enabled;
-  final VoidCallback onOpen;
+  final VoidCallback onOpenSms;
+  final VoidCallback onBroadcastBle;
   final VoidCallback onCancel;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final hasSmsTransport = draft.recipients.isNotEmpty;
+    final hasBleTransport =
+        !hasSmsTransport || draft.bleAlias != null || draft.bleMessage != null;
     final status = switch (draft.status) {
-      SosDraftStatus.prepared => strings.sosStatusPrepared,
+      SosDraftStatus.prepared =>
+        hasSmsTransport
+            ? strings.sosStatusPrepared
+            : strings.sosStatusBlePrepared,
       SosDraftStatus.smsSending => strings.sosStatusSmsSending,
       SosDraftStatus.smsSent => strings.sosStatusSmsSent,
       SosDraftStatus.smsPartial => strings.sosStatusSmsPartial,
@@ -1129,6 +1266,13 @@ class _DraftCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
+              hasSmsTransport
+                  ? strings.sosSmsDraftLabel
+                  : strings.sosBleDraftLabel,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 6),
+            Text(
               strings.sosStatusLabel(status),
               style: Theme.of(context).textTheme.titleMedium,
             ),
@@ -1139,31 +1283,42 @@ class _DraftCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            for (final recipient in draft.recipients)
-              Text(
-                strings.sosRecipientPreview(
-                  recipient.name,
-                  recipient.phoneNumber,
+            if (hasSmsTransport)
+              for (final recipient in draft.recipients)
+                Text(
+                  strings.sosRecipientPreview(
+                    recipient.name,
+                    recipient.phoneNumber,
+                  ),
                 ),
-              ),
             const SizedBox(height: 6),
             Text(_locationPreview(context, strings, draft.location)),
             const SizedBox(height: 8),
-            SelectableText(draft.body),
-            if (draft.status == SosDraftStatus.composerOpened) ...[
+            if (hasSmsTransport) SelectableText(draft.body),
+            if (!hasSmsTransport) ...[
+              Text(strings.sosBluetoothFields),
+              if (draft.bleAlias case final alias?)
+                Text(strings.sosBluetoothAliasValue(alias)),
+              if (draft.bleMessage case final message?)
+                Text(strings.sosBluetoothMessageValue(message)),
+            ],
+            if (hasSmsTransport &&
+                draft.status == SosDraftStatus.composerOpened) ...[
               const SizedBox(height: 8),
               Text(strings.sosComposerOpenedNotice),
             ],
-            if (draft.status == SosDraftStatus.smsSent) ...[
+            if (hasSmsTransport && draft.status == SosDraftStatus.smsSent) ...[
               const SizedBox(height: 8),
               Text(strings.sosSmsSentNotice),
             ],
-            if (draft.status == SosDraftStatus.smsFailed) ...[
+            if (hasSmsTransport &&
+                draft.status == SosDraftStatus.smsFailed) ...[
               const SizedBox(height: 8),
               Text(strings.sosSmsFailedNotice),
             ],
-            if (draft.status == SosDraftStatus.smsPartial ||
-                draft.status == SosDraftStatus.smsUnknown) ...[
+            if (hasSmsTransport &&
+                (draft.status == SosDraftStatus.smsPartial ||
+                    draft.status == SosDraftStatus.smsUnknown)) ...[
               const SizedBox(height: 8),
               Text(strings.sosSmsUncertainNotice),
             ],
@@ -1172,11 +1327,17 @@ class _DraftCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (draft.status != SosDraftStatus.cancelled)
+                if (hasSmsTransport && draft.status != SosDraftStatus.cancelled)
                   OutlinedButton.icon(
-                    onPressed: enabled ? onOpen : null,
+                    onPressed: enabled ? onOpenSms : null,
                     icon: const Icon(Icons.sms_outlined),
                     label: Text(strings.sosOpenAgain),
+                  ),
+                if (hasBleTransport && draft.status != SosDraftStatus.cancelled)
+                  OutlinedButton.icon(
+                    onPressed: enabled ? onBroadcastBle : null,
+                    icon: const Icon(Icons.bluetooth_outlined),
+                    label: Text(strings.sosBleBroadcastAgain),
                   ),
                 if (draft.status != SosDraftStatus.cancelled)
                   OutlinedButton.icon(

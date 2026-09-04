@@ -434,12 +434,6 @@ abstract class AppLocalizations {
   /// **'Last known at: {time}'**
   String lastKnownLocationAt(String time);
 
-  /// No description provided for @demoDataNotice.
-  ///
-  /// In en, this message translates to:
-  /// **'Demonstration data is shown here and is not a live emergency feed. Follow official local instructions.'**
-  String get demoDataNotice;
-
   /// No description provided for @navigationSource.
   ///
   /// In en, this message translates to:
@@ -761,7 +755,7 @@ abstract class AppLocalizations {
   /// No description provided for @contextRouteSelectionDescription.
   ///
   /// In en, this message translates to:
-  /// **'Select a candidate above, then request a route separately. No route is requested automatically.'**
+  /// **'Request a route to this suggested area. No route is requested automatically.'**
   String get contextRouteSelectionDescription;
 
   /// No description provided for @sosBluetoothShareTitle.
@@ -781,6 +775,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, battery level, and optional alias or message.'**
   String get sosBluetoothFields;
+
+  /// No description provided for @sosBleBroadcastDataHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'BLE broadcast preview'**
+  String get sosBleBroadcastDataHeading;
+
+  /// No description provided for @sosBluetoothExcludedData.
+  ///
+  /// In en, this message translates to:
+  /// **'The profile name, saved contacts, and SMS body are not broadcast.'**
+  String get sosBluetoothExcludedData;
 
   /// No description provided for @sosBluetoothTenMinuteLimit.
   ///
@@ -1208,6 +1214,42 @@ abstract class AppLocalizations {
   /// **'Requesting route suggestions'**
   String get updatingRouteSuggestions;
 
+  /// No description provided for @contextRouteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show route to the suggested area'**
+  String get contextRouteLabel;
+
+  /// No description provided for @contextRouteLoadingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Requesting route to the suggested area...'**
+  String get contextRouteLoadingLabel;
+
+  /// No description provided for @contextRouteRetryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry route to the suggested area'**
+  String get contextRouteRetryLabel;
+
+  /// No description provided for @contextRouteShownLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Route to the suggested area is shown on the map.'**
+  String get contextRouteShownLabel;
+
+  /// No description provided for @contextRouteUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Route to the suggested area is currently unavailable.'**
+  String get contextRouteUnavailable;
+
+  /// No description provided for @contextRouteNeedsLocationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location is needed to show a route to the suggested area.'**
+  String get contextRouteNeedsLocationLabel;
+
   /// No description provided for @routingUnavailable.
   ///
   /// In en, this message translates to:
@@ -1331,7 +1373,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosIntroduction.
   ///
   /// In en, this message translates to:
-  /// **'Prepare an emergency SMS for people you selected. Opening this screen does not prepare or send anything.'**
+  /// **'Prepare an emergency SOS for selected SMS contacts and nearby devices. Opening this screen does not prepare or send anything.'**
   String get sosIntroduction;
 
   /// No description provided for @sosSetupTitle.
@@ -1343,8 +1385,38 @@ abstract class AppLocalizations {
   /// No description provided for @sosSetupDescription.
   ///
   /// In en, this message translates to:
-  /// **'Review contacts, optional message, location sharing, and the exact message before confirming.'**
+  /// **'Review SMS contacts, optional messages, location sharing, and the exact data before confirming one SOS activation.'**
   String get sosSetupDescription;
+
+  /// No description provided for @sosSmsPreparationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS preparation'**
+  String get sosSmsPreparationTitle;
+
+  /// No description provided for @sosSmsPreparationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review saved recipients and the exact SMS that will be sent when you activate SOS.'**
+  String get sosSmsPreparationDescription;
+
+  /// No description provided for @sosBlePreparationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SOS BLE preparation'**
+  String get sosBlePreparationTitle;
+
+  /// No description provided for @sosBlePreparationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare the limited nearby Bluetooth data that will be broadcast with SOS activation. SMS contacts are optional.'**
+  String get sosBlePreparationDescription;
+
+  /// No description provided for @sosBleSharingRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable nearby SOS sharing in More > Settings to include this BLE data. Enabling it does not start a broadcast.'**
+  String get sosBleSharingRequired;
 
   /// No description provided for @sosReadinessReady.
   ///
@@ -1533,7 +1605,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosHoldToOpen.
   ///
   /// In en, this message translates to:
-  /// **'Hold for 3 seconds to send SMS'**
+  /// **'Hold for 3 seconds to activate SOS'**
   String get sosHoldToOpen;
 
   /// No description provided for @sosHoldProgress.
@@ -1545,13 +1617,13 @@ abstract class AppLocalizations {
   /// No description provided for @sosHoldCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Hold cancelled. Nothing was sent.'**
+  /// **'Hold cancelled. Nothing was sent or broadcast.'**
   String get sosHoldCancelled;
 
   /// No description provided for @sosHoldSemanticsHint.
   ///
   /// In en, this message translates to:
-  /// **'Press and hold continuously for 3 seconds. Activate for an accessible confirmation path.'**
+  /// **'Press and hold continuously for 3 seconds to activate the prepared SMS and optional BLE SOS. Use the accessible confirmation path instead if needed.'**
   String get sosHoldSemanticsHint;
 
   /// No description provided for @sosAccessibleConfirmation.
@@ -1569,7 +1641,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosConfirmPreviewDescription.
   ///
   /// In en, this message translates to:
-  /// **'Review the recipients and exact SMS preview on this screen. Continue only if you want to prepare this draft.'**
+  /// **'Review the recipients, exact SMS preview, and optional nearby BLE data on this screen. Continue only if you want to prepare this SOS.'**
   String get sosConfirmPreviewDescription;
 
   /// No description provided for @sosContinue.
@@ -1596,17 +1668,23 @@ abstract class AppLocalizations {
   /// **'Prepare and open messaging'**
   String get sosOpenMessaging;
 
-  /// No description provided for @sosConfirmSmsTitle.
+  /// No description provided for @sosActivateTitle.
   ///
   /// In en, this message translates to:
-  /// **'Send SOS SMS directly?'**
-  String get sosConfirmSmsTitle;
+  /// **'Activate this SOS now?'**
+  String get sosActivateTitle;
 
-  /// No description provided for @sosConfirmSmsDescription.
+  /// No description provided for @sosActivateDescription.
   ///
   /// In en, this message translates to:
-  /// **'This second confirmation prepares the secure draft and sends the reviewed SMS directly to the selected contacts after Android SMS permission is granted. Device acceptance does not guarantee carrier delivery.'**
-  String get sosConfirmSmsDescription;
+  /// **'This second confirmation saves one SOS draft. If SMS contacts are selected, SafeMyanmar sends the reviewed SMS. If nearby sharing is enabled, it broadcasts only the limited BLE data shown above for up to 10 minutes. Device acceptance does not guarantee carrier delivery.'**
+  String get sosActivateDescription;
+
+  /// No description provided for @sosActivateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate SOS'**
+  String get sosActivateNow;
 
   /// No description provided for @sosSendSms.
   ///
@@ -1631,6 +1709,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The previous SMS attempt has a partial or unknown result. Retrying can create duplicate messages, so continue only if that risk is acceptable.'**
   String get sosRetrySmsUncertainDescription;
+
+  /// No description provided for @sosBleRetryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast this BLE draft again?'**
+  String get sosBleRetryTitle;
+
+  /// No description provided for @sosBleRetryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved limited BLE data will be broadcast for up to 10 minutes. Nearby devices cannot confirm your identity or rescue delivery.'**
+  String get sosBleRetryDescription;
+
+  /// No description provided for @sosBleBroadcastNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast BLE SOS'**
+  String get sosBleBroadcastNow;
 
   /// No description provided for @sosNotNow.
   ///
@@ -1746,6 +1842,12 @@ abstract class AppLocalizations {
   /// **'Prepared'**
   String get sosStatusPrepared;
 
+  /// No description provided for @sosStatusBlePrepared.
+  ///
+  /// In en, this message translates to:
+  /// **'BLE draft prepared; broadcast status is shown above'**
+  String get sosStatusBlePrepared;
+
   /// No description provided for @sosStatusSmsSending.
   ///
   /// In en, this message translates to:
@@ -1799,6 +1901,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send again'**
   String get sosOpenAgain;
+
+  /// No description provided for @sosBleBroadcastAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast again'**
+  String get sosBleBroadcastAgain;
+
+  /// No description provided for @sosSmsDraftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS draft'**
+  String get sosSmsDraftLabel;
+
+  /// No description provided for @sosBleDraftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'BLE draft'**
+  String get sosBleDraftLabel;
 
   /// No description provided for @sosCancelDraft.
   ///
@@ -1974,12 +2094,6 @@ abstract class AppLocalizations {
   /// **'Search a small, reviewed emergency guide stored on this device. It works without a network connection.'**
   String get guideIntroduction;
 
-  /// No description provided for @guideOfflineVerifiedLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline verified-content retrieval'**
-  String get guideOfflineVerifiedLabel;
-
   /// No description provided for @guideQuickActionsHeading.
   ///
   /// In en, this message translates to:
@@ -2010,6 +2124,12 @@ abstract class AppLocalizations {
   /// **'First aid'**
   String get guideActionFirstAid;
 
+  /// No description provided for @guideActionTrapped.
+  ///
+  /// In en, this message translates to:
+  /// **'Trapped after earthquake'**
+  String get guideActionTrapped;
+
   /// No description provided for @guideActionMap.
   ///
   /// In en, this message translates to:
@@ -2021,6 +2141,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open SOS'**
   String get guideActionSos;
+
+  /// No description provided for @guideActionEmergencyContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Yangon emergency contacts'**
+  String get guideActionEmergencyContacts;
 
   /// No description provided for @guideNextStepsHeading.
   ///
@@ -2105,6 +2231,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'First aid'**
   String get guideCategoryFirstAid;
+
+  /// No description provided for @guideEmergencyContactsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Yangon emergency contacts'**
+  String get guideEmergencyContactsTitle;
+
+  /// No description provided for @guideEmergencyContactsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Core emergency numbers listed for Yangon. Check current official local instructions when possible.'**
+  String get guideEmergencyContactsDescription;
+
+  /// No description provided for @guideEmergencyContactAmbulance.
+  ///
+  /// In en, this message translates to:
+  /// **'Ambulance emergency'**
+  String get guideEmergencyContactAmbulance;
+
+  /// No description provided for @guideEmergencyContactFire.
+  ///
+  /// In en, this message translates to:
+  /// **'Fire emergency'**
+  String get guideEmergencyContactFire;
+
+  /// No description provided for @guideEmergencyContactPolice.
+  ///
+  /// In en, this message translates to:
+  /// **'Police emergency'**
+  String get guideEmergencyContactPolice;
+
+  /// No description provided for @guideEmergencyContactYangonGeneralHospital.
+  ///
+  /// In en, this message translates to:
+  /// **'Yangon General Hospital'**
+  String get guideEmergencyContactYangonGeneralHospital;
+
+  /// No description provided for @guideEmergencyContactsCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get guideEmergencyContactsCall;
+
+  /// No description provided for @guideEmergencyContactsSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source: Yangon Directory'**
+  String get guideEmergencyContactsSource;
+
+  /// No description provided for @guideEmergencyContactsCheckedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked: {date}'**
+  String guideEmergencyContactsCheckedAt(String date);
+
+  /// No description provided for @guideEmergencyContactsWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Directory listings can change. Confirm important numbers with local authorities when possible.'**
+  String get guideEmergencyContactsWarning;
+
+  /// No description provided for @guideEmergencyContactsDialingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'For Yangon landlines, the directory advises adding 01 before the listed number.'**
+  String get guideEmergencyContactsDialingNote;
+
+  /// No description provided for @guideEmergencyContactsCallUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone app could not be opened.'**
+  String get guideEmergencyContactsCallUnavailable;
 
   /// No description provided for @guideLoading.
   ///

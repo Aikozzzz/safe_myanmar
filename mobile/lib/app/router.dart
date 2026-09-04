@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../features/alerts/presentation/alert_detail_screen.dart';
 import '../features/alerts/presentation/alert_list_screen.dart';
 import '../features/guide/presentation/assistant_screen.dart';
+import '../features/guide/presentation/local_emergency_contacts_screen.dart';
 import '../features/guide/presentation/guide_screens.dart';
 import '../features/location/presentation/location_screen.dart';
 import '../features/navigation/presentation/app_shell.dart';
@@ -59,6 +60,10 @@ GoRouter createRouter({String initialLocation = '/home'}) {
                   GoRoute(
                     path: 'assistant',
                     builder: (_, _) => const AssistantScreen(),
+                  ),
+                  GoRoute(
+                    path: 'emergency-contacts',
+                    builder: (_, _) => const YangonEmergencyContactsScreen(),
                   ),
                 ],
               ),

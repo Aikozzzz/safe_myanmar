@@ -47,14 +47,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Offline verified-content retrieval'), findsOneWidget);
     expect(
       find.textContaining('Burmese translations require review'),
       findsNothing,
-    );
-    expect(
-      tester.getSemantics(find.text('Offline verified-content retrieval')),
-      matchesSemantics(label: 'Offline verified-content retrieval'),
     );
     final search = find.byTooltip('Search');
     await _revealInGuide(tester, search);
@@ -150,10 +145,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('လမ်းညွှန်'), findsWidgets);
-    expect(
-      find.text('အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု'),
-      findsOneWidget,
-    );
+    expect(find.text('ငလျင်ပြီးနောက် ပိတ်မိနေပါက'), findsWidgets);
     expect(find.text('ဝပ်၊ ကာကွယ်၊ ကိုင်ထားပါ'), findsOneWidget);
   });
 }

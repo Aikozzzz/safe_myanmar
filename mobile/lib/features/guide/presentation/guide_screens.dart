@@ -37,13 +37,26 @@ class _GuideScreenState extends ConsumerState<GuideScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _OfflineBanner(text: strings.guideOfflineVerifiedLabel),
-                const SizedBox(height: 12),
-                Text(
-                  strings.guideIntroduction,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                TextField(
+                  key: const Key('guide-search-field'),
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    labelText: strings.guideSearchLabel,
+                    hintText: strings.guideSearchHint,
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      tooltip: strings.guideSearchAction,
+                      onPressed: () => ref
+                          .read(guideControllerProvider.notifier)
+                          .search(_searchController.text),
+                      icon: const Icon(Icons.arrow_forward),
+                    ),
+                  ),
+                  onSubmitted: (value) =>
+                      ref.read(guideControllerProvider.notifier).search(value),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 _GuideQuickActions(
                   heading: strings.guideQuickActionsHeading,
                   actions: [
@@ -74,6 +87,13 @@ class _GuideScreenState extends ConsumerState<GuideScreen> {
                           _openArticle(context, 'first-aid-assessment'),
                     ),
                     _GuideAction(
+                      key: const Key('guide-quick-action-trapped'),
+                      label: strings.guideActionTrapped,
+                      icon: Icons.person_off_outlined,
+                      onPressed: () =>
+                          _openArticle(context, 'earthquake-trapped'),
+                    ),
+                    _GuideAction(
                       key: const Key('guide-quick-action-map'),
                       label: strings.guideActionMap,
                       icon: Icons.map_outlined,
@@ -84,6 +104,12 @@ class _GuideScreenState extends ConsumerState<GuideScreen> {
                       label: strings.guideActionSos,
                       icon: Icons.sos,
                       onPressed: () => context.go('/sos'),
+                    ),
+                    _GuideAction(
+                      key: const Key('guide-quick-action-emergency-contacts'),
+                      label: strings.guideActionEmergencyContacts,
+                      icon: Icons.contact_phone_outlined,
+                      onPressed: () => context.go('/guide/emergency-contacts'),
                     ),
                   ],
                 ),
@@ -112,23 +138,9 @@ class _GuideScreenState extends ConsumerState<GuideScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _searchController,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    labelText: strings.guideSearchLabel,
-                    hintText: strings.guideSearchHint,
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      tooltip: strings.guideSearchAction,
-                      onPressed: () => ref
-                          .read(guideControllerProvider.notifier)
-                          .search(_searchController.text),
-                      icon: const Icon(Icons.arrow_forward),
-                    ),
-                  ),
-                  onSubmitted: (value) =>
-                      ref.read(guideControllerProvider.notifier).search(value),
+                Text(
+                  strings.guideIntroduction,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -457,33 +469,6 @@ class _CategoryChip extends StatelessWidget {
     label: Text(label),
     selected: selected,
     onSelected: (_) => onSelected(),
-  );
-}
-
-class _OfflineBanner extends StatelessWidget {
-  const _OfflineBanner({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    label: text,
-    child: Card(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            const Icon(Icons.offline_bolt_outlined),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(text, style: Theme.of(context).textTheme.labelLarge),
-            ),
-          ],
-        ),
-      ),
-    ),
   );
 }
 

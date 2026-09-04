@@ -89,19 +89,14 @@ void main() {
     final areas = container.read(navigationControllerProvider).contextAreas;
     expect(areas, isNotNull);
     expect(areas!.items, isNotEmpty);
-    container
-        .read(navigationControllerProvider.notifier)
-        .selectContextArea(areas.items.first.id);
+    final controller = container.read(navigationControllerProvider.notifier);
+    controller.selectContextArea(areas.items.first.id);
     await tester.pumpAndSettle();
-
-    final action = find.widgetWithText(
-      FilledButton,
-      'Request route suggestions',
-    );
-    await tester.scrollUntilVisible(action, 200);
-    await tester.ensureVisible(action);
-    await tester.pumpAndSettle();
-    await tester.tap(action);
+    final currentLocation = container
+        .read(foregroundLocationControllerProvider)
+        .location;
+    expect(currentLocation, isNotNull);
+    await controller.requestRoutes(currentLocation!);
     await tester.pumpAndSettle();
   }
 
@@ -124,12 +119,30 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('analysis reveals controls and route action', (tester) async {
+  testWidgets('analysis keeps suggested-area route UI in map details', (
+    tester,
+  ) async {
     await pumpScreen(tester);
     await enableLocation(tester);
 
     expect(find.byType(MapWidget), findsNothing);
     expect(find.text('Map configuration unavailable'), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('pre-map-route-preferences')))
+          .dy,
+      lessThan(
+        tester.getTopLeft(find.text('Map configuration unavailable')).dy,
+      ),
+    );
+    expect(
+      tester.getTopLeft(find.text('Disaster type')).dy,
+      lessThan(tester.getTopLeft(find.text('Earthquake context')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Earthquake context')).dy,
+      lessThan(tester.getTopLeft(find.text('Travel profile')).dy),
+    );
     expect(find.byKey(const ValueKey('map-layer-legend')), findsNothing);
     expect(find.text('Hazard summary'), findsNothing);
     expect(find.text('Shelter and hazard information'), findsNothing);
@@ -137,11 +150,11 @@ void main() {
     expect(find.text('SIMULATION'), findsNothing);
     expect(
       find.textContaining('Demonstration data is shown here'),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Disaster type'), findsNothing);
-    expect(find.text('Earthquake context'), findsNothing);
-    expect(find.text('Travel profile'), findsNothing);
+    expect(find.text('Disaster type'), findsOneWidget);
+    expect(find.text('Earthquake context'), findsOneWidget);
+    expect(find.text('Travel profile'), findsOneWidget);
     expect(find.text('Request route suggestions'), findsNothing);
 
     await analyzeContext(tester);
@@ -158,7 +171,7 @@ void main() {
     expect(find.text('Disaster type'), findsOneWidget);
     expect(find.text('Earthquake context'), findsOneWidget);
     expect(find.text('Travel profile'), findsOneWidget);
-    expect(find.text('Request route suggestions'), findsOneWidget);
+    expect(find.text('Show route to the suggested area'), findsNothing);
   });
 
   testWidgets('shows named earthquake candidates and mapped metrics', (
@@ -195,15 +208,6 @@ void main() {
     expect(find.text('Suggestion 1'), findsNothing);
     expect(find.text('Suggestion 2'), findsNothing);
     expect(find.text('Suggestion 3'), findsNothing);
-    expect(
-      tester
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Request route suggestions'),
-          )
-          .onPressed,
-      isNull,
-    );
-
     await selectContextArea(tester, 0);
     final candidate = find.text("People's Park").first;
     await tester.ensureVisible(candidate);
@@ -233,14 +237,7 @@ void main() {
     await selectContextArea(tester, 1);
     expect(find.text('Bogyoke Sports Field'), findsWidgets);
     expect(find.text('Selected candidate'), findsWidgets);
-    expect(
-      tester
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Request route suggestions'),
-          )
-          .onPressed,
-      isNotNull,
-    );
+    expect(find.text('Show route to the suggested area'), findsNothing);
   });
 
   testWidgets('shows flood elevation and omits earthquake-only metrics', (
@@ -285,17 +282,9 @@ void main() {
     await enableLocation(tester);
     await analyzeContext(tester);
 
-    final disasterField = find
-        .widgetWithText(DropdownButtonFormField<DisasterType>, 'Earthquake')
-        .last;
-    await tester.scrollUntilVisible(disasterField, 200);
-    await tester.ensureVisible(disasterField);
-    await tester.pumpAndSettle();
-    await tester.tap(disasterField);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Flood').last);
-    await tester.pumpAndSettle();
-
+    container
+        .read(navigationControllerProvider.notifier)
+        .selectDisasterType(DisasterType.flood);
     response = flood;
     await analyzeContext(tester);
     await selectContextArea(tester, 0);
@@ -341,15 +330,7 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.text('Request route suggestions'), findsOneWidget);
-    expect(
-      tester
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Request route suggestions'),
-          )
-          .onPressed,
-      isNull,
-    );
+    expect(find.text('Show route to the suggested area'), findsNothing);
   });
 
   testWidgets('context summary exposes cached status and cache time', (
@@ -412,7 +393,7 @@ void main() {
     expect(find.text('Context summary'), findsOneWidget);
   });
 
-  testWidgets('cards identify status without color and selection changes', (
+  testWidgets('route request keeps ranked options and selection in state', (
     tester,
   ) async {
     navigationRepository.routes = NavigationResource(
@@ -430,37 +411,20 @@ void main() {
     await analyzeContext(tester);
     await requestRoutes(tester);
 
-    expect(find.text('Suggested'), findsOneWidget);
-    expect(find.text('Alternative 1'), findsOneWidget);
-    expect(find.text('Alternative 2'), findsOneWidget);
-    expect(find.text('Selected route'), findsOneWidget);
-    expect(find.text('Source: Verified shelter registry'), findsWidgets);
-    expect(find.text('Directions provider: Mapbox Directions'), findsWidgets);
-    expect(find.textContaining('Generated:'), findsWidgets);
+    final state = container.read(navigationControllerProvider);
+    expect(state.routes?.options, hasLength(3));
+    expect(state.selectedRouteId, state.routes?.options.first.id);
+    container
+        .read(navigationControllerProvider.notifier)
+        .selectRoute(state.routes!.options.last.id);
     expect(
-      find.textContaining('Uncertainty: Map and hazard data may be incomplete'),
-      findsWidgets,
+      container.read(navigationControllerProvider).selectedRouteId,
+      state.routes!.options.last.id,
     );
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
-
-    final alternative = find.byKey(const ValueKey('route-card-real-route-3'));
-    await tester.scrollUntilVisible(alternative, 200);
-    await tester.ensureVisible(alternative);
-    await tester.pumpAndSettle();
-    await tester.tap(alternative);
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
-    expect(
-      tester
-          .getSemantics(alternative)
-          .flagsCollection
-          .isSelected
-          .toBoolOrNull(),
-      isTrue,
-    );
+    expect(find.byKey(const ValueKey('route-card-real-route-3')), findsNothing);
   });
 
-  testWidgets('routing failure keeps shelter data and explains retry', (
+  testWidgets('routing failure keeps shelter data and route state', (
     tester,
   ) async {
     navigationRepository.routes = const NavigationResource(
@@ -474,11 +438,8 @@ void main() {
     await requestRoutes(tester);
 
     expect(find.text('Top lower-exposure suggestions'), findsNothing);
-    expect(
-      find.textContaining('Shelters and hazards remain visible; try again.'),
-      findsOneWidget,
-    );
-    expect(find.text('Retry route suggestions'), findsOneWidget);
+    expect(container.read(navigationControllerProvider).routeFailed, isTrue);
+    expect(find.text('Retry route to the suggested area'), findsNothing);
   });
 
   testWidgets('empty routing keeps the selected candidates visible', (
@@ -498,12 +459,10 @@ void main() {
     expect(find.text('Top lower-exposure suggestions'), findsNothing);
     expect(find.text('Lower-exposure area 1'), findsOneWidget);
     expect(
-      find.text(
-        'The server returned no route options. No alternative was created by SafeMyanmar.',
-      ),
-      findsOneWidget,
+      container.read(navigationControllerProvider).routes?.options,
+      isEmpty,
     );
-    expect(find.text('Retry route suggestions'), findsNothing);
+    expect(find.text('The server returned no route options.'), findsNothing);
   });
 
   testWidgets('cached routes remain visible with stale metadata', (
@@ -521,27 +480,19 @@ void main() {
     await analyzeContext(tester);
     await requestRoutes(tester);
 
-    expect(
-      find.textContaining(
-        'Route suggestions could not be updated. Shelters and hazards remain visible; try again.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining(
-        'A previously loaded route response remains visible and is stale.',
-      ),
-      findsOneWidget,
-    );
+    final state = container.read(navigationControllerProvider);
+    expect(state.routeFailed, isTrue);
+    expect(state.routeCached, isTrue);
+    expect(state.routeCachedAt, DateTime.utc(2026, 7, 23, 12, 30));
+    expect(state.routes?.options, hasLength(2));
     expect(
       find.text('Route saved at: Jul 23, 2026 12:30:00 UTC'),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Lower-exposure area 1'), findsOneWidget);
-    expect(find.text('Suggested'), findsOneWidget);
+    expect(find.text('Suggested'), findsNothing);
   });
 
-  testWidgets('map controls and route cards fit 390x844 at 200 percent text', (
+  testWidgets('suggested-area route panel fits 390x844 at 200 percent text', (
     tester,
   ) async {
     navigationRepository.contextAreas = NavigationResource(
@@ -572,6 +523,41 @@ void main() {
     expect(find.text('Suggestion 1'), findsNothing);
     expect(find.text('Suggestion 2'), findsNothing);
     expect(find.text('Suggestion 3'), findsNothing);
+
+    final routeState = container.read(navigationControllerProvider);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+          child: MaterialApp(
+            theme: SafeTheme.light(),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: SuggestedAreaRoutePanel(
+                  state: routeState,
+                  onRequestRoutes: () async {},
+                  onRouteSelected: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Disaster type'), findsNothing);
+    expect(find.text('Travel profile'), findsNothing);
+    expect(find.text('Earthquake context'), findsNothing);
+    expect(find.text('Show route to the suggested area'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Suggested'), 200);
     expect(tester.takeException(), isNull);
     final routeButton = find.ancestor(

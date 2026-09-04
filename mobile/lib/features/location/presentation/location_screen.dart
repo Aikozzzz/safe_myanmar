@@ -452,12 +452,6 @@ class _NavigationContent extends StatelessWidget {
       for (final event in nearbyEvents)
         if (event.eventId != activeEvent?.eventId) event,
     ];
-    final selectedEvent = events.where(
-      (event) => event.eventId == selectedEventId,
-    );
-    final displayedEvent = selectedEvent.isNotEmpty
-        ? selectedEvent.first
-        : events.firstOrNull;
     final mapCenter = currentLocation == null
         ? _eventMapCenter()
         : NavigationCoordinate(
@@ -473,7 +467,13 @@ class _NavigationContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _DemoDataNotice(state: state),
+        _RoutePreferences(
+          key: const ValueKey('pre-map-route-preferences'),
+          state: state,
+          onDisasterChanged: onDisasterChanged,
+          onContextScenarioChanged: onContextScenarioChanged,
+          onProfileChanged: onProfileChanged,
+        ),
         const SizedBox(height: 12),
         if (state.loadingMapData && shelters == null && hazards == null)
           Semantics(
@@ -518,6 +518,19 @@ class _NavigationContent extends StatelessWidget {
               onSosEventSelected: onSosEventSelected,
               onShelterSelected: onShelterSelected,
               onContextAreaSelected: onContextAreaChanged,
+              contextAreaRouteContentBuilder: (area) {
+                final requestRoutes = onRequestRoutes;
+                return SuggestedAreaRoutePanel(
+                  state: state,
+                  onRequestRoutes: requestRoutes == null
+                      ? null
+                      : () {
+                          onContextAreaChanged(area.id);
+                          return requestRoutes();
+                        },
+                  onRouteSelected: onRouteSelected,
+                );
+              },
               onRouteSelected: onRouteSelected,
               onSosRouteSelected: onSosRouteSelected,
               onSosRouteRequested: onSosRouteRequested,
@@ -555,18 +568,6 @@ class _NavigationContent extends StatelessWidget {
             visibleHazards: visibleHazards,
           ),
         ],
-        if (events.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _SosMapEventSelector(
-            events: events,
-            selectedEventId: selectedEventId,
-            onSelected: onSosEventSelected,
-          ),
-          if (displayedEvent case final event?) ...[
-            const SizedBox(height: 8),
-            _SosMapEventDetails(event: event),
-          ],
-        ],
         const SizedBox(height: 16),
         _ContextAnalysisControl(
           hasAreas: state.contextAreas?.items.isNotEmpty ?? false,
@@ -587,61 +588,6 @@ class _NavigationContent extends StatelessWidget {
               cachedAt: state.contextCachedAt,
             ),
           ],
-        if (state.contextAnalysisRequested) ...[
-          const SizedBox(height: 16),
-          _RouteControls(
-            state: state,
-            onDisasterChanged: onDisasterChanged,
-            onContextScenarioChanged: onContextScenarioChanged,
-            onProfileChanged: onProfileChanged,
-            onRequestRoutes: onRequestRoutes,
-          ),
-        ],
-        if (state.routeFailed) ...[
-          const SizedBox(height: 12),
-          _StatusMessage(
-            icon: Icons.route_outlined,
-            message: state.routeCached
-                ? '${strings.routingUnavailable} '
-                      '${strings.cachedRouteWarning}'
-                : strings.routingUnavailable,
-          ),
-          if (state.routeCachedAt case final cachedAt?)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                strings.cachedRouteAt(_formatUtc(context, strings, cachedAt)),
-              ),
-            ),
-        ],
-        if (state.loadingRoutes) ...[
-          const SizedBox(height: 12),
-          Semantics(
-            label: strings.updatingRouteSuggestions,
-            child: const Center(child: CircularProgressIndicator()),
-          ),
-        ],
-        if (state.routes case final response?) ...[
-          const SizedBox(height: 12),
-          if (routeOptions.isEmpty)
-            _StatusMessage(
-              icon: Icons.alt_route,
-              message: strings.noRoutesReturned,
-            )
-          else
-            for (var index = 0; index < routeOptions.length; index++) ...[
-              _RouteCard(
-                option: routeOptions[index],
-                response: response,
-                label: index == 0
-                    ? strings.routeSuggested
-                    : strings.routeAlternative(index),
-                selected: routeOptions[index].id == state.selectedRouteId,
-                onSelected: () => onRouteSelected(routeOptions[index].id),
-              ),
-              if (index != routeOptions.length - 1) const SizedBox(height: 8),
-            ],
-        ],
         if (sosRouteEvent != null) ...[
           const SizedBox(height: 12),
           Text(
@@ -705,160 +651,6 @@ class _NavigationContent extends StatelessWidget {
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
           );
-  }
-}
-
-class _SosMapEventSelector extends StatelessWidget {
-  const _SosMapEventSelector({
-    required this.events,
-    required this.selectedEventId,
-    required this.onSelected,
-  });
-
-  final List<SosBleEvent> events;
-  final String? selectedEventId;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppLocalizations.of(context)!;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              strings.sosBluetoothMapEventsHeading,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            for (var index = 0; index < events.length; index++)
-              Semantics(
-                button: true,
-                selected: events[index].eventId == selectedEventId,
-                label: strings.sosBluetoothSelectEvent(index + 1),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  selected: events[index].eventId == selectedEventId,
-                  leading: Icon(
-                    events[index].eventId == selectedEventId
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked,
-                  ),
-                  title: Text(strings.sosBluetoothSourceLabel(index + 1)),
-                  subtitle: Text(
-                    events[index].hasLocation
-                        ? strings.sosBluetoothGridLocation(
-                            events[index].latitude!.toStringAsFixed(6),
-                            events[index].longitude!.toStringAsFixed(6),
-                          )
-                        : strings.sosBluetoothLocationUnavailable,
-                  ),
-                  onTap: () => onSelected(events[index].eventId),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SosMapEventDetails extends StatelessWidget {
-  const _SosMapEventDetails({required this.event});
-
-  final SosBleEvent event;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppLocalizations.of(context)!;
-    final location = event.hasLocation
-        ? strings.sosBluetoothGridLocation(
-            event.latitude!.toStringAsFixed(6),
-            event.longitude!.toStringAsFixed(6),
-          )
-        : strings.sosBluetoothLocationUnavailable;
-    final status = switch (event.locationStatus) {
-      SosBleLocationStatus.current => strings.sosBluetoothCurrentLocation,
-      SosBleLocationStatus.lastKnown => strings.sosBluetoothLastKnownLocation,
-      SosBleLocationStatus.unavailable =>
-        strings.sosBluetoothLocationUnavailable,
-    };
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              strings.sosBluetoothSelectedEventHeading,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              event.hasVerifiedDetails
-                  ? strings.sosBluetoothVerified
-                  : strings.sosBluetoothUnverified,
-            ),
-            Text(location),
-            Text(status),
-            Text(strings.sosBluetoothEventId(event.eventId)),
-            Text(
-              strings.sosBluetoothTimestamp(
-                _formatUtc(context, strings, event.createdAt),
-              ),
-            ),
-            if (event.alias case final alias?)
-              Text(strings.sosBluetoothAliasValue(alias)),
-            if (event.message case final message?)
-              Text(strings.sosBluetoothMessageValue(message)),
-            if (event.batteryPercent case final battery?)
-              Text(strings.sosBluetoothBatteryValue(battery)),
-            if (event.rssi case final rssi?)
-              Text(strings.sosBluetoothRssiValue(rssi)),
-            Text(
-              strings.sosBluetoothProtocol(
-                event.protocolVersion,
-                event.ttlMinutes,
-              ),
-            ),
-            Text(strings.sosBluetoothRelayHops(event.hopCount)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DemoDataNotice extends StatelessWidget {
-  const _DemoDataNotice({required this.state});
-
-  final NavigationState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppLocalizations.of(context)!;
-    final shelters = state.shelters;
-    final hazards = state.hazards;
-    final hasDemoData =
-        shelters?.simulation == true ||
-        hazards?.simulation == true ||
-        state.contextAreas?.simulation == true ||
-        state.routes?.simulation == true;
-    if (!hasDemoData) return const SizedBox.shrink();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.info_outline, size: 20),
-            const SizedBox(width: 8),
-            Expanded(child: Text(strings.demoDataNotice)),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -1264,20 +1056,107 @@ class _ContextCollectionMetadata extends StatelessWidget {
   }
 }
 
-class _RouteControls extends StatelessWidget {
-  const _RouteControls({
+class SuggestedAreaRoutePanel extends StatelessWidget {
+  const SuggestedAreaRoutePanel({
+    required this.state,
+    required this.onRequestRoutes,
+    required this.onRouteSelected,
+    super.key,
+  });
+
+  final NavigationState state;
+  final Future<void> Function()? onRequestRoutes;
+  final ValueChanged<String> onRouteSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    final routeOptions = (state.routes?.options ?? const <RouteOption>[])
+        .take(3)
+        .toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _RouteControls(
+          state: state,
+          onRequestRoutes: onRequestRoutes,
+          requestLabel: strings.contextRouteLabel,
+          loadingLabel: strings.contextRouteLoadingLabel,
+          retryLabel: strings.contextRouteRetryLabel,
+        ),
+        if (onRequestRoutes == null) ...[
+          const SizedBox(height: 8),
+          Text(strings.contextRouteNeedsLocationLabel),
+        ],
+        if (state.routeFailed) ...[
+          const SizedBox(height: 12),
+          _StatusMessage(
+            icon: Icons.route_outlined,
+            message: state.routeCached
+                ? '${strings.contextRouteUnavailable} '
+                      '${strings.cachedRouteWarning}'
+                : strings.contextRouteUnavailable,
+          ),
+          if (state.routeCachedAt case final cachedAt?)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                strings.cachedRouteAt(_formatUtc(context, strings, cachedAt)),
+              ),
+            ),
+        ],
+        if (state.loadingRoutes) ...[
+          const SizedBox(height: 12),
+          Semantics(
+            label: strings.contextRouteLoadingLabel,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+        ],
+        if (state.routes case final response?) ...[
+          const SizedBox(height: 12),
+          if (routeOptions.isEmpty)
+            _StatusMessage(
+              icon: Icons.alt_route,
+              message: strings.noRoutesReturned,
+            )
+          else ...[
+            Text(
+              strings.contextRouteShownLabel,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 8),
+            for (var index = 0; index < routeOptions.length; index++) ...[
+              _RouteCard(
+                option: routeOptions[index],
+                response: response,
+                label: index == 0
+                    ? strings.routeSuggested
+                    : strings.routeAlternative(index),
+                selected: routeOptions[index].id == state.selectedRouteId,
+                onSelected: () => onRouteSelected(routeOptions[index].id),
+              ),
+              if (index != routeOptions.length - 1) const SizedBox(height: 8),
+            ],
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+class _RoutePreferences extends StatelessWidget {
+  const _RoutePreferences({
     required this.state,
     required this.onDisasterChanged,
     required this.onContextScenarioChanged,
     required this.onProfileChanged,
-    required this.onRequestRoutes,
+    super.key,
   });
 
   final NavigationState state;
   final ValueChanged<DisasterType> onDisasterChanged;
   final ValueChanged<ContextScenario> onContextScenarioChanged;
   final ValueChanged<RouteProfile> onProfileChanged;
-  final Future<void> Function()? onRequestRoutes;
 
   @override
   Widget build(BuildContext context) {
@@ -1341,7 +1220,32 @@ class _RouteControls extends StatelessWidget {
             if (value != null) onProfileChanged(value);
           },
         ),
-        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class _RouteControls extends StatelessWidget {
+  const _RouteControls({
+    required this.state,
+    required this.onRequestRoutes,
+    required this.requestLabel,
+    required this.loadingLabel,
+    required this.retryLabel,
+  });
+
+  final NavigationState state;
+  final Future<void> Function()? onRequestRoutes;
+  final String requestLabel;
+  final String loadingLabel;
+  final String retryLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         Text(strings.contextRouteSelectionDescription),
         const SizedBox(height: 8),
         FilledButton(
@@ -1358,9 +1262,11 @@ class _RouteControls extends StatelessWidget {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  state.routeFailed
-                      ? strings.retryRouteSuggestions
-                      : strings.requestRouteSuggestions,
+                  state.loadingRoutes
+                      ? loadingLabel
+                      : state.routeFailed
+                      ? retryLabel
+                      : requestLabel,
                   textAlign: TextAlign.center,
                 ),
               ),

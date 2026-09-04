@@ -6,10 +6,14 @@ an optional Mapbox map with validated navigation data, local SOS draft
 preparation, bilingual offline Guide content, constrained assistance, secure
 local profile/contact store, and Android-first Bluetooth SOS sharing.
 
-Home presents a Safety Center of explicit navigation cards. SOS uses a
-setup-and-review sequence with a readiness summary and exact outgoing preview.
-Guide offers deterministic quick actions, while Map pairs its visible layers
-with a legend and source-, timestamp-, cache-, and uncertainty-aware summaries.
+Home presents a Safety Center of explicit navigation cards. SOS uses separate
+SMS and BLE preparation sections with one shared activation, readiness summary,
+and exact outgoing previews.
+Guide opens with search, deterministic quick actions, Yangon emergency contacts,
+and explicit Next Steps. Assistant responses support safe Markdown formatting and
+a typing-style reveal for optional model-generated text. Map pairs its visible
+layers with a legend and source-, timestamp-, cache-, and uncertainty-aware
+summaries.
 
 This app is not an official warning, prediction, dispatch, medical, or
 guaranteed-safety service. Navigation records are source-backed and may be
@@ -110,8 +114,8 @@ and model identifiers are preserved.
   context-area candidate, route, or nearby SOS marker opens its details without
   leaving the map. Hazard and context summaries remain readable without map
    tiles and retain source, timestamp, cached-data, and uncertainty labels.
-   Backend simulation metadata remains available for development gating but is
-   not presented as a user-facing simulation label.
+    Backend simulation metadata remains available for development gating but is
+    not presented as a user-facing simulation label or banner.
 - The flow distinguishes not requested, requesting, approximate, precise,
   denied, permanently denied, service disabled, last known, and recoverable
   error states. Permanent denial and disabled services link to settings.
@@ -131,10 +135,14 @@ and model identifiers are preserved.
   `SEND_SMS` after explicit SOS confirmation. It does not request contacts or
   SMS read permissions. It sends the reviewed body through the selected SIM;
   carrier delivery is not verified.
-- Optional Bluetooth SOS sharing is separately confirmed for each SOS. Location
-  is excluded by default; the user must enable location sharing for that SOS,
-  review the preview, and can continue without coordinates if location becomes
-  unavailable. The frame broadcasts a structured temporary sender token,
+- The SOS screen has separate SMS and SOS BLE preparation sections with one
+  shared confirmation. If SMS contacts and nearby sharing are enabled, one SOS
+  activation sends both; if no SMS contact is selected, the same activation can
+  send BLE only. Nearby broadcast sharing is enabled from More > Settings.
+  Location is excluded by default; the user must enable location sharing for
+  that SOS, review the preview, and can continue without coordinates if
+  location becomes unavailable. The frame broadcasts a structured temporary
+  sender token,
   sequence, UTC timestamp, fixed-point coordinates when available,
   current/last-known location status, and battery value. The user may also
   enter an optional short BLE alias and message; these are sent as separate
@@ -151,9 +159,14 @@ and model identifiers are preserved.
   sources, shows the per-event `Verified`/`Unverified` label, supports selecting
    a source and fitting the camera to all markers, and the SOS details provide a
    Google Maps query link. A located, unexpired SOS marker also exposes an
-   explicit `Show route to this SOS` action. The route is requested from the
-   current foreground location through `/api/v1/sos-route` and drawn on the
-   Mapbox map; it is never requested automatically.
+   explicit `Show route to this SOS` action. Suggested-area markers expose the
+     route action and up to three route options in the same map detail panel.
+     Disaster type and travel profile are selected before the map; for earthquakes,
+     the context scenario is selected immediately after Disaster type. The map
+     detail retains only the read-only analysis scenario.
+   SOS routes are requested from the current foreground location through
+   `/api/v1/sos-route`; suggested-area routes use the existing route endpoint.
+   Neither route is requested automatically.
 - Nearby SOS receiving is opt-in. Foreground receiving listens only while the
   app session has enabled it; the separate Android background receiver uses a
   visible connected-device foreground-service notification and restores only
@@ -167,10 +180,11 @@ and model identifiers are preserved.
    uploaded or dispatched. Optional sound is controlled by the foreground
    receiver.
 - The More tab opens Settings for the English/Myanmar choice and six SOS
-  preferences covering location sharing, nearby receiving, one-hop relay,
-  alert sound, and background receiving. These preferences are stored locally
-  and restored on startup; enabling a permission-dependent option requests only
-  the permission needed for that option.
+  preferences covering location sharing, nearby broadcast sharing, nearby
+  receiving, one-hop relay, alert sound, and background receiving. These
+  preferences are stored locally and restored on startup; enabling a
+  permission-dependent option requests only the permission needed for that
+  option.
 - Profile, emergency contacts, and SOS drafts are stored locally with
   `flutter_secure_storage`. They are not uploaded by the implemented app.
 - Alert/navigation caches and Guide articles use app-private Drift/SQLite
@@ -194,11 +208,14 @@ and model identifiers are preserved.
   shown as stale.
 - Guide articles are versioned, source-backed English/Myanmar records seeded in
   Drift and remain searchable offline. The selected locale determines which
-  reviewed title and answer is shown.
+  reviewed title and answer is shown. The Guide also includes a source-attributed
+  offline Yangon emergency contact list with explicit call actions.
 - The deterministic assistant remains available offline and returns only
   approved article content or explicit navigation/SOS actions. Burmese
   questions use Burmese aliases and reviewed Burmese answers; unsupported or
-  rejected generated output falls back to localized safe copy.
+  rejected generated output falls back to localized safe copy. Optional Gemma
+  answers use a constrained Markdown subset and a UI typing-style reveal after
+  the complete native response is received.
 - Android nearby-SOS foreground notifications receive and persist the selected
   language when a broadcast or background receiver is started; existing
   notification channels may retain the label from their first creation.

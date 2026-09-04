@@ -144,6 +144,13 @@ void main() {
   ) async {
     await pumpSos(tester);
 
+    expect(find.byKey(const Key('sos-sms-preparation')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('sos-ble-preparation')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byKey(const Key('sos-ble-preparation')), findsOneWidget);
     expect(find.text('Selected recipients'), findsOneWidget);
     expect(find.text('Test Contact: +12025550123'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -216,7 +223,8 @@ void main() {
         OutlinedButton,
         'Open More contacts',
       );
-      await tester.tap(contactsAction);
+      await tester.ensureVisible(contactsAction);
+      tester.widget<OutlinedButton>(contactsAction).onPressed!();
       await tester.pumpAndSettle();
       expect(find.text('Emergency contacts'), findsOneWidget);
       expect(draftRepository.writes, 0);
@@ -236,7 +244,7 @@ void main() {
     );
 
     expect(
-      tester.widget<HoldToConfirm>(find.byType(HoldToConfirm)).enabled,
+      tester.widget<HoldToConfirm>(find.byKey(const Key('sos-hold'))).enabled,
       isFalse,
     );
     expect(draftRepository.writes, 0);
@@ -264,22 +272,27 @@ void main() {
       find.byKey(const Key('sos-ble-message')),
       'Trapped upstairs.',
     );
-    await tester.scrollUntilVisible(
-      _holdLabel,
-      200,
-      scrollable: find.byType(Scrollable).first,
+    await revealInSos(tester, find.byKey(const Key('sos-hold')));
+    final sosScrollState = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
     );
+    sosScrollState.position.jumpTo(sosScrollState.position.maxScrollExtent);
+    await tester.pumpAndSettle();
 
     expect(
-      tester.widget<HoldToConfirm>(find.byType(HoldToConfirm)).enabled,
+      tester.widget<HoldToConfirm>(find.byKey(const Key('sos-hold'))).enabled,
       isTrue,
     );
-    final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('sos-hold'))),
+    );
     await tester.pump();
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
     await gesture.up();
+    await tester.pumpAndSettle();
 
+    expect(draftRepository.writes, greaterThanOrEqualTo(1));
     expect(draftRepository.drafts, hasLength(1));
     expect(draftRepository.drafts.single.bleAlias, 'Aung');
     expect(draftRepository.drafts.single.bleMessage, 'Trapped upstairs.');
@@ -288,8 +301,52 @@ void main() {
     await revealInSos(tester, find.text('Broadcast frame details'));
     expect(find.textContaining('Event ID: a55a102030400000'), findsOneWidget);
     expect(find.textContaining('Battery: 80%'), findsOneWidget);
-    expect(find.textContaining('Alias: Aung'), findsOneWidget);
-    expect(find.textContaining('Message: Trapped upstairs.'), findsOneWidget);
+    expect(find.text('Alias: Aung'), findsOneWidget);
+    expect(find.text('Message: Trapped upstairs.'), findsOneWidget);
+  });
+
+  testWidgets('one SOS activation sends SMS and BLE when both are enabled', (
+    tester,
+  ) async {
+    preferencesStore.preferences = const SosPreferences(shareNearbySos: true);
+    final blePlatform = _FakeSosBlePlatform();
+    addTearDown(blePlatform.dispose);
+    await pumpSos(
+      tester,
+      blePlatform: blePlatform,
+      draftId: '00112233-4455-6677-8899-aabbccddeeff',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await revealInSos(tester, find.byKey(const Key('sos-ble-alias')));
+    await tester.enterText(find.byKey(const Key('sos-ble-alias')), 'Aung');
+    await tester.enterText(
+      find.byKey(const Key('sos-ble-message')),
+      'Trapped upstairs.',
+    );
+    await revealInSos(tester, find.byKey(const Key('sos-hold')));
+    final sosScrollState = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
+    sosScrollState.position.jumpTo(sosScrollState.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('sos-hold'))),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(draftRepository.drafts, hasLength(1));
+    expect(draftRepository.drafts.single.recipients, hasLength(1));
+    expect(draftRepository.drafts.single.bleAlias, 'Aung');
+    expect(sender.calls, 1);
+    expect(sender.recipients, ['+12025550123']);
+    expect(blePlatform.broadcastFrameSets, hasLength(1));
   });
 
   testWidgets('nearby SOS shows the decoded frame details', (tester) async {
@@ -514,14 +571,15 @@ void main() {
       expect(find.text('Confirm SOS draft details'), findsOneWidget);
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(find.text('Send SOS SMS directly?'), findsOneWidget);
-      await tester.tap(find.text('Send SMS now'));
+      expect(find.text('Activate this SOS now?'), findsOneWidget);
+      await tester.tap(find.text('Activate SOS'));
       await tester.pumpAndSettle();
 
       expect(find.text('Location unavailable'), findsOneWidget);
       await tester.tap(find.text('Continue without location'));
       await tester.pumpAndSettle();
 
+      expect(draftRepository.drafts.single.recipients, isEmpty);
       expect(draftRepository.drafts.single.location, isNull);
       expect(blePlatform.broadcastPayloads, hasLength(1));
     },
@@ -530,7 +588,9 @@ void main() {
   testWidgets('continuous hold prepares then sends SMS and retains status', (
     tester,
   ) async {
-    await pumpSos(tester);
+    final blePlatform = _FakeSosBlePlatform();
+    addTearDown(blePlatform.dispose);
+    await pumpSos(tester, blePlatform: blePlatform);
     await tester.scrollUntilVisible(
       _holdLabel,
       200,
@@ -543,9 +603,11 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
     await gesture.up();
+    await tester.pumpAndSettle();
 
     expect(sender.calls, 1);
     expect(sender.recipients, ['+12025550123']);
+    expect(blePlatform.broadcastPayloads, isEmpty);
     expect(
       sender.body,
       contains('User-prepared SafeMyanmar emergency message.'),
@@ -554,6 +616,10 @@ void main() {
     expect(
       draftRepository.drafts.single.body,
       contains('Profile name: Test User'),
+    );
+    await revealInSos(
+      tester,
+      find.text('Status: SMS accepted by device; delivery unconfirmed'),
     );
     expect(find.textContaining('device accepted the SMS'), findsWidgets);
     expect(
@@ -566,18 +632,19 @@ void main() {
     tester,
   ) async {
     await pumpSos(tester);
-    await tester.scrollUntilVisible(
-      _holdLabel,
-      200,
-      scrollable: find.byType(Scrollable).first,
+    await revealInSos(tester, find.byKey(const Key('sos-hold')));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('sos-hold'))),
     );
-    final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     await gesture.up();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('Hold cancelled. Nothing was sent.'), findsOneWidget);
+    expect(
+      find.text('Hold cancelled. Nothing was sent or broadcast.'),
+      findsOneWidget,
+    );
     expect(draftRepository.writes, 0);
     expect(composer.calls, 0);
   });
@@ -590,16 +657,15 @@ void main() {
       SmsSim(subscriptionId: 2, slotIndex: 1, label: 'ATOM'),
     ];
     await pumpSos(tester);
-    await tester.scrollUntilVisible(
-      _holdLabel,
-      200,
-      scrollable: find.byType(Scrollable).first,
+    await revealInSos(tester, find.byKey(const Key('sos-hold')));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('sos-hold'))),
     );
-    final gesture = await tester.startGesture(tester.getCenter(_holdLabel));
     await tester.pump();
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
     await gesture.up();
+    await tester.pumpAndSettle();
 
     expect(find.text('Choose SIM'), findsOneWidget);
     await tester.tap(find.text('SIM 2 - ATOM'));
@@ -634,10 +700,10 @@ void main() {
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Send SOS SMS directly?'), findsOneWidget);
+    expect(find.text('Activate this SOS now?'), findsOneWidget);
     expect(composer.calls, 0);
 
-    await tester.tap(find.text('Send SMS now'));
+    await tester.tap(find.text('Activate SOS'));
     await tester.pumpAndSettle();
     expect(sender.calls, 1);
     expect(draftRepository.drafts.single.status, SosDraftStatus.smsSent);
@@ -663,10 +729,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Send SMS now'));
+      await tester.tap(find.text('Activate SOS'));
       await tester.pumpAndSettle();
 
       expect(draftRepository.drafts.single.status, SosDraftStatus.smsFailed);
+      await revealInSos(
+        tester,
+        find.text('Status: SMS failed; retry available'),
+      );
       expect(find.text('Status: SMS failed; retry available'), findsOneWidget);
       expect(find.textContaining(RegExp(r'^Sent$|^Delivered$')), findsNothing);
     },
@@ -691,7 +761,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Send SMS now'));
+    await tester.tap(find.text('Activate SOS'));
     await tester.pumpAndSettle();
     final preparedBody = draftRepository.drafts.single.body;
 
@@ -752,8 +822,8 @@ void main() {
 }
 
 Finder get _holdLabel => find.descendant(
-  of: find.byType(HoldToConfirm),
-  matching: find.text('Hold for 3 seconds to send SMS'),
+  of: find.byKey(const Key('sos-hold')),
+  matching: find.text('Hold for 3 seconds to activate SOS'),
 );
 
 final preciseLocation = ForegroundLocation(

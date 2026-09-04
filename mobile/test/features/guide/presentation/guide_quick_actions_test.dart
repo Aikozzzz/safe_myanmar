@@ -21,6 +21,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_location(router), '/guide');
+    expect(find.byKey(const Key('guide-search-field')), findsOneWidget);
+    expect(find.text('Offline verified-content retrieval'), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('guide-search-field'))).dy,
+      lessThan(tester.getTopLeft(find.text('Quick actions')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Quick actions')).dy,
+      lessThan(tester.getTopLeft(find.text('Next steps')).dy),
+    );
     expect(
       find.byKey(const Key('guide-quick-action-earthquake')),
       findsOneWidget,
@@ -31,8 +41,13 @@ void main() {
       find.byKey(const Key('guide-quick-action-first-aid')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('guide-quick-action-trapped')), findsOneWidget);
     expect(find.byKey(const Key('guide-quick-action-map')), findsOneWidget);
     expect(find.byKey(const Key('guide-quick-action-sos')), findsOneWidget);
+    expect(
+      find.byKey(const Key('guide-quick-action-emergency-contacts')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('guide-next-step-map')), findsOneWidget);
     expect(find.byKey(const Key('guide-next-step-sos')), findsOneWidget);
     expect(find.byKey(const Key('guide-next-step-assistant')), findsOneWidget);
@@ -52,6 +67,7 @@ void main() {
       'guide-quick-action-flood': 'flood-avoidance',
       'guide-quick-action-fire': 'fire-escape',
       'guide-quick-action-first-aid': 'first-aid-assessment',
+      'guide-quick-action-trapped': 'earthquake-trapped',
     };
 
     for (final entry in articleActions.entries) {
@@ -83,6 +99,7 @@ void main() {
       'guide-next-step-map': '/map',
       'guide-next-step-sos': '/sos',
       'guide-next-step-assistant': '/guide/assistant',
+      'guide-quick-action-emergency-contacts': '/guide/emergency-contacts',
     };
 
     for (final entry in nextSteps.entries) {
@@ -120,8 +137,10 @@ void main() {
         'guide-quick-action-flood',
         'guide-quick-action-fire',
         'guide-quick-action-first-aid',
+        'guide-quick-action-trapped',
         'guide-quick-action-map',
         'guide-quick-action-sos',
+        'guide-quick-action-emergency-contacts',
         'guide-next-step-map',
         'guide-next-step-sos',
         'guide-next-step-assistant',
@@ -177,6 +196,11 @@ GoRouter _createRouter() => GoRouter(
         GoRoute(
           path: 'assistant',
           builder: (_, _) => const Scaffold(body: Text('ASSISTANT')),
+        ),
+        GoRoute(
+          path: 'emergency-contacts',
+          builder: (_, _) =>
+              const Scaffold(body: Text('YANGON EMERGENCY CONTACTS')),
         ),
       ],
     ),

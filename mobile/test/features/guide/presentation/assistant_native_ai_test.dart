@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/ai/native_ai_platform_service.dart';
 import 'package:mobile/features/guide/application/providers.dart';
+import 'package:mobile/features/guide/presentation/assistant_markdown.dart';
 import 'package:mobile/features/guide/presentation/assistant_screen.dart';
 import 'package:mobile/features/settings/application/providers.dart';
 import 'package:mobile/features/settings/domain/app_language.dart';
@@ -76,6 +77,43 @@ void main() {
     );
     expect(find.textContaining('model-generated'), findsNothing);
     expect(find.textContaining('confidence'), findsNothing);
+  });
+
+  testWidgets('Gemma answers render Markdown and reveal with a typing effect', (
+    tester,
+  ) async {
+    final nativeAi = FakeNativeAiService(
+      capabilitiesResult: availableNativeAiCapabilities,
+      answerResult: const NativeAiResult.success(
+        NativeVerifiedRewrite(
+          '**Immediate steps**\n\n- Move to an open area.\n1. Follow local instructions.',
+        ),
+      ),
+    );
+    await tester.pumpWidget(_app(nativeAi));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byType(TextField),
+      'What is disaster preparedness?',
+    );
+    await tester.tap(find.byTooltip('Send question'));
+    await tester.pump();
+
+    expect(find.byType(AssistantTypingText), findsOneWidget);
+    expect(find.textContaining('**Immediate steps**'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.textContaining('**'), findsNothing);
+    expect(find.byType(RichText), findsWidgets);
+    final renderedText = find
+        .byType(RichText)
+        .evaluate()
+        .map((element) => (element.widget as RichText).text.toPlainText())
+        .join('\n');
+    expect(renderedText, contains('Immediate steps'));
+    expect(renderedText, contains('Move to an open area.'));
+    expect(renderedText, contains('1. Follow local instructions.'));
   });
 
   testWidgets('ONNX action response never navigates without a user tap', (

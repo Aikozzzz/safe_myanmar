@@ -199,10 +199,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get demoDataNotice =>
-      'Demonstration data is shown here and is not a live emergency feed. Follow official local instructions.';
-
-  @override
   String navigationSource(String source) {
     return 'Source: $source';
   }
@@ -399,7 +395,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contextRouteSelectionDescription =>
-      'Select a candidate above, then request a route separately. No route is requested automatically.';
+      'Request a route to this suggested area. No route is requested automatically.';
 
   @override
   String get sosBluetoothShareTitle => 'Share limited SOS data nearby';
@@ -411,6 +407,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sosBluetoothFields =>
       'Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, battery level, and optional alias or message.';
+
+  @override
+  String get sosBleBroadcastDataHeading => 'BLE broadcast preview';
+
+  @override
+  String get sosBluetoothExcludedData =>
+      'The profile name, saved contacts, and SMS body are not broadcast.';
 
   @override
   String get sosBluetoothTenMinuteLimit =>
@@ -677,6 +680,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updatingRouteSuggestions => 'Requesting route suggestions';
 
   @override
+  String get contextRouteLabel => 'Show route to the suggested area';
+
+  @override
+  String get contextRouteLoadingLabel =>
+      'Requesting route to the suggested area...';
+
+  @override
+  String get contextRouteRetryLabel => 'Retry route to the suggested area';
+
+  @override
+  String get contextRouteShownLabel =>
+      'Route to the suggested area is shown on the map.';
+
+  @override
+  String get contextRouteUnavailable =>
+      'Route to the suggested area is currently unavailable.';
+
+  @override
+  String get contextRouteNeedsLocationLabel =>
+      'Your location is needed to show a route to the suggested area.';
+
+  @override
   String get routingUnavailable =>
       'Route suggestions could not be updated. Shelters and hazards remain visible; try again.';
 
@@ -767,14 +792,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosIntroduction =>
-      'Prepare an emergency SMS for people you selected. Opening this screen does not prepare or send anything.';
+      'Prepare an emergency SOS for selected SMS contacts and nearby devices. Opening this screen does not prepare or send anything.';
 
   @override
   String get sosSetupTitle => 'SOS setup';
 
   @override
   String get sosSetupDescription =>
-      'Review contacts, optional message, location sharing, and the exact message before confirming.';
+      'Review SMS contacts, optional messages, location sharing, and the exact data before confirming one SOS activation.';
+
+  @override
+  String get sosSmsPreparationTitle => 'SMS preparation';
+
+  @override
+  String get sosSmsPreparationDescription =>
+      'Review saved recipients and the exact SMS that will be sent when you activate SOS.';
+
+  @override
+  String get sosBlePreparationTitle => 'SOS BLE preparation';
+
+  @override
+  String get sosBlePreparationDescription =>
+      'Prepare the limited nearby Bluetooth data that will be broadcast with SOS activation. SMS contacts are optional.';
+
+  @override
+  String get sosBleSharingRequired =>
+      'Enable nearby SOS sharing in More > Settings to include this BLE data. Enabling it does not start a broadcast.';
 
   @override
   String get sosReadinessReady => 'Ready to review';
@@ -894,7 +937,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'After confirmation, SafeMyanmar requests SMS permission and sends the reviewed message directly through Android. The carrier may still delay delivery; SafeMyanmar can confirm only whether the device accepted the SMS.';
 
   @override
-  String get sosHoldToOpen => 'Hold for 3 seconds to send SMS';
+  String get sosHoldToOpen => 'Hold for 3 seconds to activate SOS';
 
   @override
   String sosHoldProgress(int percent) {
@@ -902,11 +945,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get sosHoldCancelled => 'Hold cancelled. Nothing was sent.';
+  String get sosHoldCancelled =>
+      'Hold cancelled. Nothing was sent or broadcast.';
 
   @override
   String get sosHoldSemanticsHint =>
-      'Press and hold continuously for 3 seconds. Activate for an accessible confirmation path.';
+      'Press and hold continuously for 3 seconds to activate the prepared SMS and optional BLE SOS. Use the accessible confirmation path instead if needed.';
 
   @override
   String get sosAccessibleConfirmation => 'Use confirmation dialogs instead';
@@ -916,7 +960,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosConfirmPreviewDescription =>
-      'Review the recipients and exact SMS preview on this screen. Continue only if you want to prepare this draft.';
+      'Review the recipients, exact SMS preview, and optional nearby BLE data on this screen. Continue only if you want to prepare this SOS.';
 
   @override
   String get sosContinue => 'Continue';
@@ -932,11 +976,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosOpenMessaging => 'Prepare and open messaging';
 
   @override
-  String get sosConfirmSmsTitle => 'Send SOS SMS directly?';
+  String get sosActivateTitle => 'Activate this SOS now?';
 
   @override
-  String get sosConfirmSmsDescription =>
-      'This second confirmation prepares the secure draft and sends the reviewed SMS directly to the selected contacts after Android SMS permission is granted. Device acceptance does not guarantee carrier delivery.';
+  String get sosActivateDescription =>
+      'This second confirmation saves one SOS draft. If SMS contacts are selected, SafeMyanmar sends the reviewed SMS. If nearby sharing is enabled, it broadcasts only the limited BLE data shown above for up to 10 minutes. Device acceptance does not guarantee carrier delivery.';
+
+  @override
+  String get sosActivateNow => 'Activate SOS';
 
   @override
   String get sosSendSms => 'Send SMS now';
@@ -951,6 +998,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sosRetrySmsUncertainDescription =>
       'The previous SMS attempt has a partial or unknown result. Retrying can create duplicate messages, so continue only if that risk is acceptable.';
+
+  @override
+  String get sosBleRetryTitle => 'Broadcast this BLE draft again?';
+
+  @override
+  String get sosBleRetryDescription =>
+      'The saved limited BLE data will be broadcast for up to 10 minutes. Nearby devices cannot confirm your identity or rescue delivery.';
+
+  @override
+  String get sosBleBroadcastNow => 'Broadcast BLE SOS';
 
   @override
   String get sosNotNow => 'Not now';
@@ -1025,6 +1082,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosStatusPrepared => 'Prepared';
 
   @override
+  String get sosStatusBlePrepared =>
+      'BLE draft prepared; broadcast status is shown above';
+
+  @override
   String get sosStatusSmsSending => 'Sending SMS';
 
   @override
@@ -1051,6 +1112,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosOpenAgain => 'Send again';
+
+  @override
+  String get sosBleBroadcastAgain => 'Broadcast again';
+
+  @override
+  String get sosSmsDraftLabel => 'SMS draft';
+
+  @override
+  String get sosBleDraftLabel => 'BLE draft';
 
   @override
   String get sosCancelDraft => 'Cancel draft';
@@ -1164,9 +1234,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search a small, reviewed emergency guide stored on this device. It works without a network connection.';
 
   @override
-  String get guideOfflineVerifiedLabel => 'Offline verified-content retrieval';
-
-  @override
   String get guideQuickActionsHeading => 'Quick actions';
 
   @override
@@ -1182,10 +1249,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideActionFirstAid => 'First aid';
 
   @override
+  String get guideActionTrapped => 'Trapped after earthquake';
+
+  @override
   String get guideActionMap => 'Open Map';
 
   @override
   String get guideActionSos => 'Open SOS';
+
+  @override
+  String get guideActionEmergencyContacts => 'Yangon emergency contacts';
 
   @override
   String get guideNextStepsHeading => 'Next steps';
@@ -1228,6 +1301,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guideCategoryFirstAid => 'First aid';
+
+  @override
+  String get guideEmergencyContactsTitle => 'Yangon emergency contacts';
+
+  @override
+  String get guideEmergencyContactsDescription =>
+      'Core emergency numbers listed for Yangon. Check current official local instructions when possible.';
+
+  @override
+  String get guideEmergencyContactAmbulance => 'Ambulance emergency';
+
+  @override
+  String get guideEmergencyContactFire => 'Fire emergency';
+
+  @override
+  String get guideEmergencyContactPolice => 'Police emergency';
+
+  @override
+  String get guideEmergencyContactYangonGeneralHospital =>
+      'Yangon General Hospital';
+
+  @override
+  String get guideEmergencyContactsCall => 'Call';
+
+  @override
+  String get guideEmergencyContactsSource => 'Source: Yangon Directory';
+
+  @override
+  String guideEmergencyContactsCheckedAt(String date) {
+    return 'Checked: $date';
+  }
+
+  @override
+  String get guideEmergencyContactsWarning =>
+      'Directory listings can change. Confirm important numbers with local authorities when possible.';
+
+  @override
+  String get guideEmergencyContactsDialingNote =>
+      'For Yangon landlines, the directory advises adding 01 before the listed number.';
+
+  @override
+  String get guideEmergencyContactsCallUnavailable =>
+      'The phone app could not be opened.';
 
   @override
   String get guideLoading => 'Loading offline emergency guidance';

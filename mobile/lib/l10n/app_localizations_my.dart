@@ -199,10 +199,6 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
-  String get demoDataNotice =>
-      'ဤနေရာတွင် သရုပ်ပြအချက်အလက်ကို ပြသထားပြီး တိုက်ရိုက်အရေးပေါ်သတင်း မဟုတ်ပါ။ တရားဝင်ဒေသတွင်း ညွှန်ကြားချက်များကို လိုက်နာပါ။';
-
-  @override
   String navigationSource(String source) {
     return 'ရင်းမြစ် - $source';
   }
@@ -400,7 +396,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get contextRouteSelectionDescription =>
-      'အပေါ်မှ ကိုယ်စားပြုဧရိယာတစ်ခုကို ရွေးပြီး လမ်းကြောင်းကို သီးခြားတောင်းဆိုပါ။ လမ်းကြောင်းကို အလိုအလျောက် မတောင်းဆိုပါ။';
+      'ဤအကြံပြုထားသောနေရာသို့ လမ်းကြောင်းတောင်းဆိုပါ။ လမ်းကြောင်းကို အလိုအလျောက် မတောင်းဆိုပါ။';
 
   @override
   String get sosBluetoothShareTitle =>
@@ -413,6 +409,14 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get sosBluetoothFields =>
       'မျှဝေမည့်အရာ - ယာယီဖြစ်ရပ် ID၊ UTC အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသား။';
+
+  @override
+  String get sosBleBroadcastDataHeading =>
+      'BLE ထုတ်လွှင့်မှု အကြိုကြည့်ရှုချက်';
+
+  @override
+  String get sosBluetoothExcludedData =>
+      'ပရိုဖိုင်အမည်၊ သိမ်းထားသော အဆက်အသွယ်များနှင့် SMS စာသားကို ထုတ်လွှင့်မည်မဟုတ်ပါ။';
 
   @override
   String get sosBluetoothTenMinuteLimit =>
@@ -681,6 +685,29 @@ class AppLocalizationsMy extends AppLocalizations {
   String get updatingRouteSuggestions => 'လမ်းကြောင်းအကြံပြုချက် တောင်းနေသည်';
 
   @override
+  String get contextRouteLabel => 'အကြံပြုထားသောနေရာသို့ လမ်းကြောင်းပြရန်';
+
+  @override
+  String get contextRouteLoadingLabel =>
+      'အကြံပြုထားသောနေရာသို့ လမ်းကြောင်းတောင်းနေသည်...';
+
+  @override
+  String get contextRouteRetryLabel =>
+      'အကြံပြုထားသောနေရာသို့ လမ်းကြောင်း ထပ်တောင်းရန်';
+
+  @override
+  String get contextRouteShownLabel =>
+      'အကြံပြုထားသောနေရာသို့ လမ်းကြောင်းကို မြေပုံပေါ်တွင် ပြထားသည်။';
+
+  @override
+  String get contextRouteUnavailable =>
+      'အကြံပြုထားသောနေရာသို့ လမ်းကြောင်းကို လောလောဆယ် မရနိုင်ပါ။';
+
+  @override
+  String get contextRouteNeedsLocationLabel =>
+      'လမ်းကြောင်းပြရန် သင့်တည်နေရာ လိုအပ်သည်။';
+
+  @override
   String get routingUnavailable =>
       'လမ်းကြောင်းအကြံပြုချက်ကို အပ်ဒိတ်မလုပ်နိုင်ပါ။ အမိုးအကာနှင့် အန္တရာယ်များကို ဆက်လက်မြင်ရမည်၊ ထပ်ကြိုးစားပါ။';
 
@@ -771,14 +798,32 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sosIntroduction =>
-      'သင်ရွေးထားသောသူများထံ ပေးပို့မည့် အရေးပေါ် SMS ကို ပြင်ဆင်ပါ။ ဤမျက်နှာပြင်ဖွင့်ရုံဖြင့် ပြင်ဆင်ခြင်း သို့မဟုတ် ပေးပို့ခြင်း မပြုပါ။';
+      'ရွေးထားသော SMS လက်ခံသူများနှင့် အနီးအနားစက်များအတွက် အရေးပေါ် SOS ကို ပြင်ဆင်ပါ။ ဤမျက်နှာပြင်ဖွင့်ရုံဖြင့် ပြင်ဆင်ခြင်း သို့မဟုတ် ပေးပို့ခြင်း မပြုပါ။';
 
   @override
   String get sosSetupTitle => 'SOS ပြင်ဆင်မှု';
 
   @override
   String get sosSetupDescription =>
-      'အတည်မပြုမီ အဆက်အသွယ်များ၊ ရွေးချယ်နိုင်သောစာ၊ တည်နေရာမျှဝေမှုနှင့် စာသားအတိအကျကို စစ်ဆေးပါ။';
+      'SOS တစ်ကြိမ်ကို အတည်မပြုမီ SMS အဆက်အသွယ်များ၊ ရွေးချယ်နိုင်သောစာများ၊ တည်နေရာမျှဝေမှုနှင့် ဒေတာအတိအကျကို စစ်ဆေးပါ။';
+
+  @override
+  String get sosSmsPreparationTitle => 'SMS ပြင်ဆင်မှု';
+
+  @override
+  String get sosSmsPreparationDescription =>
+      'SOS ကို ဖွင့်သောအခါ ပေးပို့မည့် သိမ်းထားသောလက်ခံသူများနှင့် SMS အတိအကျကို စစ်ဆေးပါ။';
+
+  @override
+  String get sosBlePreparationTitle => 'SOS BLE ပြင်ဆင်မှု';
+
+  @override
+  String get sosBlePreparationDescription =>
+      'SOS ဖွင့်သောအခါ ထုတ်လွှင့်မည့် အကန့်အသတ်ရှိသည့် အနီးအနား Bluetooth ဒေတာကို ပြင်ဆင်ပါ။ SMS လက်ခံသူများ မဖြစ်မနေ မလိုအပ်ပါ။';
+
+  @override
+  String get sosBleSharingRequired =>
+      'ဤ BLE ဒေတာကို ထည့်သွင်းရန် နောက်ထပ် > ဆက်တင်များတွင် အနီးအနား SOS မျှဝေမှုကို ဖွင့်ပါ။ ဖွင့်ရုံဖြင့် ထုတ်လွှင့်မှု မစတင်ပါ။';
 
   @override
   String get sosReadinessReady => 'စစ်ဆေးရန် အသင့်ဖြစ်သည်';
@@ -897,7 +942,7 @@ class AppLocalizationsMy extends AppLocalizations {
       'အတည်ပြုပြီးနောက် SafeMyanmar သည် SMS ခွင့်ပြုချက်တောင်းကာ Android မှတစ်ဆင့် စစ်ဆေးထားသောစာကို တိုက်ရိုက်ပေးပို့သည်။ ဝန်ဆောင်မှုပေးသူက ပေးပို့မှုနှောင့်နှေးနိုင်ပြီး SafeMyanmar သည် စက်က SMS လက်ခံထားခြင်းကိုသာ အတည်ပြုနိုင်သည်။';
 
   @override
-  String get sosHoldToOpen => 'SMS ပေးပို့ရန် ၃ စက္ကန့် ဖိထားပါ';
+  String get sosHoldToOpen => 'SOS ဖွင့်ရန် ၃ စက္ကန့် ဖိထားပါ';
 
   @override
   String sosHoldProgress(int percent) {
@@ -906,11 +951,11 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sosHoldCancelled =>
-      'ဖိထားမှု ပယ်ဖျက်လိုက်သည်။ မည်သည့်အရာမျှ မပေးပို့ပါ။';
+      'ဖိထားမှု ပယ်ဖျက်လိုက်သည်။ မည်သည့်အရာမျှ မပေးပို့ သို့မဟုတ် မထုတ်လွှင့်ပါ။';
 
   @override
   String get sosHoldSemanticsHint =>
-      '၃ စက္ကန့်ဆက်တိုက် ဖိထားပါ။ အသုံးပြုနိုင်သော အတည်ပြုလမ်းကြောင်းအတွက် ဖွင့်ပါ။';
+      'ပြင်ဆင်ထားသော SMS နှင့် ရွေးချယ်ထားသော BLE SOS ကို ဖွင့်ရန် ၃ စက္ကန့်ဆက်တိုက် ဖိထားပါ။ လိုအပ်ပါက အသုံးပြုနိုင်သော အတည်ပြုလမ်းကြောင်းကို အသုံးပြုပါ။';
 
   @override
   String get sosAccessibleConfirmation =>
@@ -921,7 +966,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sosConfirmPreviewDescription =>
-      'ဤမျက်နှာပြင်ရှိ လက်ခံသူများနှင့် SMS အစမ်းပြစာသားအတိအကျကို စစ်ဆေးပါ။ ဤ draft ကို ပြင်ဆင်လိုမှသာ ဆက်လုပ်ပါ။';
+      'ဤမျက်နှာပြင်ရှိ လက်ခံသူများ၊ SMS အစမ်းပြစာသားအတိအကျနှင့် ရွေးချယ်နိုင်သော အနီးအနား BLE ဒေတာကို စစ်ဆေးပါ။ ဤ SOS ကို ပြင်ဆင်လိုမှသာ ဆက်လုပ်ပါ။';
 
   @override
   String get sosContinue => 'ဆက်လုပ်ရန်';
@@ -937,11 +982,14 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sosOpenMessaging => 'စာပို့ရန် ပြင်ဆင်ပြီးဖွင့်ရန်';
 
   @override
-  String get sosConfirmSmsTitle => 'SOS SMS ကို တိုက်ရိုက်ပေးပို့မလား။';
+  String get sosActivateTitle => 'ဤ SOS ကို ယခုပင် ဖွင့်မလား။';
 
   @override
-  String get sosConfirmSmsDescription =>
-      'ဤဒုတိယအတည်ပြုမှုသည် လုံခြုံသော draft ကို ပြင်ဆင်ပြီး Android SMS ခွင့်ပြုချက်ရရှိပါက ရွေးထားသောအဆက်အသွယ်များထံ စစ်ဆေးထားသော SMS ကို တိုက်ရိုက်ပေးပို့သည်။ စက်လက်ခံခြင်းသည် ဝန်ဆောင်မှုပေးသူထံ ရောက်ရှိမည်ဟု အာမမခံပါ။';
+  String get sosActivateDescription =>
+      'ဤဒုတိယအတည်ပြုမှုသည် SOS draft တစ်ခုကို သိမ်းမည်။ SMS လက်ခံသူများ ရွေးထားပါက စစ်ဆေးထားသော SMS ကို ပေးပို့မည်။ အနီးအနားမျှဝေမှု ဖွင့်ထားပါက အထက်တွင်ပြထားသော အကန့်အသတ်ရှိသည့် BLE ဒေတာကို ၁၀ မိနစ်အထိ ထုတ်လွှင့်မည်။ စက်လက်ခံခြင်းသည် ဝန်ဆောင်မှုပေးသူထံ ရောက်ရှိမည်ဟု အာမမခံပါ။';
+
+  @override
+  String get sosActivateNow => 'SOS ယခုပင် ဖွင့်ရန်';
 
   @override
   String get sosSendSms => 'SMS ယခုပေးပို့ရန်';
@@ -956,6 +1004,16 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get sosRetrySmsUncertainDescription =>
       'ယခင် SMS ကြိုးပမ်းမှုရလဒ်သည် တစ်စိတ်တစ်ပိုင်း သို့မဟုတ် မသေချာပါ။ ထပ်ပေးပို့လျှင် စာနှစ်ကြိမ်ဖြစ်နိုင်သောကြောင့် ထိုအန္တရာယ်ကို လက်ခံနိုင်မှသာ ဆက်လုပ်ပါ။';
+
+  @override
+  String get sosBleRetryTitle => 'ဤ BLE မူကြမ်းကို ထပ်ထုတ်လွှင့်မလား။';
+
+  @override
+  String get sosBleRetryDescription =>
+      'သိမ်းထားသော အကန့်အသတ်ရှိသည့် BLE ဒေတာကို ၁၀ မိနစ်အထိ ထုတ်လွှင့်ပါမည်။ အနီးအနားစက်များသည် သင့်အမှတ်အသား သို့မဟုတ် ကယ်ဆယ်ရေးရောက်ရှိမှုကို အတည်မပြုနိုင်ပါ။';
+
+  @override
+  String get sosBleBroadcastNow => 'BLE SOS ထုတ်လွှင့်ရန်';
 
   @override
   String get sosNotNow => 'ယခုမဟုတ်ပါ';
@@ -1029,6 +1087,10 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sosStatusPrepared => 'ပြင်ဆင်ပြီး';
 
   @override
+  String get sosStatusBlePrepared =>
+      'BLE မူကြမ်း ပြင်ဆင်ပြီးပါပြီ။ ထုတ်လွှင့်မှုအခြေအနေကို အထက်တွင် ပြထားပါသည်။';
+
+  @override
   String get sosStatusSmsSending => 'SMS ပေးပို့နေသည်';
 
   @override
@@ -1056,6 +1118,15 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sosOpenAgain => 'ထပ်ပေးပို့ရန်';
+
+  @override
+  String get sosBleBroadcastAgain => 'ထပ်ထုတ်လွှင့်ရန်';
+
+  @override
+  String get sosSmsDraftLabel => 'SMS မူကြမ်း';
+
+  @override
+  String get sosBleDraftLabel => 'BLE မူကြမ်း';
 
   @override
   String get sosCancelDraft => 'Draft ပယ်ဖျက်ရန်';
@@ -1172,10 +1243,6 @@ class AppLocalizationsMy extends AppLocalizations {
       'ဤစက်တွင် သိမ်းထားသော စစ်ဆေးပြီးသည့် အရေးပေါ်လမ်းညွှန်အသေးစားကို ရှာပါ။ ကွန်ရက်မရှိဘဲ အလုပ်လုပ်သည်။';
 
   @override
-  String get guideOfflineVerifiedLabel =>
-      'အော့ဖ်လိုင်းစစ်ဆေးပြီး အကြောင်းအရာရယူမှု';
-
-  @override
   String get guideQuickActionsHeading => 'အမြန်လုပ်ဆောင်ချက်များ';
 
   @override
@@ -1191,10 +1258,16 @@ class AppLocalizationsMy extends AppLocalizations {
   String get guideActionFirstAid => 'ရှေးဦးသူနာပြု';
 
   @override
+  String get guideActionTrapped => 'ငလျင်ပြီးနောက် ပိတ်မိနေပါက';
+
+  @override
   String get guideActionMap => 'မြေပုံဖွင့်ရန်';
 
   @override
   String get guideActionSos => 'SOS ဖွင့်ရန်';
+
+  @override
+  String get guideActionEmergencyContacts => 'ရန်ကုန်အရေးပေါ် ဆက်သွယ်ရန်များ';
 
   @override
   String get guideNextStepsHeading => 'နောက်တစ်ဆင့်';
@@ -1237,6 +1310,49 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get guideCategoryFirstAid => 'ရှေးဦးသူနာပြု';
+
+  @override
+  String get guideEmergencyContactsTitle => 'ရန်ကုန်အရေးပေါ် ဆက်သွယ်ရန်များ';
+
+  @override
+  String get guideEmergencyContactsDescription =>
+      'ရန်ကုန်အတွက် ဖော်ပြထားသော အခြေခံအရေးပေါ်ဖုန်းနံပါတ်များ ဖြစ်သည်။ ဖြစ်နိုင်လျှင် လက်ရှိတရားဝင် ဒေသဆိုင်ရာညွှန်ကြားချက်များကို စစ်ဆေးပါ။';
+
+  @override
+  String get guideEmergencyContactAmbulance => 'လူနာတင်ယာဉ် အရေးပေါ်';
+
+  @override
+  String get guideEmergencyContactFire => 'မီးသတ် အရေးပေါ်';
+
+  @override
+  String get guideEmergencyContactPolice => 'ရဲ အရေးပေါ်';
+
+  @override
+  String get guideEmergencyContactYangonGeneralHospital =>
+      'ရန်ကုန်အထွေထွေရောဂါကုဆေးရုံ';
+
+  @override
+  String get guideEmergencyContactsCall => 'ဖုန်းခေါ်ရန်';
+
+  @override
+  String get guideEmergencyContactsSource => 'ရင်းမြစ် - Yangon Directory';
+
+  @override
+  String guideEmergencyContactsCheckedAt(String date) {
+    return 'စစ်ဆေးသည့်ရက် - $date';
+  }
+
+  @override
+  String get guideEmergencyContactsWarning =>
+      'လမ်းညွှန်စာရင်းများ ပြောင်းလဲနိုင်သည်။ ဖြစ်နိုင်လျှင် အရေးကြီးဖုန်းနံပါတ်များကို ဒေသဆိုင်ရာအာဏာပိုင်များနှင့် အတည်ပြုပါ။';
+
+  @override
+  String get guideEmergencyContactsDialingNote =>
+      'ရန်ကုန်မြို့တွင်း ကြိုးဖုန်းများအတွက် ဖော်ပြထားသောနံပါတ်ရှေ့တွင် 01 ထည့်ရန် လမ်းညွှန်ချက်က ဖော်ပြထားသည်။';
+
+  @override
+  String get guideEmergencyContactsCallUnavailable =>
+      'ဖုန်းအက်ပ်ကို ဖွင့်မရပါ။';
 
   @override
   String get guideLoading => 'အော့ဖ်လိုင်းအရေးပေါ်လမ်းညွှန်ကို ဖွင့်နေသည်';

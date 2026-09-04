@@ -7,6 +7,7 @@ import '../application/assistant_controller.dart';
 import '../application/providers.dart';
 import '../domain/intent_classifier.dart';
 import '../domain/sos_text_extractor.dart';
+import 'assistant_markdown.dart';
 import 'guide_screens.dart';
 
 class AssistantScreen extends ConsumerStatefulWidget {
@@ -171,10 +172,12 @@ class _MessageCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (article != null) ...[
-                Text(article.answerForLanguage(burmese: burmese)),
+                AssistantFormattedText(
+                  text: article.answerForLanguage(burmese: burmese),
+                ),
                 const SizedBox(height: 12),
                 if (message.localRewording case final rewording?) ...[
-                  _LocalRewordingCard(text: rewording),
+                  _LocalRewordingCard(text: rewording, animate: true),
                   const SizedBox(height: 12),
                 ],
                 ArticleSourceCard(
@@ -187,7 +190,7 @@ class _MessageCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 6),
-                Text(answer),
+                AssistantTypingText(text: answer),
               ] else
                 Text(_replyText(strings, message.replyKind!)),
               if (message.sosDraft case final draft?) ...[
@@ -221,9 +224,10 @@ class _MessageCard extends StatelessWidget {
 }
 
 class _LocalRewordingCard extends StatelessWidget {
-  const _LocalRewordingCard({required this.text});
+  const _LocalRewordingCard({required this.text, required this.animate});
 
   final String text;
+  final bool animate;
 
   @override
   Widget build(BuildContext context) {
@@ -244,7 +248,10 @@ class _LocalRewordingCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 6),
-              Text(text),
+              if (animate)
+                AssistantTypingText(text: text)
+              else
+                AssistantFormattedText(text: text),
               const SizedBox(height: 8),
               Text(
                 strings.assistantLocalRewordingWarning,

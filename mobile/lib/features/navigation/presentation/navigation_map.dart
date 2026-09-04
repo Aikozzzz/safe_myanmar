@@ -73,6 +73,7 @@ class NavigationMap extends StatefulWidget {
     this.onSosEventSelected,
     this.onShelterSelected,
     this.onContextAreaSelected,
+    this.contextAreaRouteContentBuilder,
     this.onRouteSelected,
     this.onSosRouteSelected,
     this.onSosRouteRequested,
@@ -116,6 +117,7 @@ class NavigationMap extends StatefulWidget {
   final ValueChanged<String>? onSosEventSelected;
   final ValueChanged<String>? onShelterSelected;
   final ValueChanged<String>? onContextAreaSelected;
+  final Widget Function(ContextArea area)? contextAreaRouteContentBuilder;
   final ValueChanged<String>? onRouteSelected;
   final ValueChanged<String>? onSosRouteSelected;
   final ValueChanged<String>? onSosRouteRequested;
@@ -957,6 +959,7 @@ class _NavigationMapState extends State<NavigationMap> {
       final area = widget.contextAreas.where((item) => item.id == detail.id);
       if (area.isEmpty) return null;
       final item = area.first;
+      final routeContent = widget.contextAreaRouteContentBuilder?.call(item);
       final metrics = item.metrics;
       return _MapDetailTextList(
         children: [
@@ -1010,6 +1013,10 @@ class _NavigationMapState extends State<NavigationMap> {
                 navigationUserFacingNotice(item.uncertaintyNotice),
               ),
             ),
+          if (routeContent case final content?) ...[
+            const SizedBox(height: 12),
+            content,
+          ],
         ],
       );
     }
