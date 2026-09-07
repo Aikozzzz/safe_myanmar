@@ -167,7 +167,7 @@ void main() {
     expect(nativeSources, contains('appContext.filesDir.usableSpace'));
   });
 
-  test('does not bundle model artifacts or add download permissions', () {
+  test('stages local artifacts without adding download permissions', () {
     final sourceRoots = [Directory('lib'), Directory('android/app/src')];
     final modelFiles = sourceRoots
         .expand((root) => root.listSync(recursive: true))
@@ -179,6 +179,11 @@ void main() {
           ).hasMatch(file.path),
         );
     expect(modelFiles, isEmpty);
+    expect(gradle, contains('stageBundledAiModels'));
+    expect(gradle, contains('generated/assets/bundledAiModels'));
+    expect(gradle, contains('ai_models'));
+    expect(nativeSources, contains('BundledAiModelProvisioner'));
+    expect(nativeSources, contains('ensureBundledModels'));
     expect(manifest, isNot(contains('REQUEST_INSTALL_PACKAGES')));
     expect(manifest, isNot(contains('WRITE_EXTERNAL_STORAGE')));
     expect(manifest, isNot(contains('MANAGE_EXTERNAL_STORAGE')));

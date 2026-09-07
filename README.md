@@ -75,8 +75,9 @@ official emergency or medical services when available.
 - Bilingual English/Myanmar offline Guide articles with source, review date,
   content version, translation warning, category filtering, and search.
 - A deterministic offline intent classifier and structured SOS text extraction.
-   Optional checksum-gated ONNX intent refinement and LiteRT-LM Gemma 3 answers
-   can be provisioned separately; no model artifacts are bundled.
+  Optional checksum-gated ONNX intent refinement and LiteRT-LM Gemma 3 answers
+  can be bundled from authorized local artifacts or provisioned separately;
+  model files remain ignored and untracked.
 - Riverpod state management, `go_router` navigation, localization-ready UI,
   light/dark themes, semantic status announcements, and 48dp touch targets.
 

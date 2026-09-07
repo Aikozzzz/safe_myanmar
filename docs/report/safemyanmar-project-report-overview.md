@@ -88,10 +88,10 @@ The offline Guide contains five versioned English and Myanmar articles covering
 earthquake response, trapped-person guidance, floodwater avoidance, home-fire
 escape, and initial first-aid assessment. The default assistant uses
 deterministic intent matching and approved local content. Optional ONNX and
-Gemma runtimes can be provisioned separately on supported development devices,
-but model artifacts are not bundled. Critical first-aid, trapped-person, SOS,
-and route requests are excluded from generative rewriting, and no cloud AI
-service is implemented.
+Gemma runtimes can be bundled into a local APK from authorized ignored artifacts
+or provisioned separately on supported development devices. Critical first-aid,
+trapped-person, SOS, and route requests are excluded from generative rewriting,
+and no cloud AI service is implemented.
 
 Multi-disaster live alert feeds, trusted or citizen report submission, damage
 reporting, push notifications, authenticated rescue-team integration, complete
@@ -216,8 +216,9 @@ already operational notification, dispatch, or cloud-AI platform.
 
 #### 3.7 Constrained Artificial Intelligence
 
-Describe deterministic Tier 1 behavior and optional, separately provisioned
-ONNX and Gemma tiers. Include model validation, fallback, and critical-intent
+Describe deterministic Tier 1 behavior and optional ONNX and Gemma tiers, which
+can be bundled at build time or provisioned separately. Include first-launch
+private-directory staging, model validation, fallback, and critical-intent
 restrictions.
 
 #### 3.8 High Performance Computing as Future Work
@@ -403,7 +404,7 @@ status matrix.
 | Complete Rescue Beacon Mode | Future | No flashlight pattern, siren, vibration pattern, HELP screen, wake lock, or battery mode |
 | Offline Guide | Implemented | Five reviewed, bilingual, versioned local articles |
 | Deterministic assistant | Implemented | Uses local intent matching and approved Guide content |
-| ONNX and Gemma assistance | Partial or optional | Runtime is present; authorized model artifacts must be provisioned separately |
+| ONNX and Gemma assistance | Partial or optional | Runtime and first-launch APK bundling are present; authorized model artifacts remain untracked and may be bundled or provisioned separately |
 | Cloud AI | Future | No remote AI client or service exists |
 | Trusted or citizen report submission | Future | No submission, verification, moderation, or report-storage workflow exists |
 | Damage reporting and camera upload | Future | No report screen, camera permission, upload endpoint, or object storage exists |

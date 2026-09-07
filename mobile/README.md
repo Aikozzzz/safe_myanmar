@@ -96,6 +96,27 @@ with `--dart-define`. The backend must separately receive
 is never sent to Flutter, and an unset or invalid value leaves routing
 unavailable while map and cached navigation screens remain usable.
 
+## Bundled Offline Models
+
+When the repository-root `ai_models/` directory contains the authorized ONNX
+and Gemma model/manifest pairs, the Android Gradle build automatically stages
+them into the APK. From `mobile/`, build normally:
+
+```powershell
+flutter build apk --debug `
+  --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com `
+  --dart-define=ENABLE_SIMULATION_DATA=true
+```
+
+On first native assistant use, the app copies the assets into its private
+`filesDir/ai` directory and validates each checksum before enabling the
+runtime. The model files remain ignored by Git. Use
+`-PbundleAiModels=false` for a fallback-only Gradle build, or
+`-PbundleAiModels=true` to require every artifact explicitly. The Gemma artifact
+is approximately 557 MiB, so confirm redistribution rights and available device
+storage before distributing the resulting APK. A build without the artifacts
+continues to use the deterministic offline assistant.
+
 ## Language And Reviewed Content
 
 Open **More > Language** to choose English or မြန်မာ. The explicit choice is

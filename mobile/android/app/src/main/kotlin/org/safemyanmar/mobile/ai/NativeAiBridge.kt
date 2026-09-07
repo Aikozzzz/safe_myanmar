@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.InputStream
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -21,29 +22,45 @@ class NativeAiBridge(context: Context) : MethodChannel.MethodCallHandler, AutoCl
     private val modelDirectory = File(context.filesDir, "ai")
     private val onnx = OnnxIntentRuntime(modelDirectory)
     private val gemma = GemmaRewriteRuntime(context, modelDirectory)
+    private val bundledModelProvisioner = BundledAiModelProvisioner(
+        object : BundledAiAssetSource {
+            override fun list(path: String): Set<String> =
+                context.assets.list(path)?.toSet().orEmpty()
+
+            override fun open(path: String): InputStream = context.assets.open(path)
+        },
+        modelDirectory,
+    )
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val provisioningLock = Mutex()
     private val runtimeLock = Mutex()
     private val activeOperation = AtomicReference<Job?>()
     private val disposed = AtomicBoolean(false)
+    private var bundledModelsChecked = false
     private var shutdownJob: Job? = null
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "capabilities" -> launchOperation(result) {
+                ensureBundledModels()
                 success(mapOf("tier2" to onnx.capability(), "tier3" to gemma.capability()))
             }
             "classifyIntent" -> launchOperation(result) {
+                ensureBundledModels()
                 val text = call.argument<String>("text") ?: return@launchOperation error(INVALID_REQUEST)
                 runtimeLock.withLock { onnx.classify(text) }
             }
             "initializeGemma" -> launchOperation(result) {
+                ensureBundledModels()
                 runtimeLock.withLock { gemma.initialize() }
             }
             "rewriteVerifiedContent" -> launchOperation(result) {
+                ensureBundledModels()
                 runtimeLock.withLock { gemma.rewrite(call.arguments as? Map<*, *>) }
             }
             "answerQuestion" -> launchOperation(result) {
+                ensureBundledModels()
                 runtimeLock.withLock { gemma.answer(call.arguments as? Map<*, *>) }
             }
             "cancel" -> launchUntracked(result) {
@@ -124,6 +141,14 @@ class NativeAiBridge(context: Context) : MethodChannel.MethodCallHandler, AutoCl
 
     private suspend fun reply(result: MethodChannel.Result, value: Map<String, Any?>) {
         withContext(Dispatchers.Main.immediate) { result.success(value) }
+    }
+
+    private suspend fun ensureBundledModels() {
+        provisioningLock.withLock {
+            if (bundledModelsChecked) return@withLock
+            withContext(Dispatchers.IO) { bundledModelProvisioner.provision() }
+            bundledModelsChecked = true
+        }
     }
 
     companion object {

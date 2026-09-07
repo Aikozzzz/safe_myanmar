@@ -4,6 +4,57 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val bundledAiModelSourceDirectory =
+    rootProject.projectDir.resolve("../../ai_models").canonicalFile
+val bundledAiModelFiles =
+    listOf(
+        "intent_classifier.onnx",
+        "intent_classifier.json",
+        "gemma3-1b-it-int4.litertlm",
+        "gemma3-1b-it-int4.json",
+    )
+val generatedBundledAiAssetsDirectory =
+    layout.buildDirectory.dir("generated/assets/bundledAiModels")
+val bundleAiModels =
+    providers.gradleProperty("bundleAiModels")
+        .map { it.toBoolean() }
+        .orElse(bundledAiModelFiles.all { bundledAiModelSourceDirectory.resolve(it).isFile })
+
+val stageBundledAiModels = tasks.register("stageBundledAiModels") {
+    group = "build"
+    description = "Stages local AI artifacts as Android assets when available."
+    inputs.files(bundledAiModelFiles.map { bundledAiModelSourceDirectory.resolve(it) })
+    inputs.property("bundleAiModels", bundleAiModels)
+    outputs.dir(generatedBundledAiAssetsDirectory)
+    doLast {
+        project.delete(generatedBundledAiAssetsDirectory)
+        if (!bundleAiModels.get()) {
+            logger.lifecycle("AI model bundling disabled or model artifacts are absent")
+            return@doLast
+        }
+        val missing = bundledAiModelFiles.filterNot {
+            bundledAiModelSourceDirectory.resolve(it).isFile
+        }
+        check(missing.isEmpty()) {
+            "bundleAiModels=true but required artifacts are missing from " +
+                "${bundledAiModelSourceDirectory.path}: ${missing.joinToString()}"
+        }
+        project.copy {
+            from(bundledAiModelSourceDirectory) {
+                include(
+                    "intent_classifier.onnx",
+                    "intent_classifier.json",
+                    "gemma3-1b-it-int4.litertlm",
+                    "gemma3-1b-it-int4.json",
+                )
+                into("ai")
+            }
+            into(generatedBundledAiAssetsDirectory)
+        }
+        logger.lifecycle("Bundled AI assets staged from ${bundledAiModelSourceDirectory.path}")
+    }
+}
+
 android {
     namespace = "org.safemyanmar.mobile"
     compileSdk = flutter.compileSdkVersion
@@ -23,6 +74,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    sourceSets.getByName("main").assets.srcDir(generatedBundledAiAssetsDirectory.get().asFile)
+
+    androidResources {
+        noCompress += "litertlm"
     }
 
     buildTypes {
@@ -104,4 +161,11 @@ val verifyDebugMergedManifest by tasks.registering {
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {
     dependsOn(verifyDebugMergedManifest)
+}
+
+tasks.matching {
+    it.name == "preBuild" ||
+        (it.name.startsWith("merge") && it.name.endsWith("Assets"))
+}.configureEach {
+    dependsOn(stageBundledAiModels)
 }

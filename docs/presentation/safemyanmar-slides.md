@@ -147,7 +147,7 @@ organization portal, dispatch workflow, or family-location tracking service.
 | Confirmed direct-SMS SOS preparation | Implemented on Android |
 | Nearby Bluetooth SOS broadcast and receiving | Implemented on supported Android devices |
 | Offline Guide and deterministic assistant | Implemented |
-| Optional local ONNX and Gemma models | Implemented runtime; artifacts are not bundled |
+| Optional local ONNX and Gemma models | Implemented runtime; authorized artifacts can be bundled into a local APK or provisioned separately |
 | Fictional navigation records | Publicly labeled simulation mode in the Render blueprint |
 | Rescue Beacon flashlight, siren, and HELP screen | Future |
 | Multi-disaster live alerts, trusted report submission, and damage reporting | Future |
@@ -393,7 +393,9 @@ Real-world response-time improvement has not yet been measured.
 - SMS device acceptance does not confirm carrier delivery.
 - Nearby BLE range, background operation, and reliability depend on Android,
   permissions, radio conditions, and device policy.
-- Optional ONNX and Gemma artifacts are not bundled in a clean installation.
+- Optional ONNX and Gemma artifacts are not present in a clean checkout, but an
+  authorized local APK build can bundle them and copy them into private storage
+  on first use.
 - Complete Rescue Beacon, cloud AI, push alerts, damage reporting, rescue-team
   integration, and HPC processing are not implemented.
 

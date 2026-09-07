@@ -121,10 +121,28 @@ Every `--dart-define` must use this format:
 
 The Mapbox token is optional. Omit that flag if map tiles are not needed.
 
-## 5. Provision Gemma On The Phone
+## 5. Build With Bundled Models
 
-The Gemma model is not bundled into the APK. Install the debug app first, then
-copy the authorized model pair into the app-private directory:
+The Android build automatically bundles the four authorized artifacts from
+`D:\SafeMyanmar\ai_models` when they are present. From `D:\SafeMyanmar\mobile`,
+build the APK with the same backend settings used by the app:
+
+```powershell
+flutter build apk --debug `
+  --dart-define=API_BASE_URL=http://127.0.0.1:8000 `
+  --dart-define=ENABLE_SIMULATION_DATA=true
+```
+
+On first native AI use, the app copies the model pairs into its app-private
+directory and validates their manifests. No ADB provisioning is needed for this
+APK. The Gemma model is approximately 557 MiB, so keep enough device storage
+available. If the APK was built without local artifacts, use the fallback
+provisioning commands below instead.
+
+## 6. Provision Gemma On The Phone (Fallback)
+
+Install the debug app first, then copy the authorized model pair into the
+app-private directory:
 
 ```powershell
 & $adb -s $deviceId shell run-as org.safemyanmar.mobile mkdir -p files/ai
@@ -156,7 +174,7 @@ files/ai/gemma3-1b-it-int4.json
 The model is approximately 557 MB. Keep the phone connected during transfer.
 The manifest must contain the SHA-256 checksum of the exact model file.
 
-## 6. Provision The ONNX Demo Model
+## 7. Provision The ONNX Demo Model
 
 Generate the project-owned development classifier from the repository root:
 
@@ -186,7 +204,7 @@ This classifier is a development demonstration only. It refines unknown
 intent results; it does not generate emergency guidance. Replace it with an
 authorized, evaluated model before deployment.
 
-## 7. Test The App
+## 8. Test The App
 
 Open **Guide**, then **Offline assistant**. The capability banner should report
 that local Gemma 3 is available.
@@ -214,7 +232,7 @@ Response engine: local Gemma 3 assistant
 Critical questions about trapped people, first aid, SOS, or safe routes remain
 deterministic by design.
 
-## 8. USB Tunnel Behavior
+## 9. USB Tunnel Behavior
 
 The backend tunnel depends on the USB/ADB connection. If the phone is unplugged,
 repeat the reverse command after reconnecting:

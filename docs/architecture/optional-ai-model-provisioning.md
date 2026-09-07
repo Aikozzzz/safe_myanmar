@@ -2,16 +2,52 @@
 
 ## Default Behavior
 
-SafeMyanmar bundles no ONNX, LiteRT-LM, or other model artifact. It contains no
-model downloader, model registry credentials, remote AI API, or runtime update
-service. The deterministic Dart classifier and approved Drift Guide content are
-the default and remain available when every optional artifact is absent or
+SafeMyanmar does not require ONNX, LiteRT-LM, or other model artifacts. It
+contains no model downloader, model registry credentials, remote AI API, or
+runtime update service. The deterministic Dart classifier and approved Drift
+Guide content remain available when every optional artifact is absent or
 unusable.
 
 Provisioning is an operator/development task outside the app. Before placing an
 artifact on a device, verify that its source and license permit the intended
 use, redistribution, and device deployment. Do not commit licensed model files,
 credentials, or local provisioning output to this repository.
+
+## APK Bundling
+
+When all four authorized artifacts are present in the ignored repository-root
+`ai_models/` directory, the Android Gradle build stages only the expected files
+under `assets/ai`. `bundleAiModels` is enabled automatically for this local
+workspace; pass `-PbundleAiModels=false` to explicitly produce a fallback-only
+APK, or `-PbundleAiModels=true` to fail the build if any required artifact is
+missing. Model files are never added to Git.
+
+On first use of the native AI bridge, the app copies each complete asset pair to
+the fixed private directory below. It copies through a temporary directory,
+validates the schema and checksum, and leaves incomplete or invalid pairs
+unusable. Existing valid pairs are retained unless the bundled manifest has
+changed. No storage or download permission is needed.
+
+The current local Gemma artifact is approximately 557 MiB, so the bundled APK
+is correspondingly large and should only be distributed where the model license
+permits redistribution. A clean checkout without `ai_models/` still builds the
+deterministic fallback APK.
+
+For the supplied local artifacts, build from `mobile/` with:
+
+```powershell
+flutter build apk --debug `
+  --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com `
+  --dart-define=ENABLE_SIMULATION_DATA=true
+```
+
+The Gradle task stages the models automatically when the four files exist. To
+force the preflight explicitly when invoking Gradle directly:
+
+```powershell
+Set-Location mobile/android
+.\gradlew.bat :app:assembleDebug -PbundleAiModels=true
+```
 
 ## Fixed Android Paths
 
@@ -26,9 +62,11 @@ filesDir/ai/gemma3-1b-it-int4.json
 ```
 
 The model and its manifest must be regular files with the same canonical parent
-directory. External/shared-storage paths are not supported. The app neither
-copies nor downloads these files. A clean install normally has no optional AI
-capability until an authorized provisioning process writes app-private files.
+directory. External/shared-storage paths are not supported. The app does not
+download or accept a model path from Flutter. A bundled APK copies authorized
+assets into these paths on first native AI use; an APK built without assets can
+still receive the same files through an authorized app-private provisioning
+process.
 
 ## Common Manifest Contract
 
@@ -43,8 +81,8 @@ require:
 
 The manifest is limited to 1,000,000 bytes. Validation computes the complete
 model SHA-256 and compares it in constant-time form. Generate the checksum from
-the exact licensed artifact being provisioned; this repository intentionally
-provides no model hash.
+the exact licensed artifact being bundled or provisioned; never reuse a hash
+from another model build.
 
 ## ONNX Intent Manifest
 
@@ -111,8 +149,10 @@ provider names or unreviewed alert text stay in their original language.
    ABI, memory, and storage contracts on target devices.
 3. Compute SHA-256 from the final artifact and write it into its local schema-v1
    manifest. Do not use a placeholder or a hash from another build.
-4. Place only the expected model/manifest pair in `filesDir/ai` using an
-   authorized app-private provisioning process.
+4. For a bundled APK, place the four expected artifacts in the ignored
+   repository-root `ai_models/` directory before building. Otherwise place
+   each expected model/manifest pair in `filesDir/ai` using an authorized
+   app-private provisioning process.
 5. Confirm the in-app capability banner and deterministic fallback behavior.
 6. Remove unsupported or expired artifacts through the same authorized process;
    the app has no lifecycle or download manager for them.
