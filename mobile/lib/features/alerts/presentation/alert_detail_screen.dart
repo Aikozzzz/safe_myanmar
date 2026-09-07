@@ -142,19 +142,23 @@ class _DetailContent extends ConsumerWidget {
         _DetailRow(
           icon: Icons.schedule_outlined,
           text: strings.eventTimeValue(
-            formatUtcTimestamp(context, strings, earthquake.eventAt),
+            formatMyanmarTimestamp(context, strings, earthquake.eventAt),
           ),
         ),
         _DetailRow(
           icon: Icons.update_outlined,
           text: strings.providerUpdateValue(
-            formatUtcTimestamp(context, strings, earthquake.providerUpdatedAt),
+            formatMyanmarTimestamp(
+              context,
+              strings,
+              earthquake.providerUpdatedAt,
+            ),
           ),
         ),
         _DetailRow(
           icon: Icons.download_done_outlined,
           text: strings.retrievedValue(
-            formatUtcTimestamp(context, strings, earthquake.retrievedAt),
+            formatMyanmarTimestamp(context, strings, earthquake.retrievedAt),
           ),
         ),
         if (reviewStatus != null && reviewStatus.isNotEmpty)

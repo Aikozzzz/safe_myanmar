@@ -168,7 +168,7 @@ void main() {
     expect(find.text('Precise location available'), findsOneWidget);
     expect(find.text('Location: 16.840900, 96.173500'), findsOneWidget);
     expect(
-      find.text('Location time: Jul 23, 2026 01:02:03 UTC'),
+      find.text('Location time: Jul 23, 2026 07:32:03 MMT (UTC+06:30)'),
       findsOneWidget,
     );
   });
@@ -252,7 +252,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('Last known at: Jul 22, 2026 04:05:06 UTC'),
+      find.text('Last known at: Jul 22, 2026 10:35:06 MMT (UTC+06:30)'),
       findsOneWidget,
     );
     expect(find.text('Try location again'), findsOneWidget);
@@ -299,7 +299,7 @@ void main() {
     expect(find.text('Location: 16.840900, 96.173500'), findsOneWidget);
     expect(find.text('Last update'), findsOneWidget);
     expect(
-      find.text('Location time: Jul 23, 2026 01:02:03 UTC'),
+      find.text('Location time: Jul 23, 2026 07:32:03 MMT (UTC+06:30)'),
       findsOneWidget,
     );
   });

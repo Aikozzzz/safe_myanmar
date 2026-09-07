@@ -61,7 +61,10 @@ void main() {
 
     expect(find.text('Magnitude 5.2'), findsOneWidget);
     expect(find.text('Location: Myanmar'), findsOneWidget);
-    expect(find.text('Event time: Jul 13, 2026 01:02:03 UTC'), findsOneWidget);
+    expect(
+      find.text('Event time: Jul 13, 2026 07:32:03 MMT (UTC+06:30)'),
+      findsOneWidget,
+    );
     expect(find.text('Live information'), findsNWidgets(2));
     expect(
       find.byKey(const ValueKey('home-latest-earthquake-card')),

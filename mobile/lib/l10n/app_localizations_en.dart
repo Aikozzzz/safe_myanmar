@@ -195,6 +195,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get simulationDataNoticeTitle => 'SIMULATION DATA';
+
+  @override
+  String get simulationDataNoticeDescription =>
+      'Fictional navigation data for demonstration only. It is not an official warning, shelter, or safe-route recommendation.';
+
+  @override
   String get openStreetMapAttribution => '© OpenStreetMap contributors';
 
   @override
@@ -397,7 +404,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosBluetoothFields =>
-      'Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, battery level, and optional alias or message.';
+      'Shared: temporary event ID, UTC timestamp (shown as Myanmar Time in the app), exact coordinates when available, location status, battery level, and optional alias or message.';
 
   @override
   String get sosBleBroadcastDataHeading => 'BLE broadcast preview';
@@ -565,7 +572,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sosBluetoothTimestamp(String time) {
-    return 'UTC time: $time';
+    return 'Myanmar Time: $time';
   }
 
   @override
@@ -1789,8 +1796,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String utcTimestamp(String value) {
-    return '$value UTC';
+  String myanmarTimeTimestamp(String value) {
+    return '$value MMT (UTC+06:30)';
   }
 
   @override

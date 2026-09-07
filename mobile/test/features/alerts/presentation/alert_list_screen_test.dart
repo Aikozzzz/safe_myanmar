@@ -124,7 +124,7 @@ void main() {
     expect(find.text('Magnitude 5.2'), findsNWidgets(2));
     expect(find.text('Location: Myanmar'), findsNWidgets(2));
     expect(
-      find.text('Event time: Jul 13, 2026 01:02:03 UTC'),
+      find.text('Event time: Jul 13, 2026 07:32:03 MMT (UTC+06:30)'),
       findsNWidgets(2),
     );
     expect(find.text('Live information'), findsNWidgets(3));

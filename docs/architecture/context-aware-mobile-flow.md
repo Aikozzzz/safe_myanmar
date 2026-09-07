@@ -75,10 +75,12 @@ explicit route.
    the mobile hazard and shelter lists remain collected-data-only.
    Plain-language summaries expose the selected result's typed metrics,
    rationale, source, timestamp, cached state, and uncertainty without claiming
-   an official shelter or guaranteed safety.
+   an official shelter or guaranteed safety. Fictional or mixed responses also
+   trigger a prominent simulation-data notice on the navigation screen.
    The client preserves the API's explicit `simulation` marker instead of
    inferring it from source text; fictional or mixed analysis is displayed only
-   when the mobile development simulation gate is enabled.
+   when the mobile simulation gate is enabled; the navigation screen also shows
+   a prominent fictional-data notice.
 7. The UI displays up to three generated candidates and the user explicitly
    selects one. The selected context-area ID is sent in both the compatibility
    `shelter_id` field and `context_area_id`; no route request is made from a
@@ -94,13 +96,14 @@ explicit route.
    results, stale navigation data, or an unverified destination leave routing
    unavailable rather than triggering a straight-line fallback.
 
-`ENABLE_SIMULATION_DATA` is false by default and forbidden in production. All
-shelters, hazards, and routes in that mode are fictional, timestamped,
-attributed, labeled SIMULATION, and uncertain. `ENABLE_SIMULATION_ANALYSIS` is
-also false by default and forbidden in production; it only augments backend
-context analysis and must never silently replace or merge the mobile hazard or
-shelter lists. A cached route is not recomputed for a changed location and is
-shown only with a cache warning after remote failure.
+`ENABLE_SIMULATION_DATA` is false by default; the public Render blueprint
+explicitly enables it for a fictional, clearly labeled navigation demonstration.
+All shelters, hazards, and routes in that mode are timestamped, attributed,
+labeled SIMULATION, and uncertain. `ENABLE_SIMULATION_ANALYSIS` is also false by
+default and remains forbidden in production; it only augments backend context
+analysis and must never silently replace or merge the mobile hazard or shelter
+lists. A cached route is not recomputed for a changed location and is shown only
+with a cache warning after remote failure.
 
 ## Nearby-area environment pipeline
 

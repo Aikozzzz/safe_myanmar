@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/network/mapbox_public_access_token.dart';
+import '../../../core/time/myanmar_time.dart';
 import '../../../core/widgets/safe_widgets.dart';
 import '../../navigation/application/navigation_state.dart';
 import '../../navigation/application/providers.dart';
@@ -274,7 +275,7 @@ class LocationDetailsSheet extends StatelessWidget {
         strings.approximateLocationDescription,
       ),
     };
-    final timestamp = _formatUtc(context, strings, location.timestamp);
+    final timestamp = _formatMyanmarTime(context, strings, location.timestamp);
     final time = isLastKnown
         ? strings.lastKnownLocationAt(timestamp)
         : strings.locationCapturedAt(timestamp);
@@ -464,9 +465,19 @@ class _NavigationContent extends StatelessWidget {
     final sosRouteOptions = sosRouteEvent == null || sosRouteEvent.isExpired
         ? const <RouteOption>[]
         : state.sosRoutes?.options ?? const <RouteOption>[];
+    final showSimulationNotice =
+        state.shelters?.simulation == true ||
+        state.hazards?.simulation == true ||
+        state.contextAreas?.simulation == true ||
+        state.routes?.simulation == true ||
+        state.sosRoutes?.simulation == true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (showSimulationNotice) ...[
+          const _SimulationDataNotice(),
+          const SizedBox(height: 12),
+        ],
         _RoutePreferences(
           key: const ValueKey('pre-map-route-preferences'),
           state: state,
@@ -570,12 +581,9 @@ class _NavigationContent extends StatelessWidget {
         ],
         const SizedBox(height: 16),
         _ContextAnalysisControl(
-          hasAreas: state.contextAreas?.items.isNotEmpty ?? false,
-          requested: state.contextAnalysisRequested,
           loading: state.contextAnalysisLoading,
           failed: state.contextAnalysisFailed,
           cached: state.contextCached,
-          uncertaintyNotice: state.contextAreas?.uncertaintyNotice,
           onAnalyze: onAnalyzeContext,
         ),
         if (state.contextAnalysisRequested)
@@ -654,6 +662,52 @@ class _NavigationContent extends StatelessWidget {
   }
 }
 
+class _SimulationDataNotice extends StatelessWidget {
+  const _SimulationDataNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      container: true,
+      child: Card(
+        key: const ValueKey('simulation-data-notice'),
+        color: colors.tertiaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.science_outlined, color: colors.onTertiaryContainer),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.simulationDataNoticeTitle,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: colors.onTertiaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      strings.simulationDataNoticeDescription,
+                      style: TextStyle(color: colors.onTertiaryContainer),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HazardSummary extends StatelessWidget {
   const _HazardSummary({
     required this.collection,
@@ -718,12 +772,7 @@ class _HazardSummary extends StatelessWidget {
                 Text(strings.openStreetMapAttribution),
               Text(
                 strings.hazardDataTime(
-                  _formatUtc(context, strings, collection.dataAt),
-                ),
-              ),
-              Text(
-                strings.uncertaintyNotice(
-                  navigationUserFacingNotice(collection.uncertaintyNotice),
+                  _formatMyanmarTime(context, strings, collection.dataAt),
                 ),
               ),
             ],
@@ -984,7 +1033,11 @@ class _ContextAreaMetadata extends StatelessWidget {
         Text(strings.navigationSource(navigationUserFacingSource(area.source))),
         if (_usesOpenStreetMap(area.source))
           Text(strings.openStreetMapAttribution),
-        Text(strings.contextDataAt(_formatUtc(context, strings, area.dataAt))),
+        Text(
+          strings.contextDataAt(
+            _formatMyanmarTime(context, strings, area.dataAt),
+          ),
+        ),
         if (area.uncertaintyNotice.isNotEmpty)
           Text(
             strings.uncertaintyNotice(
@@ -1027,7 +1080,7 @@ class _ContextCollectionMetadata extends StatelessWidget {
           Text(strings.openStreetMapAttribution),
         Text(
           strings.contextDataAt(
-            _formatUtc(context, strings, collection.dataAt),
+            _formatMyanmarTime(context, strings, collection.dataAt),
           ),
         ),
         if (cached) ...[
@@ -1043,12 +1096,8 @@ class _ContextCollectionMetadata extends StatelessWidget {
         ],
         if (cachedAt case final timestamp?)
           Text(
-            strings.navigationCachedAt(_formatUtc(context, strings, timestamp)),
-          ),
-        if (collection.uncertaintyNotice.isNotEmpty)
-          Text(
-            strings.uncertaintyNotice(
-              navigationUserFacingNotice(collection.uncertaintyNotice),
+            strings.navigationCachedAt(
+              _formatMyanmarTime(context, strings, timestamp),
             ),
           ),
       ],
@@ -1101,7 +1150,9 @@ class SuggestedAreaRoutePanel extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                strings.cachedRouteAt(_formatUtc(context, strings, cachedAt)),
+                strings.cachedRouteAt(
+                  _formatMyanmarTime(context, strings, cachedAt),
+                ),
               ),
             ),
         ],
@@ -1280,21 +1331,15 @@ class _RouteControls extends StatelessWidget {
 
 class _ContextAnalysisControl extends StatelessWidget {
   const _ContextAnalysisControl({
-    required this.hasAreas,
-    required this.requested,
     required this.loading,
     required this.failed,
     required this.cached,
-    required this.uncertaintyNotice,
     required this.onAnalyze,
   });
 
-  final bool hasAreas;
-  final bool requested;
   final bool loading;
   final bool failed;
   final bool cached;
-  final String? uncertaintyNotice;
   final Future<void> Function()? onAnalyze;
 
   @override
@@ -1317,16 +1362,6 @@ class _ContextAnalysisControl extends StatelessWidget {
                 ? '${strings.contextAnalysisUnavailable} '
                       '${strings.navigationCachedWarning}'
                 : strings.contextAnalysisUnavailable,
-          ),
-        ],
-        if (requested && !loading && !hasAreas) ...[
-          const SizedBox(height: 8),
-          Text(
-            strings.uncertaintyNotice(
-              navigationUserFacingNotice(
-                uncertaintyNotice ?? strings.noContextAreas,
-              ),
-            ),
           ),
         ],
       ],
@@ -1382,10 +1417,10 @@ class _RouteCard extends StatelessWidget {
       strings.navigationSource(navigationUserFacingSource(option.source)),
       strings.routeDirectionsProvider(option.directionsProvider),
       strings.routeGeneratedAt(
-        _formatUtc(context, strings, option.generatedAt),
+        _formatMyanmarTime(context, strings, option.generatedAt),
       ),
       strings.routeHazardDataAt(
-        _formatUtc(context, strings, option.hazardDataAt),
+        _formatMyanmarTime(context, strings, option.hazardDataAt),
       ),
       strings.uncertaintyNotice(
         navigationUserFacingNotice(option.uncertaintyNotice),
@@ -1455,12 +1490,12 @@ class _RouteCard extends StatelessWidget {
                     ),
                   Text(
                     strings.routeGeneratedAt(
-                      _formatUtc(context, strings, option.generatedAt),
+                      _formatMyanmarTime(context, strings, option.generatedAt),
                     ),
                   ),
                   Text(
                     strings.routeHazardDataAt(
-                      _formatUtc(context, strings, option.hazardDataAt),
+                      _formatMyanmarTime(context, strings, option.hazardDataAt),
                     ),
                   ),
                   Text(
@@ -1519,16 +1554,13 @@ String _profileLabel(AppLocalizations strings, RouteProfile value) =>
       RouteProfile.driving => strings.drivingProfile,
     };
 
-String _formatUtc(
+String _formatMyanmarTime(
   BuildContext context,
   AppLocalizations strings,
   DateTime timestamp,
 ) {
   final locale = Localizations.localeOf(context).toLanguageTag();
-  final formatted = DateFormat.yMMMd(
-    locale,
-  ).add_Hms().format(timestamp.toUtc());
-  return strings.utcTimestamp(formatted);
+  return strings.myanmarTimeTimestamp(formatMyanmarDateTime(timestamp, locale));
 }
 
 class _LocationStatusCard extends StatelessWidget {
@@ -1671,10 +1703,9 @@ class _LocationStatusCard extends StatelessWidget {
     DateTime timestamp,
   ) {
     final locale = Localizations.localeOf(context).toLanguageTag();
-    final formatted = DateFormat.yMMMd(
-      locale,
-    ).add_Hms().format(timestamp.toUtc());
-    return strings.utcTimestamp(formatted);
+    return strings.myanmarTimeTimestamp(
+      formatMyanmarDateTime(timestamp, locale),
+    );
   }
 }
 

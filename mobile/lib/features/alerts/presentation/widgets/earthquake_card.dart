@@ -26,7 +26,7 @@ class EarthquakeCard extends StatelessWidget {
     );
     final location = strings.locationValue(earthquake.place);
     final eventTime = strings.eventTimeValue(
-      formatUtcTimestamp(context, strings, earthquake.eventAt),
+      formatMyanmarTimestamp(context, strings, earthquake.eventAt),
     );
     final statusLabel = switch (status) {
       AlertPresentationStatus.live => strings.liveInformation,

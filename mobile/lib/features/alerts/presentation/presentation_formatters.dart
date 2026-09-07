@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/time/myanmar_time.dart';
 import '../../../l10n/app_localizations.dart';
 
 String formatDecimal(BuildContext context, double value) {
@@ -10,12 +11,11 @@ String formatDecimal(BuildContext context, double value) {
   ).format(value);
 }
 
-String formatUtcTimestamp(
+String formatMyanmarTimestamp(
   BuildContext context,
   AppLocalizations strings,
   DateTime value,
 ) {
   final locale = Localizations.localeOf(context).toLanguageTag();
-  final formatted = DateFormat.yMMMd(locale).add_Hms().format(value.toUtc());
-  return strings.utcTimestamp(formatted);
+  return strings.myanmarTimeTimestamp(formatMyanmarDateTime(value, locale));
 }

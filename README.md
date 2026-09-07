@@ -125,11 +125,13 @@ The default runtime loads the validated snapshot named by `NAVIGATION_DATA_PATH`
 The current Yangon snapshot contains no verified shelters. Nearby analysis can
 use OpenStreetMap/Overpass building and tree features for earthquake criteria
 and OpenTopoData terrain elevation for flood criteria. Stale or geometry-less
-records are excluded. `ENABLE_SIMULATION_DATA=true` remains an explicitly
-separate development mode and is rejected in production.
-`ENABLE_SIMULATION_ANALYSIS=true` can be enabled outside production to augment
-real context-area analysis with clearly labeled fictional hazard geometry; it
-does not alter the hazard or shelter lists.
+records are excluded. `ENABLE_SIMULATION_DATA=true` selects the complete
+fictional navigation mode; the Render blueprint intentionally enables it for a
+public demonstration, and the API plus mobile UI keep the simulation label
+visible. It does not alter the USGS alert feed. `ENABLE_SIMULATION_ANALYSIS=true`
+remains a separate non-production option for augmenting real context-area
+analysis with fictional hazard geometry; it does not alter the hazard or shelter
+lists.
 
 Real nearby-area analysis uses full OpenStreetMap geometry retrieved through
 Overpass: named open spaces, building footprints/heights, trees or woodland,
@@ -243,13 +245,15 @@ To deploy:
    repository.
 2. Let Render read `render.yaml` and enter the Neon `DATABASE_URL` when asked.
 3. After deployment, verify `https://YOUR-SERVICE.onrender.com/health/live` and
-   `https://YOUR-SERVICE.onrender.com/api/v1/alerts`.
+   `https://YOUR-SERVICE.onrender.com/api/v1/alerts` plus the fictional
+   navigation response at `https://YOUR-SERVICE.onrender.com/api/v1/shelters`.
 4. Build a debug APK with the deployed HTTPS URL:
 
    ```powershell
    Set-Location mobile
    flutter build apk --debug `
-     --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com
+     --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com `
+     --dart-define=ENABLE_SIMULATION_DATA=true
    ```
 
 Install that APK once through an available non-USB distribution method, such
@@ -358,8 +362,8 @@ Backend values are read from `backend/.env` when the API starts in `backend/`.
 | `PROVIDER_TIMEOUT_SECONDS` | FastAPI | Defaults to `10.0`; used by USGS and Mapbox requests |
 | `REFRESH_MINIMUM_SECONDS` | FastAPI | Defaults to `60` |
 | `CURRENT_MAX_AGE_SECONDS` | FastAPI | Defaults to `300` |
-| `ENABLE_SIMULATION_DATA` | FastAPI; Flutter | Backend defaults to `false` and must remain false in production; mobile must also receive the compile-time define to display fictional or mixed analysis responses |
-| `ENABLE_SIMULATION_ANALYSIS` | FastAPI | Defaults to `false`; development-only backend analysis augmentation; must remain false in production |
+| `ENABLE_SIMULATION_DATA` | FastAPI; Flutter | Defaults to `false`; the public Render blueprint explicitly enables the fictional navigation mode, and mobile must receive the compile-time define to display it |
+| `ENABLE_SIMULATION_ANALYSIS` | FastAPI | Defaults to `false`; non-production-only augmentation of real context analysis; remains disabled in the public simulation deployment |
 | `NAVIGATION_DATA_PATH` | FastAPI | Defaults to the validated Yangon snapshot directory |
 | `OVERPASS_API_URL` | FastAPI | OpenStreetMap building/tree lookup used by earthquake analysis |
 | `ELEVATION_API_URL` | FastAPI | OpenTopoData elevation lookup used by flood analysis |
@@ -511,13 +515,13 @@ SafeMyanmar/
   Myanmar warnings, evacuation orders, impact/severity classification, push
   notifications, or additional live disaster providers.
 - Context-aware navigation defaults to the validated collected navigation
-  snapshot. Earthquake analysis can compare mapped building/tree exposure
-  outdoors after shaking; flood analysis can compare terrain elevation and
-  current hazard polygons. The separate simulation mode generates fictional
-  candidates, while `ENABLE_SIMULATION_ANALYSIS` can add fictional hazard
-  geometry to real context analysis for development evaluation only. None of
-  these outputs are verified field conditions, official shelters, evacuation
-  orders, or guaranteed safe routes.
+  snapshot, while the public Render blueprint intentionally uses the complete
+  fictional simulation mode. Earthquake analysis can compare mapped
+  building/tree exposure outdoors after shaking; flood analysis can compare
+  terrain elevation and current hazard polygons. `ENABLE_SIMULATION_ANALYSIS`
+  can add fictional hazard geometry to real context analysis only outside
+  production. None of these outputs are verified field conditions, official
+  shelters, evacuation orders, or guaranteed safe routes.
 - The app has no authentication, cloud profile synchronization, rescue-team
   dashboard, damage reporting, official rescue-service integration, Rescue
   Beacon Mode, iOS Bluetooth support, or background location tracking.

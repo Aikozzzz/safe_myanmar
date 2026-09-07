@@ -120,6 +120,13 @@ void main() {
     repository.emit(null);
     await finishList(tester, snapshot: _snapshot(items: const []));
 
+    await tester.scrollUntilVisible(
+      find.text(
+        'No recent earthquakes were found in the covered area. '
+        'This does not guarantee there is no danger.',
+      ),
+      120,
+    );
     expect(
       find.text(
         'No recent earthquakes were found in the covered area. '
@@ -137,9 +144,13 @@ void main() {
     repository.emit(null);
     await finishList(tester, snapshot: _snapshot());
 
+    await tester.scrollUntilVisible(find.text('Magnitude 5.2'), 120);
     expect(find.text('Magnitude 5.2'), findsOneWidget);
     expect(find.text('Location: Myanmar'), findsOneWidget);
-    expect(find.text('Event time: Jul 13, 2026 01:02:03 UTC'), findsOneWidget);
+    expect(
+      find.text('Event time: Jul 13, 2026 07:32:03 MMT (UTC+06:30)'),
+      findsOneWidget,
+    );
     expect(find.text('Source: USGS'), findsOneWidget);
     expectNoOverflow(tester);
   });
@@ -159,9 +170,9 @@ void main() {
       'Magnitude 5.2',
       'Location: Myanmar',
       'Depth: 12.5 km',
-      'Event time: Jul 13, 2026 01:02:03 UTC',
-      'Provider update: Jul 13, 2026 01:03:04 UTC',
-      'Retrieved: Jul 13, 2026 01:04:05 UTC',
+      'Event time: Jul 13, 2026 07:32:03 MMT (UTC+06:30)',
+      'Provider update: Jul 13, 2026 07:33:04 MMT (UTC+06:30)',
+      'Retrieved: Jul 13, 2026 07:34:05 MMT (UTC+06:30)',
       'Review status: reviewed',
       'Source: USGS',
       'Preliminary earthquake values may change.',
@@ -191,7 +202,7 @@ void main() {
       matchesSemantics(
         label:
             'Earthquake information. Magnitude 5.2. Location: Myanmar. '
-            'Event time: Jul 13, 2026 01:02:03 UTC. Live information. '
+            'Event time: Jul 13, 2026 07:32:03 MMT (UTC+06:30). Live information. '
             'Source: USGS',
         hint: 'Open earthquake information details',
         isButton: true,
@@ -258,7 +269,7 @@ void main() {
         matchesSemantics(
           label:
               'Cached information. Last successful update: '
-              'Jul 13, 2026 01:05:06 UTC',
+              'Jul 13, 2026 07:35:06 MMT (UTC+06:30)',
           isLiveRegion: true,
         ),
       );
@@ -297,9 +308,9 @@ void main() {
       'Magnitude 5.2',
       'Location: Myanmar',
       'Depth: 12.5 km',
-      'Event time: Jul 13, 2026 01:02:03 UTC',
-      'Provider update: Jul 13, 2026 01:03:04 UTC',
-      'Retrieved: Jul 13, 2026 01:04:05 UTC',
+      'Event time: Jul 13, 2026 07:32:03 MMT (UTC+06:30)',
+      'Provider update: Jul 13, 2026 07:33:04 MMT (UTC+06:30)',
+      'Retrieved: Jul 13, 2026 07:34:05 MMT (UTC+06:30)',
       'Review status: reviewed',
       'Source: USGS',
       'Preliminary earthquake values may change.',

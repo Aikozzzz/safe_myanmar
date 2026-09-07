@@ -18,15 +18,17 @@ fictional hazard geometry in real `/context-areas` calculations only. The source
 and uncertainty notice identify this mixed analysis, while `/hazards` and
 `/shelters` continue to return collected snapshot data only.
 
-The fictional API described below remains available only when
-`ENABLE_SIMULATION_DATA=true`. It is for development demonstrations only and
-must not be used as official hazard or evacuation data.
+The fictional API described below is available when
+`ENABLE_SIMULATION_DATA=true`. The Render blueprint intentionally uses this mode
+for a public demonstration, but it must never be used as official hazard or
+evacuation data.
 
 These endpoints expose fictional demonstration records and deterministic
 context-analysis candidates. They are
-available only when `ENABLE_SIMULATION_DATA=true`; startup rejects that setting
-when `ENVIRONMENT=production`. Every record is labeled `SIMULATION`, attributed
-to `SafeMyanmar Demo`, timestamped, and marked `simulation: true`.
+available only when `ENABLE_SIMULATION_DATA=true`. The public Render deployment
+uses this explicit setting. Every record is labeled `SIMULATION`, attributed to
+`SafeMyanmar Demo`, timestamped, and marked `simulation: true`; the mobile
+navigation screen also shows a prominent fictional-data notice.
 
 When simulation data is disabled and no navigation snapshot is configured,
 these routes are not registered or included in OpenAPI. With the default
@@ -44,8 +46,8 @@ visible. Shelter and hazard lists remain available if routing is unavailable.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ENABLE_SIMULATION_DATA` | `false` | Enables all three simulation endpoints outside production |
-| `ENABLE_SIMULATION_ANALYSIS` | `false` | Adds labeled simulation hazards to real context-area analysis only; forbidden in production |
+| `ENABLE_SIMULATION_DATA` | `false` | Enables all three fictional navigation endpoints; explicitly enabled by the public Render blueprint |
+| `ENABLE_SIMULATION_ANALYSIS` | `false` | Adds labeled simulation hazards to real context-area analysis only; forbidden in production and disabled by the public simulation deployment |
 | `NAVIGATION_DATA_PATH` | `SafeMyanmar_Yangon_2026-08-17` | Validated real navigation snapshot directory |
 | `OVERPASS_API_URL` | `https://overpass-api.de/api/interpreter` | Mapped building/tree lookup for earthquake analysis |
 | `ELEVATION_API_URL` | `https://api.opentopodata.org/v1/aster30m` | Terrain elevation lookup for flood analysis |
@@ -101,15 +103,15 @@ logged. Missing credentials, provider failures, empty results, stale
 navigation data, and stale or unverified destinations fail closed; the API
 does not fabricate a straight-line route.
 
-An enabled simulation deployment must remain nonpublic unless an independent
-authentication or network-access control protects it. Restrict the backend
-Mapbox token to the Directions API and the smallest practical usage scope. The
-process permits at most four concurrent Mapbox calls and 30 route POSTs per
-client host in a rolling 60-second window. Rate-limit state uses only the client
-host's fixed-size, per-process keyed hash, expires in memory, and retains at most
-1,024 hashes; it does not retain raw hosts or use tokens or coordinates as keys.
-These per-process limits do not replace an authenticated edge rate limiter for
-any shared deployment.
+An enabled public simulation deployment must keep the fictional-data notice
+visible and must not present records as official hazard, shelter, or safe-route
+data. Restrict the backend Mapbox token to the Directions API and the smallest
+practical usage scope. The process permits at most four concurrent Mapbox calls
+and 30 route POSTs per client host in a rolling 60-second window. Rate-limit
+state uses only the client host's fixed-size, per-process keyed hash, expires in
+memory, and retains at most 1,024 hashes; it does not retain raw hosts or use
+tokens or coordinates as keys. These per-process limits do not replace an
+authenticated edge rate limiter for any shared deployment.
 
 Context analysis is separately limited to 10 POSTs per client host in a rolling
 60-second window and at most two concurrent analyses per process. These limits

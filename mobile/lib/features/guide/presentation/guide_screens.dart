@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/time/myanmar_time.dart';
 import '../../../core/widgets/safe_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/guide_state.dart';
@@ -302,13 +302,13 @@ class ArticleSourceCard extends StatelessWidget {
               Text(strings.guideContentVersion(article.contentVersion)),
               Text(
                 strings.guideReviewedDate(
-                  DateFormat.yMMMd(locale).format(article.reviewedAt),
+                  formatMyanmarDate(article.reviewedAt, locale),
                 ),
               ),
               if (sourceDate != null)
                 Text(
                   strings.guideSourceDate(
-                    DateFormat.yMMMd(locale).format(sourceDate),
+                    formatMyanmarDate(sourceDate, locale),
                   ),
                 ),
               const SizedBox(height: 8),

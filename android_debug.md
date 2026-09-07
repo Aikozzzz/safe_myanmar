@@ -258,8 +258,9 @@ The current fictional navigation data supports two separate regions:
 
 Real Yangon GPS readings can be analyzed when simulation navigation is enabled.
 Locations outside both regions are rejected for fictional navigation because the
-app does not present simulation data as real nationwide hazard information. For
-real snapshot analysis with optional simulation augmentation, enable
+app does not present simulation data as real nationwide hazard information; the
+navigation screen also shows a prominent fictional-data notice. For real snapshot
+analysis with optional simulation augmentation, enable
 `ENABLE_SIMULATION_ANALYSIS=true` on the backend; the `/context-areas` response
 will label the mixed sources, while hazard and shelter lists remain collected
 data only. Nearby-area analysis does not need a Mapbox Directions token; route

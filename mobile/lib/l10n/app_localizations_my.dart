@@ -195,6 +195,14 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
+  String get simulationDataNoticeTitle =>
+      'SIMULATION DATA (စမ်းသပ်မှုအချက်အလက်)';
+
+  @override
+  String get simulationDataNoticeDescription =>
+      'သရုပ်ပြရန်အတွက်သာ အသုံးပြုသော စိတ်ကူးယဉ် လမ်းညွှန်အချက်အလက် ဖြစ်သည်။ တရားဝင်သတိပေးချက်၊ အမိုးအကာ သို့မဟုတ် ဘေးကင်းသော လမ်းကြောင်း အကြံပြုချက် မဟုတ်ပါ။';
+
+  @override
   String get openStreetMapAttribution => '© OpenStreetMap contributors';
 
   @override
@@ -399,7 +407,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get sosBluetoothFields =>
-      'မျှဝေမည့်အရာ - ယာယီဖြစ်ရပ် ID၊ UTC အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသား။';
+      'မျှဝေမည့်အရာ - ယာယီဖြစ်ရပ် ID၊ UTC အချိန် (အက်ပ်တွင် မြန်မာစံတော်ချိန်ဖြင့် ပြသသည်)၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသား။';
 
   @override
   String get sosBleBroadcastDataHeading =>
@@ -570,7 +578,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String sosBluetoothTimestamp(String time) {
-    return 'UTC အချိန် - $time';
+    return 'မြန်မာစံတော်ချိန် - $time';
   }
 
   @override
@@ -1795,8 +1803,8 @@ class AppLocalizationsMy extends AppLocalizations {
   }
 
   @override
-  String utcTimestamp(String value) {
-    return '$value UTC';
+  String myanmarTimeTimestamp(String value) {
+    return '$value MMT (UTC+06:30)';
   }
 
   @override

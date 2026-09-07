@@ -13,8 +13,9 @@ activation, readiness summary, and exact outgoing previews.
 Guide opens with search, deterministic quick actions, Yangon emergency contacts,
 and explicit Next Steps. Assistant responses support safe Markdown formatting and
 a typing-style reveal for optional model-generated text. Map pairs its visible
-layers with a legend and source-, timestamp-, cache-, and uncertainty-aware
-summaries.
+layers with a legend and source-, timestamp-, and cache-aware
+summaries. Mapped hazard polygons use a subtle opacity pulse as an attention
+cue; their geometry remains fixed and displayed timestamps remain authoritative.
 
 This app is not an official warning, prediction, dispatch, medical, or
 guaranteed-safety service. Navigation records are source-backed and may be
@@ -60,6 +61,14 @@ the matching compile-time opt-in to Flutter; leaving it out keeps fictional
 navigation records hidden. Simulation route alternatives also require the
 backend-only `MAPBOX_DIRECTIONS_ACCESS_TOKEN`.
 
+The Render blueprint intentionally enables the same fictional navigation mode
+for its public demonstration. A mobile build that calls that service must also
+include `--dart-define=ENABLE_SIMULATION_DATA=true`; an already-installed APK
+cannot be changed by a backend configuration update. The Map screen shows a
+prominent simulation notice whenever fictional or mixed navigation data is
+loaded. `ENABLE_SIMULATION_ANALYSIS` remains a backend-only non-production
+option for augmenting real context analysis.
+
 ## Remote Backend Testing
 
 For cable-free API testing, build the debug APK with the HTTPS URL of the
@@ -67,7 +76,8 @@ deployed Render service:
 
 ```powershell
 flutter build apk --debug `
-  --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com
+  --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com `
+  --dart-define=ENABLE_SIMULATION_DATA=true
 ```
 
 Install the APK once through a private download, CI artifact, or another
@@ -131,9 +141,10 @@ and model identifiers are preserved.
   Tapping a legend entry opens an in-map summary; tapping a shelter, hazard,
   context-area candidate, route, or nearby SOS marker opens its details without
   leaving the map. Hazard and context summaries remain readable without map
-   tiles and retain source, timestamp, cached-data, and uncertainty labels.
-    Backend simulation metadata remains available for development gating but is
-    not presented as a user-facing simulation label or banner.
+   tiles and retain source, timestamp, and cached-data labels.
+     Backend simulation metadata remains available for gating, and the Map screen
+     shows a prominent user-facing simulation label and notice whenever it is
+     loaded.
 - The flow distinguishes not requested, requesting, approximate, precise,
   denied, permanently denied, service disabled, last known, and recoverable
   error states. Permanent denial and disabled services link to settings.
@@ -161,7 +172,7 @@ and model identifiers are preserved.
   that SOS, review the preview, and can continue without coordinates if
   location becomes unavailable. The frame broadcasts a structured temporary
   sender token,
-  sequence, UTC timestamp, fixed-point coordinates when available,
+  sequence, UTC wire timestamp (shown as Myanmar Time in the app), fixed-point coordinates when available,
   current/last-known location status, and battery value. The user may also
   enter an optional short BLE alias and message; these are sent as separate
   versioned metadata frames, limited to 16 and 48 UTF-8 bytes respectively.
@@ -275,15 +286,16 @@ and model identifiers are preserved.
   Missing token, stale data, unavailable destinations,
   and empty route results remain unavailable rather than becoming straight-line
   guidance. Fictional navigation records remain separately gated behind
-  `ENABLE_SIMULATION_DATA=true`; `ENABLE_SIMULATION_ANALYSIS=true` is a
-  backend-only development option that augments context-area analysis without
-  adding simulation records to mobile hazard or shelter lists.
+  `ENABLE_SIMULATION_DATA=true`; the public Render blueprint uses this mode for
+  fictional navigation data. `ENABLE_SIMULATION_ANALYSIS=true` remains a
+  backend-only non-production option that augments context-area analysis
+  without adding simulation records to mobile hazard or shelter lists.
 - Navigation DTOs preserve the backend's explicit `simulation` marker,
   including mixed real-plus-simulation analysis responses. The client accepts
-  such responses only when the development
-  `--dart-define=ENABLE_SIMULATION_DATA=true` opt-in is also supplied and keeps
-  the marker out of normal user-facing labels; real responses remain usable by
-  default.
+  such responses only when the
+  `--dart-define=ENABLE_SIMULATION_DATA=true` opt-in is also supplied. The
+  navigation screen displays a prominent fictional-data notice; real responses
+  remain usable by default.
 - SOS persists at most five drafts, suppresses equivalent active drafts within
   five minutes, previews shared data, and requires hold/accessibility
   confirmation. Status means prepared, SMS sending, SMS accepted by the device,

@@ -113,6 +113,20 @@ def enabled_navigation_app(monkeypatch):
 
 
 @pytest.fixture
+def production_simulation_app(monkeypatch):
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://production_user:strong-production-password@"
+        "db.internal.example/safemyanmar?sslmode=require",
+    )
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ENABLE_SIMULATION_DATA", "true")
+    monkeypatch.setenv("ENABLE_SIMULATION_ANALYSIS", "false")
+    monkeypatch.setenv("MAPBOX_DIRECTIONS_ACCESS_TOKEN", "")
+    return create_app()
+
+
+@pytest.fixture
 def real_navigation_app_with_simulation_analysis(monkeypatch):
     monkeypatch.setenv("ENABLE_SIMULATION_DATA", "false")
     monkeypatch.setenv("NAVIGATION_DATA_PATH", "SafeMyanmar_Yangon_2026-08-17")
@@ -536,6 +550,20 @@ def test_lists_remain_available_when_route_provider_has_no_token(
     assert routes.json()["error"]["code"] == "routing_unavailable"
     assert "96.08" not in routes.text
     assert shelters.status_code == hazards.status_code == 200
+
+
+def test_production_simulation_mode_serves_labeled_navigation_data(
+    production_simulation_app,
+):
+    with TestClient(production_simulation_app) as client:
+        shelters = client.get("/api/v1/shelters")
+        hazards = client.get("/api/v1/hazards")
+
+    assert shelters.status_code == hazards.status_code == 200
+    assert shelters.json()["simulation"] is True
+    assert hazards.json()["simulation"] is True
+    assert shelters.json()["source"] == "SafeMyanmar Demo"
+    assert shelters.json()["items"][0]["name"].startswith("SIMULATION:")
 
 
 def test_context_area_analysis_is_explicit_and_disaster_aware(enabled_navigation_app):

@@ -75,11 +75,11 @@ controlled `integration-fixture` provider is under `backend/tests/fixtures/`, is
 started only by test tooling, and is never imported or referenced by
 `backend/app` or `mobile/lib`. Separately, runtime shelter, hazard, and route
 records are fixed fictional data behind `ENABLE_SIMULATION_DATA`, which defaults
-to false and is forbidden in production. They never enter the alert tables or
-alert API. The separate `ENABLE_SIMULATION_ANALYSIS` setting can add those
-fictional hazard geometries to real context-area analysis only; mixed responses
-retain source labels and uncertainty notices, and collected hazard/shelter lists
-remain unchanged.
+to false and is explicitly enabled by the public Render blueprint. They never
+enter the alert tables or alert API. The separate `ENABLE_SIMULATION_ANALYSIS`
+setting can add those fictional hazard geometries to real context-area analysis
+only outside production; mixed responses retain source labels and uncertainty
+notices, and collected hazard/shelter lists remain unchanged.
 
 Release API endpoints must use HTTPS, and main/release Android configuration has
 no cleartext exception. The controlled debug integration path is separate: an

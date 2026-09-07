@@ -187,10 +187,11 @@ under their corresponding shell branches.
 
 - Fictional or mixed shelter, hazard, and route data remains explicitly gated,
   sourced to `SafeMyanmar Demo`, timestamped, and accompanied by an uncertainty
-  notice. The client keeps technical simulation markers out of normal cards and
-  does not present a separate simulation banner in the navigation UI.
-- Simulation is an explicit non-production backend opt-in. The UI must never
-  style simulation data as an official alert or silently mix it into the USGS
+  notice. When it is loaded, the navigation UI displays a prominent simulation
+  banner while keeping technical markers out of normal cards.
+- Simulation is an explicit backend mode. The public Render blueprint uses the
+  complete fictional navigation mode for demonstration; the UI must never style
+  simulation data as an official alert or silently mix it into the USGS
   earthquake feed.
 - `ENABLE_SIMULATION_ANALYSIS` is a separate non-production backend-only mode.
   It may combine fictional hazard geometry with collected navigation data for

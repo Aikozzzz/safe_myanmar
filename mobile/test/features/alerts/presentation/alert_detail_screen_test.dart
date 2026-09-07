@@ -69,12 +69,18 @@ void main() {
     expect(find.text('Magnitude 5.2'), findsOneWidget);
     expect(find.text('Location: Myanmar'), findsOneWidget);
     expect(find.text('Depth: 12.5 km'), findsOneWidget);
-    expect(find.text('Event time: Jul 13, 2026 01:02:03 UTC'), findsOneWidget);
     expect(
-      find.text('Provider update: Jul 13, 2026 01:03:04 UTC'),
+      find.text('Event time: Jul 13, 2026 07:32:03 MMT (UTC+06:30)'),
       findsOneWidget,
     );
-    expect(find.text('Retrieved: Jul 13, 2026 01:04:05 UTC'), findsOneWidget);
+    expect(
+      find.text('Provider update: Jul 13, 2026 07:33:04 MMT (UTC+06:30)'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Retrieved: Jul 13, 2026 07:34:05 MMT (UTC+06:30)'),
+      findsOneWidget,
+    );
     expect(find.text('Review status: reviewed'), findsOneWidget);
     expect(find.text('Source: USGS'), findsOneWidget);
     expect(

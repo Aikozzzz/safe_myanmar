@@ -33,7 +33,7 @@ class DataStatusBanner extends StatelessWidget {
     };
     final lastUpdate = switch (lastSuccessfulRefreshAt) {
       final refreshedAt? => strings.lastSuccessfulUpdate(
-        formatUtcTimestamp(context, strings, refreshedAt),
+        formatMyanmarTimestamp(context, strings, refreshedAt),
       ),
       null => null,
     };

@@ -3,14 +3,14 @@
 ## Accuracy Scope
 
 This presentation describes the repository implementation as of September 7,
-2026. It distinguishes shipped behavior from optional development capability,
-fictional simulation data, and future work.
+2026. It distinguishes shipped behavior from optional capability, the public
+fictional simulation mode, and future work.
 
 | Status | Meaning |
 |---|---|
 | Implemented | Present in the current Android or backend code |
 | Partial or optional | Implemented with data, configuration, or separately provisioned artifacts required |
-| Development simulation | Fictional, clearly labeled data available only through non-production opt-in |
+| Simulation | Fictional, clearly labeled data available through the public Render demonstration or local opt-in |
 | Future | Proposed capability that is not implemented |
 
 ---
@@ -148,7 +148,7 @@ organization portal, dispatch workflow, or family-location tracking service.
 | Nearby Bluetooth SOS broadcast and receiving | Implemented on supported Android devices |
 | Offline Guide and deterministic assistant | Implemented |
 | Optional local ONNX and Gemma models | Implemented runtime; artifacts are not bundled |
-| Fictional navigation records | Development simulation only |
+| Fictional navigation records | Publicly labeled simulation mode in the Render blueprint |
 | Rescue Beacon flashlight, siren, and HELP screen | Future |
 | Multi-disaster live alerts, trusted report submission, and damage reporting | Future |
 | Cloud AI, push notifications, rescue dispatch, and HPC processing | Future |

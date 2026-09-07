@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/time/myanmar_time.dart';
 import '../../../l10n/app_localizations.dart';
 import '../domain/local_emergency_contact.dart';
 
@@ -52,9 +52,10 @@ class YangonEmergencyContactsScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       strings.guideEmergencyContactsCheckedAt(
-                        DateFormat.yMMMd(
+                        formatMyanmarDate(
+                          yangonEmergencyContactsCheckedAt,
                           locale,
-                        ).format(yangonEmergencyContactsCheckedAt),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),

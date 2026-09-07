@@ -12,6 +12,8 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      - key: MAPBOX_DIRECTIONS_ACCESS_TOKEN
+        sync: false
       - key: ENVIRONMENT
         value: production
       - key: USGS_FEED_URL
@@ -24,8 +26,10 @@ services:
         value: "60"
       - key: CURRENT_MAX_AGE_SECONDS
         value: "300"
+      # Public demonstration mode. Navigation responses remain explicitly
+      # marked as fictional simulation data by the API and mobile client.
       - key: ENABLE_SIMULATION_DATA
-        value: "false"
+        value: "true"
       - key: ENABLE_SIMULATION_ANALYSIS
         value: "false"
       - key: NAVIGATION_DATA_PATH

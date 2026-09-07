@@ -55,8 +55,9 @@ class Settings(BaseSettings):
         if self.environment != "production":
             return self
 
-        if self.enable_simulation_data:
-            raise ValueError("Production must not enable simulation data.")
+        # The public Render service intentionally uses the complete fictional
+        # navigation dataset. The API and mobile client must keep its labels
+        # visible; mixed real-plus-simulation analysis remains disallowed.
         if self.enable_simulation_analysis:
             raise ValueError("Production must not enable simulation analysis.")
 

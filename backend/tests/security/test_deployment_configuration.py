@@ -17,7 +17,7 @@ def test_api_image_contains_alembic_configuration_and_migrations():
     ) in dockerfile
 
 
-def test_render_blueprint_uses_root_docker_context_and_safe_defaults():
+def test_render_blueprint_uses_root_docker_context_and_public_demo_configuration():
     render = (ROOT / "render.yaml").read_text(encoding="utf-8")
 
     assert "type: web" in render
@@ -27,8 +27,9 @@ def test_render_blueprint_uses_root_docker_context_and_safe_defaults():
     assert "dockerContext: ." in render
     assert "healthCheckPath: /health/live" in render
     assert "- key: DATABASE_URL\n        sync: false" in render
+    assert "- key: MAPBOX_DIRECTIONS_ACCESS_TOKEN\n        sync: false" in render
     assert "value: production" in render
-    assert "key: ENABLE_SIMULATION_DATA\n        value: \"false\"" in render
+    assert "key: ENABLE_SIMULATION_DATA\n        value: \"true\"" in render
     assert "key: ENABLE_SIMULATION_ANALYSIS\n        value: \"false\"" in render
     assert "key: NAVIGATION_DATA_PATH" in render
 

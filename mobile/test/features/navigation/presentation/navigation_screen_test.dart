@@ -147,7 +147,9 @@ void main() {
     expect(find.text('Hazard summary'), findsNothing);
     expect(find.text('Shelter and hazard information'), findsNothing);
     expect(find.text('Test Hazard'), findsOneWidget);
+    expect(find.text('SIMULATION DATA'), findsOneWidget);
     expect(find.text('SIMULATION'), findsNothing);
+    expect(find.textContaining('Uncertainty:'), findsNothing);
     expect(
       find.textContaining('Demonstration data is shown here'),
       findsNothing,
@@ -230,7 +232,7 @@ void main() {
     expect(find.textContaining('Analysis data:'), findsWidgets);
     expect(
       find.textContaining('OpenStreetMap coverage may be incomplete'),
-      findsWidgets,
+      findsNothing,
     );
     expect(find.bySemanticsLabel(RegExp("People's Park")), findsWidgets);
 
@@ -322,7 +324,7 @@ void main() {
     expect(find.text('Source: OpenStreetMap via Overpass'), findsOneWidget);
     expect(
       find.textContaining('Mapped environment data is incomplete'),
-      findsWidgets,
+      findsNothing,
     );
     expect(
       find.text(
@@ -356,7 +358,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('Saved for offline use: Jul 23, 2026 12:30:00 UTC'),
+      find.text('Saved for offline use: Jul 23, 2026 19:00:00 MMT (UTC+06:30)'),
       findsOneWidget,
     );
   });
@@ -486,7 +488,7 @@ void main() {
     expect(state.routeCachedAt, DateTime.utc(2026, 7, 23, 12, 30));
     expect(state.routes?.options, hasLength(2));
     expect(
-      find.text('Route saved at: Jul 23, 2026 12:30:00 UTC'),
+      find.text('Route saved at: Jul 23, 2026 19:00:00 MMT (UTC+06:30)'),
       findsNothing,
     );
     expect(find.text('Suggested'), findsNothing);

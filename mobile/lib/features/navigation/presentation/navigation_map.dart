@@ -7,6 +7,7 @@ import 'package:flutter/gestures.dart';
 import 'package:intl/intl.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
+import '../../../core/time/myanmar_time.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../location/domain/foreground_location.dart';
 import '../../sos/domain/sos_ble.dart';
@@ -23,6 +24,8 @@ enum NavigationMapLayer {
 
 enum NavigationMapMarkerKind { location, shelter, contextArea, nearbySos }
 
+const _hazardBaseFillOpacity = 0.22;
+
 IconData navigationMapMarkerIcon(NavigationMapMarkerKind kind) =>
     switch (kind) {
       NavigationMapMarkerKind.location => Icons.my_location,
@@ -37,6 +40,12 @@ Color navigationMapMarkerColor(NavigationMapMarkerKind kind) => switch (kind) {
   NavigationMapMarkerKind.contextArea => const Color(0xffef6c00),
   NavigationMapMarkerKind.nearbySos => const Color(0xffd32f2f),
 };
+
+double hazardPulseFillOpacity(double progress) {
+  final clampedProgress = progress.clamp(0.0, 1.0).toDouble();
+  final easedProgress = Curves.easeInOut.transform(clampedProgress);
+  return ui.lerpDouble(0.18, 0.28, easedProgress)!;
+}
 
 List<NavigationMapLayer> visibleNavigationMapLayers({
   required bool hasLocation,
@@ -146,7 +155,8 @@ class NavigationMap extends StatefulWidget {
   State<NavigationMap> createState() => _NavigationMapState();
 }
 
-class _NavigationMapState extends State<NavigationMap> {
+class _NavigationMapState extends State<NavigationMap>
+    with SingleTickerProviderStateMixin<NavigationMap> {
   mapbox.MapboxMap? _map;
   mapbox.PointAnnotationManager? _locationManager;
   mapbox.PointAnnotationManager? _shelterManager;
@@ -169,6 +179,10 @@ class _NavigationMapState extends State<NavigationMap> {
   Map<NavigationMapMarkerKind, Uint8List>? _markerImages;
   final Set<NavigationMapLayer> _hiddenLayers = <NavigationMapLayer>{};
   _MapDetailSelection? _selectedDetail;
+  late final AnimationController _hazardPulseController;
+  Future<void>? _hazardPulseUpdate;
+  DateTime? _lastHazardPulseUpdateAt;
+  var _animationsDisabled = false;
 
   NavigationCoordinate get _mapCenter =>
       widget.initialCenter ??
@@ -182,6 +196,24 @@ class _NavigationMapState extends State<NavigationMap> {
     super.initState();
     // The token must be configured before build can construct MapWidget.
     mapbox.MapboxOptions.setAccessToken(widget.accessToken);
+    _hazardPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..addListener(_handleHazardPulseTick);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animationsDisabled =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (_animationsDisabled == animationsDisabled) return;
+    _animationsDisabled = animationsDisabled;
+    if (animationsDisabled) {
+      _stopHazardPulse();
+    } else {
+      _startHazardPulse();
+    }
   }
 
   @override
@@ -416,6 +448,7 @@ class _NavigationMapState extends State<NavigationMap> {
     _hazardTapEvents?.cancel();
     _routeTapEvents?.cancel();
     _sosTapEvents?.cancel();
+    _hazardPulseController.dispose();
     super.dispose();
   }
 
@@ -511,9 +544,11 @@ class _NavigationMapState extends State<NavigationMap> {
   void _showLoadFailure() {
     if (!mounted || _loadFailed) return;
     setState(() => _loadFailed = true);
+    _stopHazardPulse();
   }
 
   void _retryMap() {
+    _stopHazardPulse();
     _locationTapEvents?.cancel();
     _locationTapEvents = null;
     _shelterTapEvents?.cancel();
@@ -678,13 +713,16 @@ class _NavigationMapState extends State<NavigationMap> {
                       .toList(),
                 ),
                 fillColor: const Color(0xffb3261e).toARGB32(),
-                fillOpacity: 0.22,
+                fillOpacity: _hazardBaseFillOpacity,
                 fillOutlineColor: const Color(0xff7f0000).toARGB32(),
                 customData: {'hazard_id': hazard.id},
               ),
             )
             .toList(),
       );
+      _startHazardPulse();
+    } else {
+      _stopHazardPulse();
     }
 
     await routeManager.deleteAll();
@@ -757,6 +795,63 @@ class _NavigationMapState extends State<NavigationMap> {
         ),
       );
       _cameraFocusedEventId = widget.focusedEventId;
+    }
+  }
+
+  void _startHazardPulse() {
+    if (_loadFailed ||
+        _animationsDisabled ||
+        _hazardManager == null ||
+        !_isLayerVisible(NavigationMapLayer.hazard) ||
+        widget.hazards.isEmpty) {
+      return;
+    }
+    if (!_hazardPulseController.isAnimating) {
+      _lastHazardPulseUpdateAt = null;
+      _hazardPulseController.repeat(reverse: true);
+    }
+  }
+
+  void _stopHazardPulse() {
+    _hazardPulseController.stop();
+    _hazardPulseController.value = 0;
+    _lastHazardPulseUpdateAt = null;
+  }
+
+  void _handleHazardPulseTick() {
+    if (!mounted ||
+        _loadFailed ||
+        _animationsDisabled ||
+        _hazardManager == null ||
+        !_isLayerVisible(NavigationMapLayer.hazard) ||
+        widget.hazards.isEmpty ||
+        _hazardPulseUpdate != null) {
+      return;
+    }
+    final now = DateTime.now();
+    final lastUpdate = _lastHazardPulseUpdateAt;
+    if (lastUpdate != null &&
+        now.difference(lastUpdate) < const Duration(milliseconds: 80)) {
+      return;
+    }
+    _lastHazardPulseUpdateAt = now;
+    _hazardPulseUpdate = _updateHazardPulseOpacity(
+      hazardPulseFillOpacity(_hazardPulseController.value),
+    );
+  }
+
+  Future<void> _updateHazardPulseOpacity(double opacity) async {
+    final manager = _hazardManager;
+    if (manager == null) {
+      _hazardPulseUpdate = null;
+      return;
+    }
+    try {
+      await manager.setFillOpacity(opacity);
+    } catch (_) {
+      // Keep the hazard layer usable if an animation update races map teardown.
+    } finally {
+      _hazardPulseUpdate = null;
     }
   }
 
@@ -878,7 +973,7 @@ class _NavigationMapState extends State<NavigationMap> {
           Text(strings.locationDetailsUpdated),
           Text(
             strings.locationCapturedAt(
-              _mapFormatUtc(context, strings, location.timestamp),
+              _mapFormatMyanmarTime(context, strings, location.timestamp),
             ),
           ),
         ],
@@ -917,7 +1012,7 @@ class _NavigationMapState extends State<NavigationMap> {
           ),
           Text(
             strings.shelterDataTime(
-              _mapFormatUtc(context, strings, item.dataAt),
+              _mapFormatMyanmarTime(context, strings, item.dataAt),
             ),
           ),
           if (widget.shelterUncertaintyNotice.isNotEmpty)
@@ -942,7 +1037,7 @@ class _NavigationMapState extends State<NavigationMap> {
           ),
           Text(
             strings.hazardDataTime(
-              _mapFormatUtc(context, strings, item.dataAt),
+              _mapFormatMyanmarTime(context, strings, item.dataAt),
             ),
           ),
           if (widget.hazardUncertaintyNotice.isNotEmpty)
@@ -1005,7 +1100,9 @@ class _NavigationMapState extends State<NavigationMap> {
             strings.navigationSource(navigationUserFacingSource(item.source)),
           ),
           Text(
-            strings.contextDataAt(_mapFormatUtc(context, strings, item.dataAt)),
+            strings.contextDataAt(
+              _mapFormatMyanmarTime(context, strings, item.dataAt),
+            ),
           ),
           if (item.uncertaintyNotice.isNotEmpty)
             Text(
@@ -1051,12 +1148,12 @@ class _NavigationMapState extends State<NavigationMap> {
           ),
           Text(
             strings.routeGeneratedAt(
-              _mapFormatUtc(context, strings, item.generatedAt),
+              _mapFormatMyanmarTime(context, strings, item.generatedAt),
             ),
           ),
           Text(
             strings.routeHazardDataAt(
-              _mapFormatUtc(context, strings, item.hazardDataAt),
+              _mapFormatMyanmarTime(context, strings, item.hazardDataAt),
             ),
           ),
           Text(
@@ -1134,7 +1231,7 @@ class _NavigationMapState extends State<NavigationMap> {
           Text(strings.sosBluetoothEventId(item.eventId)),
           Text(
             strings.sosBluetoothTimestamp(
-              _mapFormatUtc(context, strings, item.createdAt),
+              _mapFormatMyanmarTime(context, strings, item.createdAt),
             ),
           ),
           if (item.alias case final alias?)
@@ -1510,16 +1607,13 @@ String _mapCoordinateText(NavigationCoordinate coordinate) =>
     '${coordinate.latitude.toStringAsFixed(6)}, '
     '${coordinate.longitude.toStringAsFixed(6)}';
 
-String _mapFormatUtc(
+String _mapFormatMyanmarTime(
   BuildContext context,
   AppLocalizations strings,
   DateTime timestamp,
 ) {
   final locale = Localizations.localeOf(context).toLanguageTag();
-  final formatted = DateFormat.yMMMd(
-    locale,
-  ).add_Hms().format(timestamp.toUtc());
-  return strings.utcTimestamp(formatted);
+  return strings.myanmarTimeTimestamp(formatMyanmarDateTime(timestamp, locale));
 }
 
 String navigationUserFacingNotice(String notice) {

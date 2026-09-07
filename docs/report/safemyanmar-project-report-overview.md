@@ -35,7 +35,7 @@ The following status terms are used throughout the report:
 |---|---|
 | Implemented | Present in the current Android or backend code |
 | Partial or optional | Present but dependent on current data, external configuration, supported hardware, or separately provisioned artifacts |
-| Development simulation | Fictional, explicitly labeled behavior behind a non-production opt-in |
+| Simulation | Fictional, explicitly labeled behavior behind an explicit runtime opt-in; the Render blueprint enables the public demonstration |
 | Future | Proposed capability that is not implemented |
 
 ## Abstract
@@ -280,7 +280,8 @@ provisioning, capability banners, safety rejection, and deterministic fallback.
 #### 4.10 Development Simulation Boundaries
 
 Document that fictional navigation data is explicitly labeled, disabled by
-default, forbidden in production, and never merged into the USGS alert feed.
+default, intentionally enabled by the public Render demonstration, and never
+merged into the USGS alert feed.
 
 ### Chapter 5 - System Operation
 

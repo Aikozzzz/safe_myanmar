@@ -69,6 +69,8 @@
   "@navigationSource": {
     "placeholders": {"source": {"type": "String"}}
   },
+  "simulationDataNoticeTitle": "SIMULATION DATA (စမ်းသပ်မှုအချက်အလက်)",
+  "simulationDataNoticeDescription": "သရုပ်ပြရန်အတွက်သာ အသုံးပြုသော စိတ်ကူးယဉ် လမ်းညွှန်အချက်အလက် ဖြစ်သည်။ တရားဝင်သတိပေးချက်၊ အမိုးအကာ သို့မဟုတ် ဘေးကင်းသော လမ်းကြောင်း အကြံပြုချက် မဟုတ်ပါ။",
   "openStreetMapAttribution": "© OpenStreetMap contributors",
   "shelterDataTime": "အမိုးအကာအချက်အလက် - {time}",
   "@shelterDataTime": {
@@ -160,7 +162,7 @@
   "contextRouteSelectionDescription": "ဤအကြံပြုထားသောနေရာသို့ လမ်းကြောင်းတောင်းဆိုပါ။ လမ်းကြောင်းကို အလိုအလျောက် မတောင်းဆိုပါ။",
   "sosBluetoothShareTitle": "ကန့်သတ်ထားသော SOS အချက်အလက်ကို အနီးအနားတွင် မျှဝေရန်",
   "sosBluetoothShareDescription": "ယာယီ ID၊ အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသားကို အနီးအနား SafeMyanmar အသုံးပြုသူများထံ ၁၀ မိနစ်ကြာ ထုတ်လွှင့်ပါ။",
-  "sosBluetoothFields": "မျှဝေမည့်အရာ - ယာယီဖြစ်ရပ် ID၊ UTC အချိန်၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသား။",
+  "sosBluetoothFields": "မျှဝေမည့်အရာ - ယာယီဖြစ်ရပ် ID၊ UTC အချိန် (အက်ပ်တွင် မြန်မာစံတော်ချိန်ဖြင့် ပြသသည်)၊ ရရှိပါက ကိုဩဒိနိတ်အတိအကျ၊ တည်နေရာအခြေအနေ၊ ဘက်ထရီအဆင့်နှင့် ရွေးချယ်နိုင်သော အမည်ပြောင် သို့မဟုတ် စာသား။",
   "sosBleBroadcastDataHeading": "BLE ထုတ်လွှင့်မှု အကြိုကြည့်ရှုချက်",
   "sosBluetoothExcludedData": "ပရိုဖိုင်အမည်၊ သိမ်းထားသော အဆက်အသွယ်များနှင့် SMS စာသားကို ထုတ်လွှင့်မည်မဟုတ်ပါ။",
   "sosBluetoothTenMinuteLimit": "ထုတ်လွှင့်မှုသည် ၁၀ မိနစ်အကြာတွင် အလိုအလျောက်ရပ်မည်။ ရွေးချယ်ထားသော အမည်ပြောင်နှင့် စာသားကို အနီးအနားလက်ခံစက်များက မြင်နိုင်သဖြင့် လျှို့ဝှက်အချက်အလက်များ မထည့်ပါနှင့်။",
@@ -223,7 +225,7 @@
   "@sosBluetoothEventId": {
     "placeholders": {"id": {"type": "String"}}
   },
-  "sosBluetoothTimestamp": "UTC အချိန် - {time}",
+  "sosBluetoothTimestamp": "မြန်မာစံတော်ချိန် - {time}",
   "@sosBluetoothTimestamp": {
     "placeholders": {"time": {"type": "String"}}
   },
@@ -734,8 +736,8 @@
   "@eventTimeValue": {
     "placeholders": {"time": {"type": "String"}}
   },
-  "utcTimestamp": "{value} UTC",
-  "@utcTimestamp": {
+  "myanmarTimeTimestamp": "{value} MMT (UTC+06:30)",
+  "@myanmarTimeTimestamp": {
     "placeholders": {"value": {"type": "String"}}
   },
   "depthValue": "အနက် - {depth} ကီလိုမီတာ",

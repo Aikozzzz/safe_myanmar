@@ -30,6 +30,12 @@ void main() {
     );
   });
 
+  test('hazard pulse opacity stays within a subtle range', () {
+    expect(hazardPulseFillOpacity(-1), closeTo(0.18, 0.0001));
+    expect(hazardPulseFillOpacity(0.5), closeTo(0.23, 0.0001));
+    expect(hazardPulseFillOpacity(2), closeTo(0.28, 0.0001));
+  });
+
   testWidgets('legend entries open details and expose visibility controls', (
     tester,
   ) async {

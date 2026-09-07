@@ -89,13 +89,14 @@ def test_settings_reject_non_positive_usgs_lookback():
         Settings(database_url=DEVELOPMENT_DATABASE_URL, usgs_lookback_days=0)
 
 
-def test_production_rejects_enabled_simulation_data():
-    with pytest.raises(ValidationError, match="must not enable simulation data"):
-        Settings(
-            database_url=PRODUCTION_DATABASE_URL,
-            environment="production",
-            enable_simulation_data=True,
-        )
+def test_production_allows_enabled_simulation_data_for_public_demo():
+    settings = Settings(
+        database_url=PRODUCTION_DATABASE_URL,
+        environment="production",
+        enable_simulation_data=True,
+    )
+
+    assert settings.enable_simulation_data is True
 
 
 def test_production_rejects_enabled_simulation_analysis():

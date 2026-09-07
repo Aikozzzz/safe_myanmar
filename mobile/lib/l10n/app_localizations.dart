@@ -422,6 +422,18 @@ abstract class AppLocalizations {
   /// **'Source: {source}'**
   String navigationSource(String source);
 
+  /// No description provided for @simulationDataNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SIMULATION DATA'**
+  String get simulationDataNoticeTitle;
+
+  /// No description provided for @simulationDataNoticeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Fictional navigation data for demonstration only. It is not an official warning, shelter, or safe-route recommendation.'**
+  String get simulationDataNoticeDescription;
+
   /// No description provided for @openStreetMapAttribution.
   ///
   /// In en, this message translates to:
@@ -755,7 +767,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosBluetoothFields.
   ///
   /// In en, this message translates to:
-  /// **'Shared: temporary event ID, UTC timestamp, exact coordinates when available, location status, battery level, and optional alias or message.'**
+  /// **'Shared: temporary event ID, UTC timestamp (shown as Myanmar Time in the app), exact coordinates when available, location status, battery level, and optional alias or message.'**
   String get sosBluetoothFields;
 
   /// No description provided for @sosBleBroadcastDataHeading.
@@ -1025,7 +1037,7 @@ abstract class AppLocalizations {
   /// No description provided for @sosBluetoothTimestamp.
   ///
   /// In en, this message translates to:
-  /// **'UTC time: {time}'**
+  /// **'Myanmar Time: {time}'**
   String sosBluetoothTimestamp(String time);
 
   /// No description provided for @sosBluetoothBatteryValue.
@@ -3036,11 +3048,11 @@ abstract class AppLocalizations {
   /// **'Event time: {time}'**
   String eventTimeValue(String time);
 
-  /// No description provided for @utcTimestamp.
+  /// No description provided for @myanmarTimeTimestamp.
   ///
   /// In en, this message translates to:
-  /// **'{value} UTC'**
-  String utcTimestamp(String value);
+  /// **'{value} MMT (UTC+06:30)'**
+  String myanmarTimeTimestamp(String value);
 
   /// No description provided for @depthValue.
   ///

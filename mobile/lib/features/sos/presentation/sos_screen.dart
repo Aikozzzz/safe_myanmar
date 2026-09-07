@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/time/myanmar_time.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../location/application/foreground_location_state.dart';
 import '../../location/application/providers.dart';
@@ -1152,7 +1152,7 @@ class _NearbySosActivityCard extends StatelessWidget {
       status,
       strings.sosBluetoothEventId(event.eventId),
       strings.sosBluetoothTimestamp(
-        _formatUtc(context, strings, event.createdAt),
+        _formatMyanmarTime(context, strings, event.createdAt),
       ),
       if (event.batteryPercent case final battery?)
         strings.sosBluetoothBatteryValue(battery),
@@ -1227,7 +1227,7 @@ class _DraftCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               strings.sosDraftCreatedAt(
-                _formatUtc(context, strings, draft.createdAt),
+                _formatMyanmarTime(context, strings, draft.createdAt),
               ),
             ),
             const SizedBox(height: 6),
@@ -1391,7 +1391,7 @@ String _locationPreview(
       : strings.sosApproximate;
   final latitude = location.latitude.toStringAsFixed(6);
   final longitude = location.longitude.toStringAsFixed(6);
-  final time = _formatUtc(context, strings, location.timestamp);
+  final time = _formatMyanmarTime(context, strings, location.timestamp);
   return location.isLastKnown
       ? strings.sosLastKnownLocationPreview(
           precision,
@@ -1402,13 +1402,11 @@ String _locationPreview(
       : strings.sosCurrentLocationPreview(precision, latitude, longitude, time);
 }
 
-String _formatUtc(
+String _formatMyanmarTime(
   BuildContext context,
   AppLocalizations strings,
   DateTime value,
 ) {
   final locale = Localizations.localeOf(context).toLanguageTag();
-  return strings.utcTimestamp(
-    DateFormat.yMMMd(locale).add_Hms().format(value.toUtc()),
-  );
+  return strings.myanmarTimeTimestamp(formatMyanmarDateTime(value, locale));
 }
