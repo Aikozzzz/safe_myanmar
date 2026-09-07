@@ -160,15 +160,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 8),
-                    _SharedDataPreview(
-                      profile: profile,
-                      location: location,
-                      body: body,
-                    ),
-                    const SizedBox(height: 12),
-                    _DisclosureCard(
-                      description: strings.sosDirectSmsDisclosure,
-                    ),
+                    _SharedDataPreview(body: body),
                   ],
                 ),
               ),
@@ -223,8 +215,6 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            _DisclosureCard(description: strings.sosDirectSmsDisclosure),
             const SizedBox(height: 16),
             HoldToConfirm(
               key: const Key('sos-hold'),
@@ -875,14 +865,8 @@ class _ReadinessSummary extends StatelessWidget {
 }
 
 class _SharedDataPreview extends StatelessWidget {
-  const _SharedDataPreview({
-    required this.profile,
-    required this.location,
-    required this.body,
-  });
+  const _SharedDataPreview({required this.body});
 
-  final LocalProfile? profile;
-  final SosLocationSnapshot? location;
   final String body;
 
   @override
@@ -900,21 +884,6 @@ class _SharedDataPreview extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             SelectableText(body),
-            const Divider(height: 28),
-            Text(
-              strings.sosStoredDataHeading,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              profile == null || profile!.displayName.trim().isEmpty
-                  ? strings.sosProfileNameUnavailable
-                  : strings.sosProfileNamePreview(profile!.displayName),
-            ),
-            const SizedBox(height: 4),
-            Text(_locationPreview(context, strings, location)),
-            const SizedBox(height: 4),
-            Text(strings.sosDraftCreatedWhenConfirmed),
           ],
         ),
       ),
@@ -965,27 +934,6 @@ class _BleDataPreview extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DisclosureCard extends StatelessWidget {
-  const _DisclosureCard({required this.description});
-
-  final String description;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info_outline),
-          const SizedBox(width: 12),
-          Expanded(child: Text(description)),
-        ],
-      ),
-    ),
-  );
 }
 
 class _BleBroadcastFields extends StatelessWidget {

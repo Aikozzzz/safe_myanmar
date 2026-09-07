@@ -6,11 +6,11 @@ from typing import cast, get_type_hints
 
 import pytest
 
+from app.providers.usgs.coverage import (
+    MYANMAR_BOUNDARY,
+    is_within_coverage,
+)
 from app.providers.usgs.normalizer import (
-    MAX_LATITUDE,
-    MAX_LONGITUDE,
-    MIN_LATITUDE,
-    MIN_LONGITUDE,
     InvalidProviderPayload,
     normalize_feed,
 )
@@ -75,32 +75,54 @@ def test_valid_feature_maps_exact_normalized_contract():
 @pytest.mark.parametrize(
     ("longitude", "latitude"),
     [
-        (MIN_LONGITUDE, MIN_LATITUDE),
-        (MAX_LONGITUDE, MAX_LATITUDE),
+        (91.0, 20.0),
+        (102.3, 20.0),
+        (96.0, 8.6),
+        (96.0, 29.6),
     ],
 )
-def test_coverage_boundaries_are_inclusive(longitude, latitude):
+def test_points_outside_query_envelope_are_ignored(longitude, latitude):
     earthquake = feature()
     earthquake["geometry"]["coordinates"] = [longitude, latitude, 1.0]
 
     result = normalize_feed(feed(earthquake), RETRIEVED_AT)
 
-    assert [event.provider_event_id for event in result.events] == ["us7000test"]
+    assert result.events == ()
     assert result.rejected_count == 0
 
 
 @pytest.mark.parametrize(
-    ("longitude", "latitude"),
+    "longitude, latitude",
     [
-        (MIN_LONGITUDE - 0.001, 20.0),
-        (MAX_LONGITUDE + 0.001, 20.0),
-        (96.0, MIN_LATITUDE - 0.001),
-        (96.0, MAX_LATITUDE + 0.001),
+        (96.1, 16.7),  # Yangon Region
+        (96.08, 21.97),  # Mandalay Region
+        (97.4, 25.38),  # Kachin State
+        (92.9, 20.15),  # Rakhine State
+        (98.75, 12.45),  # Tanintharyi Region
     ],
 )
-def test_valid_points_outside_coverage_are_ignored(longitude, latitude):
+def test_national_points_are_included(longitude, latitude):
+    assert is_within_coverage(longitude, latitude)
+
+
+def test_national_boundary_point_is_included():
+    longitude, latitude = MYANMAR_BOUNDARY[0]
+
+    assert is_within_coverage(longitude, latitude)
+
+
+def test_nearby_border_point_is_included():
+    # This point is outside the western outline but within the selected buffer.
+    assert is_within_coverage(91.65, 21.35)
+
+
+def test_point_beyond_buffer_is_ignored():
+    assert not is_within_coverage(101.8, 20.0)
+
+
+def test_point_beyond_buffer_is_ignored_by_normalizer():
     earthquake = feature()
-    earthquake["geometry"]["coordinates"] = [longitude, latitude, 1.0]
+    earthquake["geometry"]["coordinates"] = [101.8, 20.0, 1.0]
 
     result = normalize_feed(feed(earthquake), RETRIEVED_AT)
 

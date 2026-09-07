@@ -159,6 +159,13 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Exact SMS preview'), findsOneWidget);
+    expect(find.text('Draft details stored securely'), findsNothing);
+    expect(
+      find.textContaining(
+        'After confirmation, SafeMyanmar requests SMS permission',
+      ),
+      findsNothing,
+    );
     expect(
       find.textContaining('Location unavailable; no coordinates included.'),
       findsOneWidget,
@@ -522,11 +529,11 @@ void main() {
     await tester.pumpAndSettle();
     await revealInSos(
       tester,
-      find.text('Location unavailable. No coordinates will be included.'),
+      find.textContaining('Location unavailable; no coordinates included.'),
     );
     expect(
-      find.text('Location unavailable. No coordinates will be included.'),
-      findsWidgets,
+      find.textContaining('Location unavailable; no coordinates included.'),
+      findsOneWidget,
     );
   });
 

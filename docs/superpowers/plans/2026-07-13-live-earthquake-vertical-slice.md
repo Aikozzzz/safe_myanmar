@@ -13,9 +13,9 @@
 - Use only live USGS data in the running application; bundled, seeded, or visible simulated alerts are prohibited.
 - Test fixtures are allowed only under test directories and must not be imported by runtime code.
 - Describe records as `Earthquake information`, never official Myanmar warnings, evacuation orders, or predictions.
-- Use the inclusive Yangon Region coverage envelope: latitude
-  `14.04582802200008..17.79695808500003`, longitude
-  `93.35195104000019..96.82662590900009`.
+- Use the Myanmar national outline plus an approximately 100 km surrounding
+  provider coverage buffer. Query USGS with its enclosing latitude `8.7..29.45`
+  and longitude `91.1..102.25` bounds, then filter against the buffered outline.
 - Poll USGS no more frequently than once every 60 seconds.
 - API data is `current` when the latest successful refresh is no more than five minutes old; older persisted data is `stale`.
 - Provider failure with no previous successful refresh returns `503 Service Unavailable`, not an empty list.
@@ -222,10 +222,10 @@ Expected: import failure for the missing normalizer.
 Define exact constants:
 
 ```python
-MIN_LATITUDE = 14.04582802200008
-MAX_LATITUDE = 17.79695808500003
-MIN_LONGITUDE = 93.35195104000019
-MAX_LONGITUDE = 96.82662590900009
+MIN_LATITUDE = 8.7
+MAX_LATITUDE = 29.45
+MIN_LONGITUDE = 91.1
+MAX_LONGITUDE = 102.25
 PROVIDER = "usgs"
 KIND = "earthquake_information"
 ```

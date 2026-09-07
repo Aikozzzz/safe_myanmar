@@ -4,8 +4,8 @@
 
 This document isolates the implemented live-earthquake subsystem: an Android
 Flutter client backed by FastAPI and PostgreSQL that displays USGS observations
-within an approximate Yangon Region coverage envelope and persists them on server and
-device. The wider app also implements foreground location, opt-in fictional
+within Myanmar and an approximate 100 km surrounding coverage buffer and
+persists them on server and device. The wider app also implements foreground location, opt-in fictional
 SIMULATION navigation, local SOS drafts, offline Guide content, constrained
 assistance, and secure local profile/contact storage. Those features are covered
 in [the context-aware mobile flow](context-aware-mobile-flow.md).
@@ -13,12 +13,12 @@ in [the context-aware mobile flow](context-aware-mobile-flow.md).
 The alert subsystem itself does not provide warnings, prediction, severity,
 authentication, notifications, or simulated earthquake records.
 
-The inclusive Yangon Region coverage envelope is latitude `14.04582802200008` to
-`17.79695808500003` and longitude `93.35195104000019` to `96.82662590900009`.
-It is a coarse administrative retrieval envelope, not a political border,
-affected-area calculation, or statement that locations outside the box are safe.
-Each provider refresh searches the latest ten years and the API returns at most
-ten records in descending event-time order.
+The provider query envelope is latitude `8.7` to `29.45` and longitude `91.1` to
+`102.25`. Normalization keeps points inside the simplified Myanmar national
+outline or within approximately 100 km of that outline. This is a coarse search
+envelope, not a political border, affected-area calculation, or statement that
+locations outside it are safe. Each provider refresh searches the latest ten
+years and the API returns at most ten records in descending event-time order.
 
 ## Data Flow
 

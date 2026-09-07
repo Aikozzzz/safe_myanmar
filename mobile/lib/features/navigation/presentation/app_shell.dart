@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../core/widgets/safe_widgets.dart';
 import '../../../app/theme/safe_tokens.dart';
+import '../../alerts/application/alert_list_state.dart';
+import '../../alerts/application/providers.dart';
+import '../../alerts/presentation/widgets/data_status_banner.dart';
+import '../../alerts/presentation/widgets/earthquake_card.dart';
 
 export '../../sos/presentation/sos_screen.dart';
 
@@ -58,54 +63,20 @@ class AppShell extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({
     required this.onOpenEarthquakeInformation,
-    this.onOpenMap,
-    this.onOpenSos,
-    this.onOpenGuide,
+    this.onOpenEarthquake,
     super.key,
   });
 
   final VoidCallback onOpenEarthquakeInformation;
-  final VoidCallback? onOpenMap;
-  final VoidCallback? onOpenSos;
-  final VoidCallback? onOpenGuide;
+  final ValueChanged<String>? onOpenEarthquake;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
-
-    final actionCards = <Widget>[
-      _HomeActionCard(
-        semanticKey: const ValueKey('home-alerts-card'),
-        icon: Icons.warning_amber_rounded,
-        title: strings.homeEarthquakeCardTitle,
-        actionLabel: strings.viewEarthquakeInformation,
-        onTap: onOpenEarthquakeInformation,
-      ),
-      _HomeActionCard(
-        semanticKey: const ValueKey('home-map-card'),
-        icon: Icons.map_outlined,
-        title: strings.navigationMap,
-        actionLabel: strings.homeOpenMapAction,
-        onTap: onOpenMap ?? () => context.go('/map'),
-      ),
-      _HomeActionCard(
-        semanticKey: const ValueKey('home-sos-card'),
-        icon: Icons.sos_outlined,
-        title: strings.sosTitle,
-        actionLabel: strings.homeOpenSosAction,
-        onTap: onOpenSos ?? () => context.go('/sos'),
-      ),
-      _HomeActionCard(
-        semanticKey: const ValueKey('home-guide-card'),
-        icon: Icons.menu_book_outlined,
-        title: strings.guideTitle,
-        actionLabel: strings.homeOpenGuideAction,
-        onTap: onOpenGuide ?? () => context.go('/guide'),
-      ),
-    ];
+    final alertState = ref.watch(alertListControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.homeTitle)),
@@ -119,19 +90,12 @@ class HomeScreen extends StatelessWidget {
                 description: strings.homeSafetyCenterDescription,
               ),
               const SizedBox(height: SafeSpacing.xl),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final cardWidth = constraints.maxWidth >= 560
-                      ? (constraints.maxWidth - SafeSpacing.md) / 2
-                      : constraints.maxWidth;
-                  return Wrap(
-                    spacing: SafeSpacing.md,
-                    runSpacing: SafeSpacing.md,
-                    children: [
-                      for (final card in actionCards)
-                        SizedBox(width: cardWidth, child: card),
-                    ],
-                  );
+              _HomeEarthquakeSection(
+                state: alertState,
+                onOpenEarthquakeInformation: onOpenEarthquakeInformation,
+                onOpenEarthquake: onOpenEarthquake,
+                onRefresh: () {
+                  ref.read(alertListControllerProvider.notifier).refresh();
                 },
               ),
             ],
@@ -142,82 +106,186 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _HomeActionCard extends StatelessWidget {
-  const _HomeActionCard({
-    required this.semanticKey,
-    required this.icon,
-    required this.title,
-    required this.actionLabel,
-    required this.onTap,
+class _HomeEarthquakeSection extends StatelessWidget {
+  const _HomeEarthquakeSection({
+    required this.state,
+    required this.onOpenEarthquakeInformation,
+    required this.onOpenEarthquake,
+    required this.onRefresh,
   });
 
-  final Key semanticKey;
-  final IconData icon;
-  final String title;
-  final String actionLabel;
-  final VoidCallback onTap;
+  final AlertListState state;
+  final VoidCallback onOpenEarthquakeInformation;
+  final ValueChanged<String>? onOpenEarthquake;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Semantics(
-      key: semanticKey,
-      container: true,
-      button: true,
-      label: '$title. $actionLabel',
-      onTap: onTap,
-      child: ExcludeSemantics(
-        child: Card(
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 112),
-              child: Padding(
-                padding: const EdgeInsets.all(SafeSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: colors.primaryContainer,
-                            borderRadius: SafeRadii.sm,
-                          ),
-                          child: SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: Icon(icon, color: colors.onPrimaryContainer),
-                          ),
-                        ),
-                        const SizedBox(width: SafeSpacing.md),
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: SafeSpacing.md),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: SafeSpacing.sm,
-                      children: [
-                        Text(
-                          actionLabel,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                        const Icon(Icons.arrow_forward, size: 20),
-                      ],
-                    ),
-                  ],
-                ),
+    final strings = AppLocalizations.of(context)!;
+    final content = switch (state.phase) {
+      AlertListPhase.loading => SafeStatusCard(
+        icon: Icons.sync,
+        message: strings.loadingEarthquakes,
+      ),
+      AlertListPhase.unavailable => SafeStatusCard(
+        icon: Icons.cloud_off_outlined,
+        message: strings.liveEarthquakeDataUnavailable,
+        action: OutlinedButton.icon(
+          onPressed: state.isRefreshing ? null : onRefresh,
+          icon: const Icon(Icons.refresh),
+          label: Text(strings.refresh),
+        ),
+      ),
+      AlertListPhase.data || AlertListPhase.empty => _HomeEarthquakeData(
+        state: state,
+        onOpenEarthquakeInformation: onOpenEarthquakeInformation,
+        onOpenEarthquake: onOpenEarthquake,
+      ),
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          strings.homeEarthquakeCardTitle,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: SafeSpacing.sm),
+        content,
+        const SizedBox(height: SafeSpacing.md),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Semantics(
+            key: const ValueKey('home-alerts-card'),
+            container: true,
+            button: true,
+            label:
+                '${strings.earthquakeInformation}. ${strings.viewEarthquakeInformation}',
+            onTap: onOpenEarthquakeInformation,
+            child: ExcludeSemantics(
+              child: OutlinedButton.icon(
+                onPressed: onOpenEarthquakeInformation,
+                icon: const Icon(Icons.list_alt_outlined),
+                label: Text(strings.viewEarthquakeInformation),
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HomeEarthquakeData extends StatelessWidget {
+  const _HomeEarthquakeData({
+    required this.state,
+    required this.onOpenEarthquakeInformation,
+    required this.onOpenEarthquake,
+  });
+
+  final AlertListState state;
+  final VoidCallback onOpenEarthquakeInformation;
+  final ValueChanged<String>? onOpenEarthquake;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    final status = state.presentationStatus!;
+    final showSavedInformation =
+        status == AlertPresentationStatus.stale &&
+        (state.errorKind != null || state.phase == AlertListPhase.empty);
+    final latest = state.items.isEmpty ? null : state.items.first;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DataStatusBanner(
+          status: status,
+          lastSuccessfulRefreshAt: state.lastSuccessfulRefreshAt,
+        ),
+        if (state.isRefreshing)
+          const _HomeInformationNotice(
+            icon: Icons.sync,
+            messageKey: _HomeNoticeMessage.loading,
+          ),
+        if (state.errorKind != null)
+          const _HomeInformationNotice(
+            icon: Icons.sync_problem_outlined,
+            messageKey: _HomeNoticeMessage.updateFailure,
+          ),
+        if (showSavedInformation)
+          const _HomeInformationNotice(
+            icon: Icons.save_outlined,
+            messageKey: _HomeNoticeMessage.savedInformation,
+          ),
+        if (latest != null) ...[
+          const SizedBox(height: SafeSpacing.md),
+          EarthquakeCard(
+            key: const ValueKey('home-latest-earthquake-card'),
+            earthquake: latest,
+            status: status,
+            onPressed: () {
+              final open = onOpenEarthquake;
+              if (open != null) {
+                open(latest.id);
+              } else {
+                onOpenEarthquakeInformation();
+              }
+            },
+          ),
+        ],
+        if (state.phase == AlertListPhase.empty &&
+            status != AlertPresentationStatus.stale) ...[
+          const SizedBox(height: SafeSpacing.md),
+          _HomeInformationNotice(
+            icon: Icons.info_outline,
+            message: strings.noRecentEarthquakes,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+enum _HomeNoticeMessage { loading, updateFailure, savedInformation }
+
+class _HomeInformationNotice extends StatelessWidget {
+  const _HomeInformationNotice({
+    required this.icon,
+    this.message,
+    this.messageKey,
+  }) : assert(message != null || messageKey != null);
+
+  final IconData icon;
+  final String? message;
+  final _HomeNoticeMessage? messageKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
+    final resolvedMessage =
+        message ??
+        switch (messageKey!) {
+          _HomeNoticeMessage.loading => strings.loadingEarthquakes,
+          _HomeNoticeMessage.updateFailure =>
+            strings.couldNotUpdateLiveInformation,
+          _HomeNoticeMessage.savedInformation =>
+            strings.savedInformationRemains,
+        };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: SafeSpacing.xs),
+      child: Semantics(
+        label: resolvedMessage,
+        liveRegion: messageKey == _HomeNoticeMessage.loading,
+        excludeSemantics: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon),
+            const SizedBox(width: SafeSpacing.sm),
+            Expanded(child: Text(resolvedMessage)),
+          ],
         ),
       ),
     );

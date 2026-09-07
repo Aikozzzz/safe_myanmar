@@ -44,15 +44,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Review available information and open key safety tools.';
 
   @override
-  String get homeOpenMapAction => 'Open Map';
-
-  @override
-  String get homeOpenSosAction => 'Open SOS setup';
-
-  @override
-  String get homeOpenGuideAction => 'Open Guide';
-
-  @override
   String get homeEarthquakeCardTitle => 'Live earthquake information';
 
   @override
@@ -851,9 +842,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosSharedDataHeading => 'Exact SMS preview';
 
   @override
-  String get sosStoredDataHeading => 'Draft details stored securely';
-
-  @override
   String sosProfileNamePreview(String name) {
     return 'Profile name: $name';
   }
@@ -931,10 +919,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sosComposerDisclosure =>
       'SafeMyanmar only opens your phone\'s messaging app. That app controls SMS transmission and delivery, and SafeMyanmar cannot verify either.';
-
-  @override
-  String get sosDirectSmsDisclosure =>
-      'After confirmation, SafeMyanmar requests SMS permission and sends the reviewed message directly through Android. The carrier may still delay delivery; SafeMyanmar can confirm only whether the device accepted the SMS.';
 
   @override
   String get sosHoldToOpen => 'Hold for 3 seconds to activate SOS';

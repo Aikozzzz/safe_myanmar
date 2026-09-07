@@ -8,7 +8,7 @@ from app.providers.usgs.client import (
     ProviderClientError,
     UsgsClient,
 )
-from app.providers.usgs.normalizer import (
+from app.providers.usgs.coverage import (
     MAX_LATITUDE,
     MAX_LONGITUDE,
     MIN_LATITUDE,

@@ -205,7 +205,7 @@ commands.
   `backend/app` or `mobile/lib`.
 - At the time of this historical verification, the backend runtime default was
   the live USGS all-day feed. The current implementation uses the USGS FDSN
-  catalog query for the Yangon Region latest-ten behavior.
+  catalog query for the Myanmar-plus-buffer latest-ten behavior.
 - Real `.env` files remain ignored and untracked.
 - Android main requests only Internet permission; it requests no location, SMS,
   call, camera, microphone, contacts, notification, or background permission.

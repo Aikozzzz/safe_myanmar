@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/safe_tokens.dart';
 import '../../../core/widgets/safe_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../application/alert_list_state.dart';
@@ -132,50 +133,54 @@ class _DataContent extends StatelessWidget {
         status == AlertPresentationStatus.stale &&
         (state.errorKind != null || state.phase == AlertListPhase.empty);
 
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        DataStatusBanner(
+    final children = <Widget>[
+      DataStatusBanner(
+        status: status,
+        lastSuccessfulRefreshAt: state.lastSuccessfulRefreshAt,
+      ),
+      if (state.isRefreshing)
+        _InformationNotice(
+          icon: Icons.sync,
+          message: strings.loadingEarthquakes,
+          progress: true,
+        ),
+      if (state.errorKind != null)
+        _InformationNotice(
+          icon: Icons.sync_problem_outlined,
+          message: strings.couldNotUpdateLiveInformation,
+        ),
+      if (showSavedInformation)
+        _InformationNotice(
+          icon: Icons.save_outlined,
+          message: strings.savedInformationRemains,
+        ),
+      Align(
+        alignment: Alignment.centerRight,
+        child: OutlinedButton.icon(
+          onPressed: state.isRefreshing ? null : onRefresh,
+          icon: const Icon(Icons.refresh),
+          label: Text(strings.refresh),
+        ),
+      ),
+      if (state.phase == AlertListPhase.empty &&
+          status != AlertPresentationStatus.stale)
+        _InformationNotice(
+          icon: Icons.info_outline,
+          message: strings.noRecentEarthquakes,
+        ),
+      for (final earthquake in state.items)
+        EarthquakeCard(
+          earthquake: earthquake,
           status: status,
-          lastSuccessfulRefreshAt: state.lastSuccessfulRefreshAt,
+          onPressed: () => onOpenEarthquake?.call(earthquake.id),
         ),
-        if (state.isRefreshing)
-          _InformationNotice(
-            icon: Icons.sync,
-            message: strings.loadingEarthquakes,
-            progress: true,
-          ),
-        if (state.errorKind != null)
-          _InformationNotice(
-            icon: Icons.sync_problem_outlined,
-            message: strings.couldNotUpdateLiveInformation,
-          ),
-        if (showSavedInformation)
-          _InformationNotice(
-            icon: Icons.save_outlined,
-            message: strings.savedInformationRemains,
-          ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: OutlinedButton.icon(
-            onPressed: state.isRefreshing ? null : onRefresh,
-            icon: const Icon(Icons.refresh),
-            label: Text(strings.refresh),
-          ),
-        ),
-        if (state.phase == AlertListPhase.empty &&
-            status != AlertPresentationStatus.stale)
-          _InformationNotice(
-            icon: Icons.info_outline,
-            message: strings.noRecentEarthquakes,
-          ),
-        for (final earthquake in state.items)
-          EarthquakeCard(
-            earthquake: earthquake,
-            status: status,
-            onPressed: () => onOpenEarthquake?.call(earthquake.id),
-          ),
-      ],
+    ];
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: children.length,
+      itemBuilder: (_, index) => children[index],
+      separatorBuilder: (_, _) => const SizedBox(height: SafeSpacing.md),
     );
   }
 }

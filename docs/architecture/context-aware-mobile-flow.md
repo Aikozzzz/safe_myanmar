@@ -34,10 +34,12 @@ simulation navigation, local SOS preparation, offline guidance, and local
 profile/contact management. Riverpod controllers convert permission, provider,
 cache, secure-storage, and optional-model outcomes into visible states.
 
-Home exposes large Safety Center cards for alerts, Map, SOS setup, and Guide.
-They navigate only and never activate location, SMS, or Bluetooth by
-themselves. SOS retains an explicit setup, exact preview, and confirmation
-sequence; Guide quick actions open only curated content or an explicit route.
+Home exposes a cache-first latest-earthquake preview with its data status,
+detail action, and a full-list action. Map, SOS setup, and Guide are exposed by
+the persistent bottom navigation. Home actions never activate location, SMS,
+or Bluetooth by themselves. SOS retains an explicit setup, exact preview, and
+confirmation sequence; Guide quick actions open only curated content or an
+explicit route.
 
 ## Location And Navigation
 
@@ -170,8 +172,8 @@ failure before any successful snapshot is unavailable rather than empty.
 
 The backend current/stale threshold is five minutes from the last successful
 USGS refresh. Mobile and backend timestamps remain visible so users can judge
-age. The coarse Yangon Region coverage envelope is not an affected-area or
-safety boundary.
+age. The Myanmar national outline plus approximately 100 km provider coverage
+envelope is not an affected-area or safety boundary.
 
 ## SOS And Local Profile
 

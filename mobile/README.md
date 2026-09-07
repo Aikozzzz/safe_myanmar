@@ -6,9 +6,10 @@ an optional Mapbox map with validated navigation data, local SOS draft
 preparation, bilingual offline Guide content, constrained assistance, secure
 local profile/contact store, and Android-first Bluetooth SOS sharing.
 
-Home presents a Safety Center of explicit navigation cards. SOS uses separate
-SMS and BLE preparation sections with one shared activation, readiness summary,
-and exact outgoing previews.
+Home presents a Safety Center with a cache-first latest-earthquake preview and
+full-list action; Map, SOS, and Guide are accessed from the persistent bottom
+navigation. SOS uses separate SMS and BLE preparation sections with one shared
+activation, readiness summary, and exact outgoing previews.
 Guide opens with search, deterministic quick actions, Yangon emergency contacts,
 and explicit Next Steps. Assistant responses support safe Markdown formatting and
 a typing-style reveal for optional model-generated text. Map pairs its visible

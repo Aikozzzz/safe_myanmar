@@ -164,24 +164,6 @@ abstract class AppLocalizations {
   /// **'Review available information and open key safety tools.'**
   String get homeSafetyCenterDescription;
 
-  /// No description provided for @homeOpenMapAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Map'**
-  String get homeOpenMapAction;
-
-  /// No description provided for @homeOpenSosAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Open SOS setup'**
-  String get homeOpenSosAction;
-
-  /// No description provided for @homeOpenGuideAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Guide'**
-  String get homeOpenGuideAction;
-
   /// No description provided for @homeEarthquakeCardTitle.
   ///
   /// In en, this message translates to:
@@ -1472,12 +1454,6 @@ abstract class AppLocalizations {
   /// **'Exact SMS preview'**
   String get sosSharedDataHeading;
 
-  /// No description provided for @sosStoredDataHeading.
-  ///
-  /// In en, this message translates to:
-  /// **'Draft details stored securely'**
-  String get sosStoredDataHeading;
-
   /// No description provided for @sosProfileNamePreview.
   ///
   /// In en, this message translates to:
@@ -1595,12 +1571,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SafeMyanmar only opens your phone\'s messaging app. That app controls SMS transmission and delivery, and SafeMyanmar cannot verify either.'**
   String get sosComposerDisclosure;
-
-  /// No description provided for @sosDirectSmsDisclosure.
-  ///
-  /// In en, this message translates to:
-  /// **'After confirmation, SafeMyanmar requests SMS permission and sends the reviewed message directly through Android. The carrier may still delay delivery; SafeMyanmar can confirm only whether the device accepted the SMS.'**
-  String get sosDirectSmsDisclosure;
 
   /// No description provided for @sosHoldToOpen.
   ///

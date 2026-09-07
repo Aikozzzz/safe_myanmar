@@ -10,10 +10,11 @@
   a PostgreSQL advisory lock.
 - Item objects deliberately have no `severity` or `freshness` field. Magnitude
   is an observation, not an inferred impact assessment.
-- Coverage is the inclusive Yangon Region envelope: latitude
-  `14.04582802200008` to `17.79695808500003`, longitude `93.35195104000019` to
-  `96.82662590900009`. This coarse administrative envelope is not an affected
-  area or political border.
+- Coverage includes earthquake epicentres inside the Myanmar national outline or
+  within approximately 100 km of it. The USGS request uses the enclosing
+  latitude `8.7` to `29.45` and longitude `91.1` to `102.25`; provider
+  normalization removes points outside the buffered outline. This is a search
+  envelope, not an affected area or political border.
 - A refresh searches the latest ten years and the list returns at most ten items,
   ordered by descending event time. Fewer items are returned when fewer records
   are available in the coverage envelope.
@@ -39,12 +40,12 @@ body. Database failure returns the safe `503` error shape below with code
 ### `GET /api/v1/alerts`
 
 Returns up to the ten latest successful normalized USGS observations in the
-Yangon Region coverage envelope and may refresh the snapshot when the 60-second
+Myanmar coverage envelope and may refresh the snapshot when the 60-second
 throttle permits. Exact response fields:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `items` | array of alert items | Up to ten in-bounds USGS observations, event time descending |
+| `items` | array of alert items | Up to ten in-coverage USGS observations, event time descending |
 | `data_status` | `current` or `stale` | Age of the last successful backend snapshot |
 | `last_successful_refresh_at` | UTC timestamp | Successful provider retrieval time |
 | `provider` | `usgs` | Snapshot provider |
@@ -119,7 +120,7 @@ paths, or provider payloads.
 ## Provider Limitations
 
 The API currently represents USGS earthquake observations from a ten-year FDSN
-catalog query that fall within the coarse Yangon Region coverage envelope. It
-does not provide official warnings, predictions, evacuation orders, complete
-all-disaster coverage, impact/severity classification, or guaranteed safety
-information.
+catalog query that fall within Myanmar or the approximately 100 km surrounding
+buffer. It does not provide official warnings, predictions, evacuation orders,
+complete all-disaster coverage, impact/severity classification, or guaranteed
+safety information.

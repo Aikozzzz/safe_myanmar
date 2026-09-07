@@ -2,16 +2,10 @@ import math
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
+from app.providers.usgs.coverage import is_within_coverage
 from app.providers.usgs.models import NormalizationResult
 from app.schemas.earthquakes import NormalizedEarthquake
 
-# OCHA COD Yangon Region (MMR013) coverage envelope. This is a coarse
-# administrative retrieval boundary, not a political border or affected-area
-# calculation.
-MIN_LATITUDE = 14.04582802200008
-MAX_LATITUDE = 17.79695808500003
-MIN_LONGITUDE = 93.35195104000019
-MAX_LONGITUDE = 96.82662590900009
 PROVIDER = "usgs"
 KIND = "earthquake_information"
 
@@ -78,10 +72,7 @@ def _normalize_feature(
     if status is not None:
         status = _non_empty_string(status)
 
-    if not (
-        MIN_LONGITUDE <= longitude <= MAX_LONGITUDE
-        and MIN_LATITUDE <= latitude <= MAX_LATITUDE
-    ):
+    if not is_within_coverage(longitude, latitude):
         return None
 
     return NormalizedEarthquake(

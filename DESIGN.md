@@ -41,9 +41,10 @@ under their corresponding shell branches.
 
 ### Home And Alerts
 
-- Home is a Safety Center with large, labeled actions for earthquake
-  information, Map, SOS setup, and the offline Guide. Each card performs only
-  navigation; opening SOS never prepares or sends a message.
+- Home is a Safety Center with a cache-first latest-earthquake preview, a
+  full-list action. Map, SOS setup, and the offline Guide are available from
+  the persistent bottom navigation. The preview shows its live, cached, or
+  stale status; opening SOS never prepares or sends a message.
 - The alert list distinguishes loading, current, cached, stale, successful
   empty, and unavailable states without treating empty results as all clear.
 - Alert cards and detail preserve USGS attribution, magnitude, depth,
@@ -79,23 +80,30 @@ under their corresponding shell branches.
   context-area candidate, route, or nearby SOS marker opens its details without
   leaving the map. Hazard and context summaries state the source, data time,
   cache state, rationale, and uncertainty in text outside the map as well.
-- Shelter, disaster type, and walking/driving selectors precede a separate
-  route-request action. No route request occurs from changing a selector.
-- Up to three ranked route cards act as the route option selector. The selected
-  option uses an icon, text, semantic selected state, and a stronger map line;
-  selection never relies on color alone.
+- Disaster type and walking/driving preferences appear before the map. For an
+  earthquake, the context scenario selector appears immediately after the
+  disaster type. Selecting a suggested area opens its map detail with the
+  read-only analysis scenario and a separate route-request action. No route
+  request occurs from changing a selector.
+- Up to three ranked route cards appear in the selected area's map detail and
+  act as the route option selector. The selected option uses an icon, text,
+  semantic selected state, and a stronger map line; selection never relies on
+  color alone.
 - Every option displays distance, duration, hazard-intersection count,
   rationale, generation time, hazard-data time, source, directions provider,
   profile-selection reason, and uncertainty notice.
 
 ### SOS
 
-- SOS is organized as a setup-and-review sequence with a readiness summary,
-  recipients, optional message, location and nearby-sharing choices, the exact
-  outgoing preview, confirmation, and draft history.
-- The screen shows selected recipients, optional user text, the exact composed
-  body, profile/location data to be stored, and the direct-SMS disclosure
-  before activation.
+- SOS is organized as two independent preparation sections: SMS preparation
+  and SOS BLE broadcast preparation. Each section keeps its own inputs and
+  exact data preview, while one shared readiness summary and activation control
+  confirms the complete SOS.
+- The SMS section shows selected recipients, optional user text, and the exact
+  composed body. The BLE section shows only its limited broadcast fields and
+  preview. Confirmation dialogs explain the secure draft and direct-SMS
+  behavior before activation. One activation sends SMS and BLE when both are
+  configured, or BLE only when no SMS contact is selected.
 - A profile is required. SMS sharing requires at least one explicitly selected
   emergency contact; Bluetooth sharing may be selected as the sole transport.
 - Pointer users hold the control to confirm. An accessible activation path uses
@@ -107,9 +115,9 @@ under their corresponding shell branches.
   **Cancelled**. Device acceptance does not mean carrier delivery.
 - Draft cards allow explicit reopen, cancel, and remove actions. Destructive
   reset/removal actions require confirmation.
-- A separate checkbox allows the user to share limited SOS data with nearby
-  SafeMyanmar Android users. It never starts from navigation or from opening the
-  SOS screen and does not replace SMS confirmation.
+- Nearby sharing is enabled from More > Settings. It never starts from
+  navigation or from opening the SOS screen and does not replace the shared
+  SOS confirmation.
 - Nearby sharing broadcasts a temporary event ID, UTC timestamp, fixed-point
   latitude/longitude when available, location status, and battery value for ten
   minutes. The user may optionally provide a short alias and message for nearby
@@ -131,11 +139,13 @@ under their corresponding shell branches.
 
 ### Guide And Assistant
 
-- Guide provides large deterministic quick actions for earthquake, flood, fire,
-  first aid, Map, and SOS, followed by explicit Map, SOS, and assistant next
-  steps. No quick action requests location or activates SOS automatically.
-- Guide opens with an offline/source-backed label, introduction, assistant
-  action, search field, and category chips.
+- Guide opens with a search field, then large deterministic quick actions for
+  earthquake, flood, fire, first aid, trapped-person guidance, Yangon emergency
+  contacts, Map, and SOS. Explicit Map, SOS, and assistant next steps follow.
+  No quick action requests location or activates SOS automatically.
+- Guide keeps its introduction, category chips, and article results below the
+  action sections. The Yangon contact list is offline, source-attributed, and
+  separate from user-managed SOS contacts.
 - Article cards show English and Myanmar titles and source. Detail shows both
   answers, content version, source name/URL, source date when known, review date,
   and translation warning.
@@ -151,6 +161,9 @@ under their corresponding shell branches.
   rescue claims, or instructions.
 - Capability banners identify optional tiers as available or unavailable.
   Missing models are normal, and deterministic retrieval remains active.
+- Assistant answers support a constrained Markdown subset for headings, emphasis,
+  lists, and inline code. Only model-generated answers use a typing-style reveal;
+  approved deterministic content appears immediately.
 - Assistant actions only navigate after a separate user tap. The assistant never
   activates SOS, shares location, or requests a route automatically.
 
@@ -159,9 +172,9 @@ under their corresponding shell branches.
 - More summarizes the local profile and selected contact counts, then links to
   profile, emergency-contact management, and Settings.
 - Settings contains the English/Myanmar choice and six persisted SOS
-  preferences for location sharing, nearby receiving, one-hop relay, alert
-  sound, and background receiving. Permission-dependent options request only
-  the relevant platform permission when enabled.
+  preferences for location sharing, nearby broadcast sharing, nearby receiving,
+  one-hop relay, alert sound, and background receiving. Permission-dependent
+  options request only the relevant platform permission when enabled.
 - Profile edits one local display name. Contact forms validate name, phone
   number, relationship label, and explicit SOS selection.
 - Contact cards pair SOS selection text with a switch and provide separate edit
@@ -175,7 +188,7 @@ under their corresponding shell branches.
 - Fictional or mixed shelter, hazard, and route data remains explicitly gated,
   sourced to `SafeMyanmar Demo`, timestamped, and accompanied by an uncertainty
   notice. The client keeps technical simulation markers out of normal cards and
-  uses a concise demonstration-data notice instead.
+  does not present a separate simulation banner in the navigation UI.
 - Simulation is an explicit non-production backend opt-in. The UI must never
   style simulation data as an official alert or silently mix it into the USGS
   earthquake feed.

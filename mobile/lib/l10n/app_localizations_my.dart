@@ -44,15 +44,6 @@ class AppLocalizationsMy extends AppLocalizations {
       'ရရှိနိုင်သော အချက်အလက်များကို စစ်ဆေးပြီး အရေးကြီးသော ဘေးကင်းရေးကိရိယာများကို ဖွင့်ပါ။';
 
   @override
-  String get homeOpenMapAction => 'မြေပုံဖွင့်ရန်';
-
-  @override
-  String get homeOpenSosAction => 'SOS ပြင်ဆင်မှုဖွင့်ရန်';
-
-  @override
-  String get homeOpenGuideAction => 'လမ်းညွှန်ဖွင့်ရန်';
-
-  @override
   String get homeEarthquakeCardTitle => 'တိုက်ရိုက်ငလျင်အချက်အလက်';
 
   @override
@@ -857,9 +848,6 @@ class AppLocalizationsMy extends AppLocalizations {
   String get sosSharedDataHeading => 'SMS စာသားအတိအကျ အစမ်းပြ';
 
   @override
-  String get sosStoredDataHeading => 'လုံခြုံစွာသိမ်းထားသော draft အသေးစိတ်';
-
-  @override
   String sosProfileNamePreview(String name) {
     return 'ပရိုဖိုင်အမည် - $name';
   }
@@ -936,10 +924,6 @@ class AppLocalizationsMy extends AppLocalizations {
   @override
   String get sosComposerDisclosure =>
       'SafeMyanmar သည် သင့်ဖုန်း၏ စာပို့အက်ပ်ကိုသာ ဖွင့်ပေးသည်။ SMS ပေးပို့ခြင်းနှင့် ရောက်ရှိမှုကို ထိုအက်ပ်က ထိန်းချုပ်ပြီး SafeMyanmar က မစစ်ဆေးနိုင်ပါ။';
-
-  @override
-  String get sosDirectSmsDisclosure =>
-      'အတည်ပြုပြီးနောက် SafeMyanmar သည် SMS ခွင့်ပြုချက်တောင်းကာ Android မှတစ်ဆင့် စစ်ဆေးထားသောစာကို တိုက်ရိုက်ပေးပို့သည်။ ဝန်ဆောင်မှုပေးသူက ပေးပို့မှုနှောင့်နှေးနိုင်ပြီး SafeMyanmar သည် စက်က SMS လက်ခံထားခြင်းကိုသာ အတည်ပြုနိုင်သည်။';
 
   @override
   String get sosHoldToOpen => 'SOS ဖွင့်ရန် ၃ စက္ကန့် ဖိထားပါ';

@@ -3,16 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/app/app.dart';
 import 'package:mobile/app/router.dart';
+import 'package:mobile/features/alerts/application/providers.dart';
+
+import '../support/fake_alert_repository.dart';
 
 void main() {
   testWidgets('shell fits 390x844 at 200 percent text scale', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repository = FakeAlertRepository()..queueRefresh();
     final router = createRouter();
+    addTearDown(repository.close);
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [alertRepositoryProvider.overrideWithValue(repository)],
         child: MediaQuery(
           data: const MediaQueryData(textScaler: TextScaler.linear(2)),
           child: SafeMyanmarApp(router: router),

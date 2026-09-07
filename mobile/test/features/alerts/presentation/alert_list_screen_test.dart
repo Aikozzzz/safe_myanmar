@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/app/app.dart';
 import 'package:mobile/app/router.dart';
+import 'package:mobile/app/theme/safe_tokens.dart';
 import 'package:mobile/features/alerts/application/providers.dart';
 import 'package:mobile/features/alerts/domain/earthquake.dart';
 import 'package:mobile/features/alerts/presentation/alert_list_screen.dart';
+import 'package:mobile/features/alerts/presentation/widgets/data_status_banner.dart';
+import 'package:mobile/features/alerts/presentation/widgets/earthquake_card.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 
 import '../../../support/alert_fixtures.dart';
@@ -129,6 +132,42 @@ void main() {
     expect(
       tester.getTopLeft(find.text('Magnitude 5.2').at(0)).dy,
       lessThan(tester.getTopLeft(find.text('Magnitude 5.2').at(1)).dy),
+    );
+  });
+
+  testWidgets('live list spaces refresh and earthquake cards', (tester) async {
+    final first = earthquakeFixture();
+    final second = earthquakeFixture(
+      id: 'usgs:id/with space',
+      providerEventId: 'id/with space',
+      title: 'unused title',
+    );
+    await pumpList(tester);
+    repository.emit(null);
+    await finishInitialRefresh(
+      tester,
+      snapshot: _snapshot(items: [first, second]),
+    );
+
+    final statusBanner = tester.getRect(find.byType(DataStatusBanner));
+    final refresh = tester.getRect(
+      find.widgetWithText(OutlinedButton, 'Refresh'),
+    );
+    final cards = find.byType(EarthquakeCard);
+    final firstCard = tester.getRect(cards.at(0));
+    final secondCard = tester.getRect(cards.at(1));
+
+    expect(
+      refresh.top - statusBanner.bottom,
+      greaterThanOrEqualTo(SafeSpacing.md),
+    );
+    expect(
+      firstCard.top - refresh.bottom,
+      greaterThanOrEqualTo(SafeSpacing.md),
+    );
+    expect(
+      secondCard.top - firstCard.bottom,
+      greaterThanOrEqualTo(SafeSpacing.md),
     );
   });
 

@@ -5,12 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/app/app.dart';
 import 'package:mobile/app/router.dart';
 import 'package:mobile/features/alerts/application/providers.dart';
+import 'package:mobile/features/alerts/domain/earthquake.dart';
+import 'package:mobile/features/alerts/presentation/alert_detail_screen.dart';
+import 'package:mobile/features/alerts/presentation/alert_list_screen.dart';
 import 'package:mobile/features/guide/application/providers.dart';
 import 'package:mobile/features/navigation/presentation/app_shell.dart';
 import 'package:mobile/features/profile/application/providers.dart';
 import 'package:mobile/features/sos/application/providers.dart';
 import 'package:mobile/features/sos/data/native_sms_composer.dart';
 
+import '../support/alert_fixtures.dart';
 import '../support/fake_alert_repository.dart';
 import '../support/fake_emergency_guide_repository.dart';
 import '../support/fake_local_profile_repository.dart';
@@ -18,11 +22,16 @@ import '../support/fake_sos_draft_repository.dart';
 
 void main() {
   testWidgets('default route shows the five-tab Home shell', (tester) async {
+    final repository = FakeAlertRepository()..queueRefresh();
     final router = createRouter();
+    addTearDown(repository.close);
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      ProviderScope(child: SafeMyanmarApp(router: router)),
+      ProviderScope(
+        overrides: [alertRepositoryProvider.overrideWithValue(repository)],
+        child: SafeMyanmarApp(router: router),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -41,12 +50,15 @@ void main() {
     final profileRepository = FakeLocalProfileRepository();
     final draftRepository = FakeSosDraftRepository();
     final composer = _CountingComposer();
+    final alertRepository = FakeAlertRepository()..queueRefresh();
     final router = createRouter();
+    addTearDown(alertRepository.close);
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          alertRepositoryProvider.overrideWithValue(alertRepository),
           emergencyGuideRepositoryProvider.overrideWithValue(
             FakeEmergencyGuideRepository(),
           ),
@@ -101,12 +113,71 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('home-alerts-card')));
+    final alertsAction = find.byKey(const ValueKey('home-alerts-card'));
+    await tester.ensureVisible(alertsAction);
+    await tester.tap(alertsAction);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
+    expect(find.byType(AlertListScreen), findsOneWidget);
     expect(find.text('Updating earthquake information'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('Home latest earthquake opens its encoded detail route', (
+    tester,
+  ) async {
+    final event = earthquakeFixture(
+      id: 'usgs:id/with space',
+      providerEventId: 'id/with space',
+    );
+    final repository = FakeAlertRepository()..queueRefresh();
+    repository.lookupResult = event;
+    final container = ProviderContainer(
+      overrides: [alertRepositoryProvider.overrideWithValue(repository)],
+    );
+    final router = createRouter();
+    addTearDown(() async {
+      container.dispose();
+      await repository.close();
+    });
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: SafeMyanmarApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    repository.emit(null);
+    final refresh = container
+        .read(alertListControllerProvider.notifier)
+        .refresh();
+    await tester.pump();
+    await tester.runAsync(() async {
+      repository.completeNext(
+        AlertSnapshot(
+          items: [event],
+          dataStatus: AlertDataStatus.current,
+          lastSuccessfulRefreshAt: DateTime.utc(2026, 7, 13, 1, 5, 6),
+        ),
+      );
+      await refresh;
+    });
+    await tester.pump();
+
+    final latestCard = find.byKey(
+      const ValueKey('home-latest-earthquake-card'),
+    );
+    await tester.ensureVisible(latestCard);
+    await tester.tap(latestCard);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDetailScreen), findsOneWidget);
+    expect(repository.lookupIds, ['usgs:id/with space']);
+    expect(find.text('Depth: 12.5 km'), findsOneWidget);
   });
 
   testWidgets('alert detail deep links preserve encoded identifiers', (
@@ -174,12 +245,15 @@ void main() {
     tester,
   ) async {
     final profileRepository = FakeLocalProfileRepository();
+    final alertRepository = FakeAlertRepository()..queueRefresh();
     final router = createRouter(initialLocation: '/more/profile');
+    addTearDown(alertRepository.close);
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          alertRepositoryProvider.overrideWithValue(alertRepository),
           localProfileRepositoryProvider.overrideWithValue(profileRepository),
         ],
         child: SafeMyanmarApp(router: router),

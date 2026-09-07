@@ -11,9 +11,6 @@
   "homeDescription": "လက်ရှိရရှိနိုင်သော အချက်အလက်များအပေါ် အခြေခံထားသည့် အရေးပေါ်အချက်အလက်နှင့် ကိရိယာများ။",
   "homeSafetyCenterTitle": "ဘေးကင်းရေးစင်တာ",
   "homeSafetyCenterDescription": "ရရှိနိုင်သော အချက်အလက်များကို စစ်ဆေးပြီး အရေးကြီးသော ဘေးကင်းရေးကိရိယာများကို ဖွင့်ပါ။",
-  "homeOpenMapAction": "မြေပုံဖွင့်ရန်",
-  "homeOpenSosAction": "SOS ပြင်ဆင်မှုဖွင့်ရန်",
-  "homeOpenGuideAction": "လမ်းညွှန်ဖွင့်ရန်",
   "homeEarthquakeCardTitle": "တိုက်ရိုက်ငလျင်အချက်အလက်",
   "viewEarthquakeInformation": "ငလျင်အချက်အလက်ကြည့်ရန်",
   "mapTitle": "မြေပုံ",
@@ -370,7 +367,6 @@
   "sosNoRecipientsDescription": "SOS draft ပြင်ဆင်မီ သိမ်းထားသော အရေးပေါ်အဆက်အသွယ် အနည်းဆုံးတစ်ဦးကို ရွေးပါ။",
   "sosManageContacts": "နောက်ထပ်တွင် အဆက်အသွယ်များဖွင့်ရန်",
   "sosSharedDataHeading": "SMS စာသားအတိအကျ အစမ်းပြ",
-  "sosStoredDataHeading": "လုံခြုံစွာသိမ်းထားသော draft အသေးစိတ်",
   "sosProfileNamePreview": "ပရိုဖိုင်အမည် - {name}",
   "@sosProfileNamePreview": {
     "placeholders": {"name": {"type": "String"}}
@@ -411,7 +407,6 @@
   "sosLocationSharingUnavailableDescription": "ကိုဩဒိနိတ်မပါဘဲ SOS ကို ပြင်ဆင်နိုင်သည်။ တည်နေရာမမျှဝေဘဲ ဆက်လုပ်မလား။",
   "sosContinueWithoutLocation": "တည်နေရာမပါဘဲ ဆက်လုပ်ရန်",
   "sosComposerDisclosure": "SafeMyanmar သည် သင့်ဖုန်း၏ စာပို့အက်ပ်ကိုသာ ဖွင့်ပေးသည်။ SMS ပေးပို့ခြင်းနှင့် ရောက်ရှိမှုကို ထိုအက်ပ်က ထိန်းချုပ်ပြီး SafeMyanmar က မစစ်ဆေးနိုင်ပါ။",
-  "sosDirectSmsDisclosure": "အတည်ပြုပြီးနောက် SafeMyanmar သည် SMS ခွင့်ပြုချက်တောင်းကာ Android မှတစ်ဆင့် စစ်ဆေးထားသောစာကို တိုက်ရိုက်ပေးပို့သည်။ ဝန်ဆောင်မှုပေးသူက ပေးပို့မှုနှောင့်နှေးနိုင်ပြီး SafeMyanmar သည် စက်က SMS လက်ခံထားခြင်းကိုသာ အတည်ပြုနိုင်သည်။",
   "sosHoldToOpen": "SOS ဖွင့်ရန် ၃ စက္ကန့် ဖိထားပါ",
   "sosHoldProgress": "ဆက်ဖိထားပါ - {percent}%",
   "@sosHoldProgress": {

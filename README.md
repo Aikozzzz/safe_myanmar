@@ -2,9 +2,9 @@
 
 SafeMyanmar is an academic Android disaster-information application for the
 Mobile and Ubiquitous Computing subject. The implemented app combines live USGS
-earthquake observations, explicit foreground location use, a validated Yangon
-navigation snapshot, offline emergency guidance, local SOS preparation, and
-constrained on-device assistance.
+earthquake observations across Myanmar and a nearby coverage buffer, explicit
+foreground location use, a validated Yangon navigation snapshot, offline
+emergency guidance, local SOS preparation, and constrained on-device assistance.
 
 SafeMyanmar is not an official warning, earthquake-prediction, emergency
 dispatch, medical, or guaranteed-safety service. USGS observations are
@@ -15,12 +15,15 @@ official emergency or medical services when available.
 
 ## Implemented Scope
 
-- Material 3 five-tab shell: Home, Map, SOS, Guide, and More. The earthquake
-  list and detail screens are opened from Home.
+- Material 3 five-tab shell: Home, Map, SOS, Guide, and More. Home loads a
+  cache-first latest-earthquake preview; tapping the record opens its detail,
+  while the preview action opens the complete earthquake list. Map, SOS, and
+  Guide are accessed from the persistent bottom navigation.
 - Backend-only retrieval of the live USGS earthquake catalog, restricted to the
-  Yangon Region coverage envelope, with strict normalization into PostgreSQL and
-  versioned list/detail APIs with USGS attribution and UTC timestamps. The list
-  returns the latest ten available records from a ten-year search window.
+  Myanmar national outline plus an approximately 100 km surrounding buffer, with
+  strict normalization into PostgreSQL and versioned list/detail APIs with USGS
+  attribution and UTC timestamps. The list returns the latest ten available
+  records from a ten-year search window.
 - Cache-first earthquake states for live, cached, stale, successful empty, and
   unavailable data. Alert detail preserves magnitude, depth, coordinates, event
   time, provider update and retrieval times, review status, version, and the
@@ -48,9 +51,10 @@ official emergency or medical services when available.
   versioned, source-backed emergency Guide content.
 - Device-local profile and up to ten emergency contacts in Android secure
    storage. Contacts must be explicitly selected for SOS use.
-- More includes a Settings screen for the English/Myanmar choice and six
-  persisted SOS preferences covering location sharing, nearby receiving,
-  one-hop relay, alert sound, and background receiving.
+ - More includes a Settings screen for the English/Myanmar choice and six
+   persisted SOS preferences covering location sharing, nearby broadcast
+   sharing, nearby receiving, one-hop relay, alert sound, and background
+   receiving.
 - Persisted SOS drafts with recipient and optional location snapshots,
   five-minute duplicate suppression, hold-to-confirm, and an accessible
   confirmation path. Android direct SMS sending is available after explicit
@@ -62,11 +66,12 @@ official emergency or medical services when available.
   and sends an unverified alert notification. Foreground receiving and relay
   remain session-scoped opt-ins; background receiving never relays or uploads
   frames.
-- Nearby SOS broadcasts use a daily rotating sender token and require explicit
-  per-SOS location-sharing consent. An optional user-entered short alias and
-  message can be sent in bounded versioned metadata fragments; the alias is not
-  the full profile name. The Map tab can display and select all retained located
-  SOS sources without treating peer data as verified.
+ - Nearby SOS broadcasts use a daily rotating sender token and require the
+   persisted nearby-sharing preference plus explicit per-SOS location-sharing
+   consent. An optional user-entered short alias and message can be sent in
+   bounded versioned metadata fragments; the alias is not the full profile name.
+   The Map tab can display and select all retained located SOS sources without
+   treating peer data as verified.
 - Bilingual English/Myanmar offline Guide articles with source, review date,
   content version, translation warning, category filtering, and search.
 - A deterministic offline intent classifier and structured SOS text extraction.
@@ -90,25 +95,29 @@ assets and is not loaded by the shipped runtime.
 
 ### Live earthquake observations
 
-The backend includes USGS events whose coordinates are within the inclusive
-Yangon Region coverage envelope derived from OCHA COD administrative data:
+The backend includes USGS events whose epicentres are inside Myanmar or within
+approximately 100 km of the national outline. The national extent comes from
+[OCHA COD-AB Myanmar administrative boundaries](https://data.humdata.org/dataset/cod-ab-mmr);
+the compact provider-filter outline is based on the public
+[MMR country geometry](https://github.com/johan/world.geo.json/blob/master/countries/MMR.geo.json).
+The USGS provider request uses this conservative enclosing envelope:
 
 | Boundary | Value |
 |---|---:|
-| Minimum latitude | `14.04582802200008` |
-| Maximum latitude | `17.79695808500003` |
-| Minimum longitude | `93.35195104000019` |
-| Maximum longitude | `96.82662590900009` |
+| Minimum latitude | `8.7` |
+| Maximum latitude | `29.45` |
+| Minimum longitude | `91.1` |
+| Maximum longitude | `102.25` |
 
-The box is a coarse administrative coverage envelope, not a political border,
-affected-area assessment, or claim that places outside it are safe. Each
-successful refresh searches the latest ten years and returns at most ten events,
-ordered by event time. Provider refresh attempts are throttled to 60 seconds. A
-successful server snapshot is current for five minutes, then explicitly stale.
-A provider failure preserves the last successful server and mobile snapshots;
-failure before any success is not shown as an empty result. There are no
-simulated earthquake alerts in the runtime path; controlled alert fixtures
-remain test-only.
+The enclosing box and buffer are search/filter boundaries, not political
+borders, affected-area assessments, or claims that places outside them are safe.
+Each successful refresh searches the latest ten years and returns at most ten
+events, ordered by event time. Provider refresh attempts are throttled to 60
+seconds. A successful server snapshot is current for five minutes, then
+explicitly stale. A provider failure preserves the last successful server and
+mobile snapshots; failure before any success is not shown as an empty result.
+There are no simulated earthquake alerts in the runtime path; controlled alert
+fixtures remain test-only.
 
 ### Navigation data
 

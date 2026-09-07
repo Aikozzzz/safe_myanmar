@@ -11,9 +11,6 @@
   "homeDescription": "Emergency information and tools based on currently available information.",
   "homeSafetyCenterTitle": "Safety Center",
   "homeSafetyCenterDescription": "Review available information and open key safety tools.",
-  "homeOpenMapAction": "Open Map",
-  "homeOpenSosAction": "Open SOS setup",
-  "homeOpenGuideAction": "Open Guide",
   "homeEarthquakeCardTitle": "Live earthquake information",
   "viewEarthquakeInformation": "View earthquake information",
   "mapTitle": "Map",
@@ -378,7 +375,6 @@
   "sosNoRecipientsDescription": "Select at least one saved emergency contact before preparing an SOS draft.",
   "sosManageContacts": "Open More contacts",
   "sosSharedDataHeading": "Exact SMS preview",
-  "sosStoredDataHeading": "Draft details stored securely",
   "sosProfileNamePreview": "Profile name: {name}",
   "@sosProfileNamePreview": {
     "placeholders": {"name": {"type": "String"}}
@@ -419,7 +415,6 @@
   "sosLocationSharingUnavailableDescription": "The SOS can still be prepared without coordinates. Continue without sharing a location?",
   "sosContinueWithoutLocation": "Continue without location",
   "sosComposerDisclosure": "SafeMyanmar only opens your phone's messaging app. That app controls SMS transmission and delivery, and SafeMyanmar cannot verify either.",
-  "sosDirectSmsDisclosure": "After confirmation, SafeMyanmar requests SMS permission and sends the reviewed message directly through Android. The carrier may still delay delivery; SafeMyanmar can confirm only whether the device accepted the SMS.",
   "sosHoldToOpen": "Hold for 3 seconds to activate SOS",
   "sosHoldProgress": "Keep holding: {percent}%",
   "@sosHoldProgress": {

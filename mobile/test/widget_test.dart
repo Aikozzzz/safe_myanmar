@@ -9,13 +9,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mobile/app/app.dart';
+import 'package:mobile/features/alerts/application/providers.dart';
+
+import 'support/fake_alert_repository.dart';
 
 void main() {
   testWidgets('SafeMyanmar app starts on the Home screen', (
     WidgetTester tester,
   ) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(ProviderScope(child: SafeMyanmarApp()));
+    final repository = FakeAlertRepository()..queueRefresh();
+    addTearDown(repository.close);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [alertRepositoryProvider.overrideWithValue(repository)],
+        child: SafeMyanmarApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Home'), findsOneWidget);

@@ -107,21 +107,23 @@ failure are represented differently.
 
 ## Geographic Filtering
 
-The backend filters USGS records using the Yangon Region administrative coverage
-envelope from OCHA COD data. The current inclusive retrieval bounds are:
+The backend filters USGS records using a simplified Myanmar national outline and
+an approximately 100 km surrounding buffer. The current inclusive USGS request
+envelope is:
 
-- minimum latitude: `14.04582802200008`;
-- maximum latitude: `17.79695808500003`;
-- minimum longitude: `93.35195104000019`;
-- maximum longitude: `96.82662590900009`.
+- minimum latitude: `8.7`;
+- maximum latitude: `29.45`;
+- minimum longitude: `91.1`;
+- maximum longitude: `102.25`.
 
-These values are named configuration constants, documented, and covered by
-boundary tests. They are a coarse retrieval envelope, not a political border
-or an affected-area calculation. The API searches the latest ten years and
-returns at most ten records ordered by event time.
+These values are named provider constants, documented, and covered by request
+boundary tests. The national outline and buffer filter are covered by inclusion
+and exclusion tests. They are a coarse retrieval envelope, not a political
+border or an affected-area calculation. The API searches the latest ten years
+and returns at most ten records ordered by event time.
 
 Filtering uses earthquake coordinates only. It does not imply that the event
-affected every place within Myanmar or that places outside the box are safe.
+affected every place within Myanmar or that places outside the buffer are safe.
 
 ## Architecture
 

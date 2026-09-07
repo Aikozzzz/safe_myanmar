@@ -26,9 +26,8 @@ GoRouter createRouter({String initialLocation = '/home'}) {
                 path: '/home',
                 builder: (context, _) => HomeScreen(
                   onOpenEarthquakeInformation: () => context.push('/alerts'),
-                  onOpenMap: () => context.go('/map'),
-                  onOpenSos: () => context.go('/sos'),
-                  onOpenGuide: () => context.go('/guide'),
+                  onOpenEarthquake: (id) =>
+                      context.push('/alerts/${Uri.encodeComponent(id)}'),
                 ),
               ),
             ],
