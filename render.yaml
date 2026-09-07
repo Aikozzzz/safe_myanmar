@@ -1,0 +1,36 @@
+# Render Blueprint for the SafeMyanmar API.
+# DATABASE_URL is intentionally entered in the Render dashboard and is never
+# stored in this repository.
+services:
+  - type: web
+    name: safemyanmar-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/live
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: USGS_FEED_URL
+        value: https://earthquake.usgs.gov/fdsnws/event/1/query
+      - key: USGS_LOOKBACK_DAYS
+        value: "3650"
+      - key: PROVIDER_TIMEOUT_SECONDS
+        value: "10.0"
+      - key: REFRESH_MINIMUM_SECONDS
+        value: "60"
+      - key: CURRENT_MAX_AGE_SECONDS
+        value: "300"
+      - key: ENABLE_SIMULATION_DATA
+        value: "false"
+      - key: ENABLE_SIMULATION_ANALYSIS
+        value: "false"
+      - key: NAVIGATION_DATA_PATH
+        value: SafeMyanmar_Yangon_2026-08-17
+      - key: OVERPASS_API_URL
+        value: https://overpass-api.de/api/interpreter
+      - key: ELEVATION_API_URL
+        value: https://api.opentopodata.org/v1/aster30m

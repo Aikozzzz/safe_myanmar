@@ -60,6 +60,23 @@ the matching compile-time opt-in to Flutter; leaving it out keeps fictional
 navigation records hidden. Simulation route alternatives also require the
 backend-only `MAPBOX_DIRECTIONS_ACCESS_TOKEN`.
 
+## Remote Backend Testing
+
+For cable-free API testing, build the debug APK with the HTTPS URL of the
+deployed Render service:
+
+```powershell
+flutter build apk --debug `
+  --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com
+```
+
+Install the APK once through a private download, CI artifact, or another
+non-USB distribution method. After installation, the app uses mobile data or
+Wi-Fi directly; do not use `adb reverse` for the deployed URL. Render may sleep
+the free service, so the first request after inactivity can require a wait and
+one more refresh. The backend runs migrations at container startup and obtains
+its `DATABASE_URL` only from the Render dashboard.
+
 `MAPBOX_PUBLIC_ACCESS_TOKEN` is optional and is validated as a `pk.*` public
 token. It is embedded in the built app, so restrict it by application/package
 and allowed APIs and never substitute the backend Directions secret. Flutter

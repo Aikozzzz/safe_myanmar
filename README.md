@@ -225,6 +225,50 @@ The API image is built from the repository root and packages the validated
 Yangon snapshot. Do not remove that snapshot from the build context unless
 `NAVIGATION_DATA_PATH` points to another packaged snapshot.
 
+## Remote Backend For Cable-Free Testing
+
+The repository includes `render.yaml` for a free Render Docker Web Service. It
+uses the existing root-context image, runs Alembic migrations before Uvicorn,
+and checks `/health/live`. Render supplies its own `PORT`; local Docker keeps
+the `8000` fallback.
+
+Create a separate PostgreSQL 16 project on Neon for the deployed application.
+Use a database named `safemyanmar`, convert the Neon connection string scheme to
+`postgresql+psycopg://`, and retain `sslmode=require`. Enter the complete value
+as the Render `DATABASE_URL` secret. Never commit it or use it for tests.
+
+To deploy:
+
+1. Push the repository to GitHub and create a Render Blueprint from the
+   repository.
+2. Let Render read `render.yaml` and enter the Neon `DATABASE_URL` when asked.
+3. After deployment, verify `https://YOUR-SERVICE.onrender.com/health/live` and
+   `https://YOUR-SERVICE.onrender.com/api/v1/alerts`.
+4. Build a debug APK with the deployed HTTPS URL:
+
+   ```powershell
+   Set-Location mobile
+   flutter build apk --debug `
+     --dart-define=API_BASE_URL=https://YOUR-SERVICE.onrender.com
+   ```
+
+Install that APK once through an available non-USB distribution method, such
+as a private download or CI artifact. Later API testing uses normal mobile data
+or Wi-Fi and does not need `adb reverse` or a USB cable. Flutter does not read
+Render or local `.env` files; `API_BASE_URL` is compiled into the APK.
+
+The Render free service may sleep when unused. The first request after sleep can
+be slow; wait for the service to wake and refresh the app again. `GET
+/api/v1/alerts` performs a request-driven USGS refresh no more often than every
+60 seconds, so no scheduler is required for this prototype. The deployed
+service is suitable for demonstrations only, not operational emergency alerts.
+
+Keep `safemyanmar_test` local or temporary in CI. Never run automated tests
+against the deployed Neon database. The `/health/ready` endpoint may become
+unavailable when the packaged Yangon navigation snapshot exceeds its 30-day
+age limit; Render intentionally uses `/health/live` so live earthquake testing
+can remain separate from navigation-snapshot readiness.
+
 ## Mobile Setup
 
 ```powershell

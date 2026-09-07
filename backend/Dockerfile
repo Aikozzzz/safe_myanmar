@@ -13,4 +13,4 @@ COPY backend/alembic.ini .
 COPY backend/alembic ./alembic
 COPY SafeMyanmar_Yangon_2026-08-17 /app/SafeMyanmar_Yangon_2026-08-17
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

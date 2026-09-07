@@ -386,6 +386,7 @@ def test_runtime_dependencies_reuse_and_close_app_scoped_resources(monkeypatch):
     assert len(created_engines) == 1
     assert len(created_clients) == 1
     assert session.get_bind() is engine
+    assert engine.pool._pre_ping is True
     assert (
         get_earthquake_service(dependency_request)
         is application.state.earthquake_service

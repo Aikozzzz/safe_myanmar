@@ -11,6 +11,26 @@ def test_api_image_contains_alembic_configuration_and_migrations():
     assert "COPY SafeMyanmar_Yangon_2026-08-17 /app/SafeMyanmar_Yangon_2026-08-17" in (
         dockerfile
     )
+    assert (
+        'CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app '
+        '--host 0.0.0.0 --port ${PORT:-8000}"]'
+    ) in dockerfile
+
+
+def test_render_blueprint_uses_root_docker_context_and_safe_defaults():
+    render = (ROOT / "render.yaml").read_text(encoding="utf-8")
+
+    assert "type: web" in render
+    assert "runtime: docker" in render
+    assert "plan: free" in render
+    assert "dockerfilePath: ./backend/Dockerfile" in render
+    assert "dockerContext: ." in render
+    assert "healthCheckPath: /health/live" in render
+    assert "- key: DATABASE_URL\n        sync: false" in render
+    assert "value: production" in render
+    assert "key: ENABLE_SIMULATION_DATA\n        value: \"false\"" in render
+    assert "key: ENABLE_SIMULATION_ANALYSIS\n        value: \"false\"" in render
+    assert "key: NAVIGATION_DATA_PATH" in render
 
 
 def test_api_image_build_context_can_package_root_navigation_snapshot():

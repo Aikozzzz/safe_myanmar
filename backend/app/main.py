@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def create_app() -> FastAPI:
     settings = Settings()
-    engine = create_engine(settings.database_url)
+    engine = create_engine(settings.database_url, pool_pre_ping=True)
     session_factory = create_session_factory(engine)
     client = UsgsClient(
         settings.usgs_feed_url,
