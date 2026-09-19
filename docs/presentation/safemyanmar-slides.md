@@ -2,14 +2,14 @@
 
 ## Accuracy Scope
 
-This presentation describes the repository implementation as of September 7,
+This presentation describes the repository implementation as of September 8,
 2026. It distinguishes shipped behavior from optional capability, the public
 fictional simulation mode, and future work.
 
 | Status | Meaning |
 |---|---|
 | Implemented | Present in the current Android or backend code |
-| Partial or optional | Implemented with data, configuration, or separately provisioned artifacts required |
+| Partial or optional | Implemented with data, configuration, supported hardware, or authorized model artifacts and build packaging required |
 | Simulation | Fictional, clearly labeled data available through the public Render demonstration or local opt-in |
 | Future | Proposed capability that is not implemented |
 
@@ -147,7 +147,7 @@ organization portal, dispatch workflow, or family-location tracking service.
 | Confirmed direct-SMS SOS preparation | Implemented on Android |
 | Nearby Bluetooth SOS broadcast and receiving | Implemented on supported Android devices |
 | Offline Guide and deterministic assistant | Implemented |
-| Optional local ONNX and Gemma models | Implemented runtime; authorized artifacts can be bundled into a local APK or provisioned separately |
+| Optional local ONNX and Gemma models | Implemented runtime, build-time asset staging, and first-launch private provisioning |
 | Fictional navigation records | Publicly labeled simulation mode in the Render blueprint |
 | Rescue Beacon flashlight, siren, and HELP screen | Future |
 | Multi-disaster live alerts, trusted report submission, and damage reporting | Future |
@@ -251,9 +251,12 @@ The default assistant works offline and follows a tiered design.
 - Tier 1 uses deterministic English and Myanmar intent matching
 - Approved responses come from versioned local Guide content
 - Assistant actions only navigate after a separate user tap
-- Tier 2 can optionally refine unknown intents with a provisioned ONNX model
-- Tier 3 can optionally answer general questions with a provisioned local Gemma
-  model
+- Tier 2 can optionally refine unknown intents with the bundled or provisioned
+  ONNX model
+- Tier 3 can optionally answer general questions with the bundled or provisioned
+  local Gemma model
+- A bundled APK stages the authorized artifacts as Android assets, then copies
+  validated pairs into private app storage on first native AI use
 - Missing or invalid model files fall back to deterministic behavior
 
 Critical trapped-person, first-aid, SOS, and route requests are not rewritten by
@@ -318,7 +321,10 @@ flowchart TD
     M --> S[Android secure local profile and SOS drafts]
     M --> G[Foreground GPS and Mapbox display]
     M --> E[Deterministic edge assistance]
-    M --> L[Optional local ONNX and Gemma runtimes]
+    K[Authorized ignored ai_models artifacts] --> T[Gradle APK asset staging]
+    T --> M
+    M --> Q[Private filesDir/ai first-use staging]
+    Q --> L[Optional local ONNX and Gemma runtimes]
     M --> X[Android SMS and nearby BLE]
 ```
 
@@ -339,6 +345,8 @@ on the device, while external data calls require network connectivity.
 6. The user may review and confirm an SMS and/or nearby Bluetooth SOS.
 7. The Guide and deterministic assistant continue to provide reviewed local
    content offline.
+8. When bundled models are included, first native AI use copies and validates
+   their model/manifest pairs into private app storage before optional inference.
 
 No step automatically dispatches rescuers, reports a disaster, shares location,
 or guarantees that a destination is safe.
@@ -396,6 +404,9 @@ Real-world response-time improvement has not yet been measured.
 - Optional ONNX and Gemma artifacts are not present in a clean checkout, but an
   authorized local APK build can bundle them and copy them into private storage
   on first use.
+- The Gemma artifact is approximately 557 MiB, so APK distribution and device
+  storage should be evaluated for supported devices; model licensing remains a
+  distribution constraint.
 - Complete Rescue Beacon, cloud AI, push alerts, damage reporting, rescue-team
   integration, and HPC processing are not implemented.
 

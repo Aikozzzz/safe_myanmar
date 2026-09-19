@@ -22,6 +22,7 @@ service.
 |---|---:|---|---|
 | September 2, 2026 | 1.00 | Project Group | Initial project report overview |
 | September 7, 2026 | 1.01 | Project Group | Corrected implementation, optional, simulation, and future-work claims |
+| September 8, 2026 | 1.02 | Project Group | Added authorized local APK model bundling and first-launch private staging |
 
 ## Document Boundary
 
@@ -34,7 +35,7 @@ The following status terms are used throughout the report:
 | Status | Meaning |
 |---|---|
 | Implemented | Present in the current Android or backend code |
-| Partial or optional | Present but dependent on current data, external configuration, supported hardware, or separately provisioned artifacts |
+| Partial or optional | Present but dependent on current data, external configuration, supported hardware, or available authorized model artifacts and build packaging |
 | Simulation | Fictional, explicitly labeled behavior behind an explicit runtime opt-in; the Render blueprint enables the public demonstration |
 | Future | Proposed capability that is not implemented |
 
@@ -89,7 +90,9 @@ earthquake response, trapped-person guidance, floodwater avoidance, home-fire
 escape, and initial first-aid assessment. The default assistant uses
 deterministic intent matching and approved local content. Optional ONNX and
 Gemma runtimes can be bundled into a local APK from authorized ignored artifacts
-or provisioned separately on supported development devices. Critical first-aid,
+or provisioned separately on supported development devices. In a bundled build,
+Android stages the artifacts as APK assets and copies validated pairs into
+private application storage on first native AI use. Critical first-aid,
 trapped-person, SOS, and route requests are excluded from generative rewriting,
 and no cloud AI service is implemented.
 
@@ -275,8 +278,9 @@ date, filtering, search, and offline behavior.
 
 #### 4.9 Deterministic and Optional Local Assistance
 
-Explain intent classification, approved-content retrieval, optional model
-provisioning, capability banners, safety rejection, and deterministic fallback.
+Explain intent classification, approved-content retrieval, build-time APK asset
+staging, first-launch private model provisioning, capability banners, safety
+rejection, separate model tiers, and deterministic fallback.
 
 #### 4.10 Development Simulation Boundaries
 
@@ -309,8 +313,9 @@ SMS attempt, optional BLE broadcast, and visible status updates.
 
 #### 5.5 Offline Guide and Assistant Process
 
-Trace deterministic intent matching, local Guide retrieval, optional model use,
-and safe fallback when a model or network is unavailable.
+Trace deterministic intent matching, local Guide retrieval, first-use model
+staging when a bundled artifact exists, optional model use, and safe fallback
+when a model or network is unavailable.
 
 ### Chapter 6 - Testing and Evaluation
 
@@ -333,7 +338,8 @@ states, alert caching, SOS confirmation, BLE behavior, and Guide retrieval.
 #### 6.4 Offline and Failure Evaluation
 
 Test stale cached alerts, server unavailability, GPS failure, permission denial,
-route-provider failure, optional-model absence, and local SOS persistence.
+route-provider failure, missing or invalid bundled/provisioned model artifacts,
+and local SOS persistence.
 
 #### 6.5 Safety, Security, and Privacy Review
 
@@ -353,7 +359,9 @@ real-world disaster-response-time improvement.
 
 Cover USGS-only live observations, the absence of official warnings and verified
 shelters, snapshot age limits, provider dependence, GPS uncertainty, SMS and BLE
-limitations, unbundled optional models, and unimplemented operational services.
+limitations, the large optional model size and supported-device/resource limits,
+model licensing and distribution boundaries, and unimplemented operational
+services.
 
 #### 7.2 Future Improvements
 
@@ -404,7 +412,7 @@ status matrix.
 | Complete Rescue Beacon Mode | Future | No flashlight pattern, siren, vibration pattern, HELP screen, wake lock, or battery mode |
 | Offline Guide | Implemented | Five reviewed, bilingual, versioned local articles |
 | Deterministic assistant | Implemented | Uses local intent matching and approved Guide content |
-| ONNX and Gemma assistance | Partial or optional | Runtime and first-launch APK bundling are present; authorized model artifacts remain untracked and may be bundled or provisioned separately |
+| ONNX and Gemma assistance | Partial or optional | Runtime, build-time asset staging, and first-launch APK bundling are present; authorized model artifacts remain untracked and may be bundled or provisioned separately |
 | Cloud AI | Future | No remote AI client or service exists |
 | Trusted or citizen report submission | Future | No submission, verification, moderation, or report-storage workflow exists |
 | Damage reporting and camera upload | Future | No report screen, camera permission, upload endpoint, or object storage exists |
